@@ -8,9 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-/* ============================================================
-   BRAND TOKENS (ίδια με το εσωτερικό σύστημα / m-m-m.gr)
-   ============================================================ */
+/* ===== BRAND TOKENS (ίδια με το εσωτερικό σύστημα / m-m-m.gr) ===== */
 :root{
   --white:#FFFFFF; --bg:#FBFBF8; --line:#E8E6DD; --line-2:#F2F1EC;
   --olive:#7D8A4E; --olive-dark:#66713F; --olive-deep:#545E33; --olive-tint:#F1F3E8;
@@ -24,73 +22,56 @@
 html{-webkit-text-size-adjust:100%}
 body{font-family:var(--font);background:var(--bg);color:var(--ink);font-size:14.5px;line-height:1.55;min-height:100vh}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
-input,select,textarea{font:inherit;color:inherit}
+input{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--olive);outline-offset:2px}
 [hidden]{display:none!important}
 
-/* ============ TOP BAR ============ */
+/* ===== HEADER ===== */
 .topbar{background:var(--white);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:40}
-.topbar-in{max-width:1080px;margin:0 auto;height:66px;padding:0 24px;display:flex;align-items:center;gap:18px}
+.topbar-in{max-width:980px;margin:0 auto;height:66px;padding:0 24px;display:flex;align-items:center;gap:16px}
 .brand{display:flex;align-items:center;gap:12px;margin-right:auto;text-decoration:none;color:inherit}
 .brand img{height:46px;width:auto;max-width:120px;object-fit:contain}
 .brand-fallback{width:40px;height:40px;border-radius:50%;background:var(--olive-dark);color:#fff;display:grid;place-items:center;font-weight:800;font-size:14px}
 .bt{line-height:1.2}
 .bt b{display:block;font-size:14.5px;font-weight:700}
 .bt span{font-size:10.5px;letter-spacing:.14em;color:var(--olive-dark);font-weight:700}
-.top-nav{display:flex;gap:2px}
-.nav-btn{position:relative;padding:9px 14px;font-size:12.5px;font-weight:700;letter-spacing:.06em;color:var(--ink);border-radius:6px;display:inline-flex;align-items:center;gap:7px}
+.nav{display:flex;gap:2px}
+.nav-btn{position:relative;padding:9px 14px;font-size:12.5px;font-weight:700;letter-spacing:.06em;border-radius:6px;display:inline-flex;align-items:center;gap:7px}
 .nav-btn:hover,.nav-btn.active{color:var(--olive-dark)}
 .nav-btn.active::after{content:"";position:absolute;left:14px;right:14px;bottom:1px;height:2px;background:var(--olive);border-radius:2px}
-.cnt{min-width:18px;height:18px;padding:0 5px;border-radius:99px;background:var(--olive-tint);color:var(--olive-deep);font-size:10.5px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;letter-spacing:0;line-height:1}
-.cnt.red{background:var(--red);color:#fff}
-.save-state{font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:6px;white-space:nowrap}
-.save-state::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--olive)}
-.save-state.saving::before{background:var(--wheat)}
-.save-state.err{color:var(--red);font-weight:700}
-.save-state.err::before{background:var(--red)}
-@media (max-width:900px){
-  .top-nav,.save-state{display:none}
-  .save-state.err{display:flex}
-  .topbar-in{height:58px;padding:0 16px}
+.cnt{min-width:18px;height:18px;padding:0 5px;border-radius:99px;background:var(--red);color:#fff;font-size:10.5px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;letter-spacing:0;line-height:1}
+.save-err{font-size:12px;color:var(--red);font-weight:700}
+@media (max-width:600px){
+  .topbar-in{height:58px;padding:0 14px;gap:8px}
   .brand img{height:38px}
+  .bt{display:none}
+  .nav-btn{padding:9px 10px}
 }
 
-/* ============ NOTIFICATION BAR ============ */
+/* ===== NOTIFICATION BAR ===== */
 .notif-bar{background:var(--olive-tint);border-bottom:1px solid #DFE3CF}
 .notif-bar.warn{background:var(--wheat-tint);border-bottom-color:#EEDDB9}
-.notif-in{max-width:1080px;margin:0 auto;padding:10px 24px;display:flex;align-items:center;gap:14px;font-size:13.5px}
+.notif-in{max-width:980px;margin:0 auto;padding:10px 24px;display:flex;align-items:center;gap:14px;font-size:13.5px}
 .notif-in p{flex:1}
-@media (max-width:900px){.notif-in{padding:10px 16px}}
 
-/* ============ LAYOUT ============ */
-.main{max-width:1080px;margin:0 auto;padding:34px 24px 110px}
+/* ===== LAYOUT ===== */
+.main{max-width:980px;margin:0 auto;padding:34px 24px 90px}
+@media (max-width:600px){.main{padding:22px 14px 80px}.notif-in{padding:10px 14px}}
 .view{display:none}
 .view.active{display:block}
 .greet{margin-bottom:22px}
 .greet h1{font-size:clamp(26px,3.6vw,34px);font-weight:700;letter-spacing:-.015em;line-height:1.15}
-.greet p{margin-top:8px;font-size:15.5px;max-width:62ch}
+.greet p{margin-top:8px;font-size:15.5px}
 .greet .date{color:var(--muted)}
-.page-h{margin-bottom:22px}
-.page-h h1{font-size:26px;font-weight:700;letter-spacing:-.01em}
-.page-h p{color:var(--muted);margin-top:4px;max-width:65ch}
-.sec{margin-bottom:36px}
-.sec-h{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.sec{margin-bottom:34px}
+.sec-h{display:flex;align-items:center;gap:14px;margin-bottom:14px}
 .sec-h h2{font-size:13px;font-weight:800;letter-spacing:.12em;white-space:nowrap}
 .sec-h .rule{flex:1;height:1px;background:var(--line)}
 .sec-h.bad h2{color:var(--red)}
 .card{background:var(--white);border:1px solid var(--line);border-radius:var(--radius)}
 .empty{border:1px dashed #D9D6C9;border-radius:var(--radius);padding:22px;color:var(--muted);text-align:center;background:var(--white)}
 
-/* κατάσταση συγχρονισμού */
-.sync{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-bottom:26px}
-.state{display:inline-flex;align-items:center;gap:7px;font-weight:600;font-size:13px}
-.state::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0}
-.state.ok::before{background:var(--olive)}
-.state.bad::before{background:var(--red)}
-.state.wait::before{background:var(--wheat)}
-.state.bad{color:var(--red)}
-
-/* ============ BUTTONS / INPUTS ============ */
+/* ===== BUTTONS / INPUTS ===== */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 16px;border-radius:8px;font-weight:700;font-size:13.5px;transition:background .15s,color .15s,border-color .15s;white-space:nowrap}
 .btn.primary{background:var(--olive-dark);color:#fff}
 .btn.primary:hover{background:var(--olive-deep)}
@@ -101,23 +82,26 @@ input,select,textarea{font:inherit;color:inherit}
 .btn.danger-ghost:hover{background:var(--red-tint)}
 .btn.sm{padding:7px 12px;font-size:12.5px}
 .btn.block{width:100%}
-.btn:disabled{opacity:.55;cursor:default}
 .icon-btn{width:30px;height:30px;border-radius:7px;display:grid;place-items:center;color:#A9A79B;font-size:19px;line-height:1;flex-shrink:0}
 .icon-btn:hover{background:var(--red-tint);color:var(--red)}
+.inp{border:1px solid var(--line);background:var(--white);border-radius:8px;padding:9px 11px;font-size:14px;min-width:0}
+.inp:focus{border-color:var(--olive);outline:none;box-shadow:0 0 0 3px var(--olive-tint)}
 .f{display:flex;flex-direction:column;gap:5px;min-width:0}
 .f>span{font-size:12px;font-weight:700;color:var(--muted)}
-.inp,.f input{border:1px solid var(--line);background:var(--white);border-radius:8px;padding:9px 11px;font-size:14px;width:100%;min-width:0}
-.inp:focus,.f input:focus{border-color:var(--olive);outline:none;box-shadow:0 0 0 3px var(--olive-tint)}
-.addrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.addrow .inp{flex:1;min-width:200px;max-width:380px}
-.hint{font-size:13px;color:var(--muted);margin-top:8px;min-height:20px}
+.f .inp{width:100%}
+
+/* ===== ΠΡΟΣΘΗΚΗ ===== */
+.add-card{padding:18px;margin-bottom:32px}
+.add-grid{display:grid;grid-template-columns:1.6fr auto auto;gap:10px;align-items:end}
+.when{display:flex;gap:6px;align-items:center}
+.when .inp{width:150px}
+@media (max-width:760px){.add-grid{grid-template-columns:1fr}.when .inp{flex:1;width:auto}}
+.hint{font-size:13px;color:var(--muted);margin-top:10px;min-height:20px}
 .hint b{color:var(--ink)}
 .hint .bad{color:var(--red);font-weight:600}
-.add-card{padding:18px;margin-bottom:8px}
-.add-card .lbl{font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:6px}
 
-/* ============ ΦΑΚΕΛΟΣ (το βασικό στοιχείο) ============ */
-.env-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:18px}
+/* ===== ΦΑΚΕΛΟΣ (κάρτα σημερινών) ===== */
+.env-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px}
 .env{
   position:relative;background:var(--white);border:1px solid var(--line);border-radius:3px 3px 8px 8px;
   padding:70px 18px 18px;display:flex;flex-direction:column;text-align:center;
@@ -130,59 +114,44 @@ input,select,textarea{font:inherit;color:inherit}
     linear-gradient(to top right,transparent calc(50% - .8px),rgba(148,105,31,.4) 50%,transparent calc(50% + .8px)) left top/50% 100% no-repeat,
     linear-gradient(to top left,transparent calc(50% - .8px),rgba(148,105,31,.4) 50%,transparent calc(50% + .8px)) right top/50% 100% no-repeat;
 }
-.seal{
-  position:absolute;left:50%;top:44px;transform:translate(-50%,-50%);z-index:1;
-  width:36px;height:36px;border-radius:50%;background:var(--olive-dark);color:#fff;
-  display:grid;place-items:center;box-shadow:0 0 0 4px var(--white),0 0 0 5px var(--line);
-}
+.seal{position:absolute;left:50%;top:44px;transform:translate(-50%,-50%);z-index:1;width:36px;height:36px;border-radius:50%;background:var(--olive-dark);color:#fff;display:grid;place-items:center;box-shadow:0 0 0 4px var(--white),0 0 0 5px var(--line)}
 .seal svg{width:17px;height:17px}
 .env h3{font-size:16.5px;font-weight:700;line-height:1.3}
-.env .alias{color:var(--muted);font-size:12.5px;margin-top:2px}
-.env .who{margin:12px 0 2px;font-weight:600;font-size:14px}
-.env .since{color:var(--muted);font-size:12.5px;margin-bottom:16px}
+.env .since{color:var(--muted);font-size:12.5px;margin:4px 0 16px}
 .env .btn{margin-top:auto}
 .leaving{opacity:0;transform:translateY(-8px)}
 
-/* ============ ΓΡΑΜΜΕΣ ============ */
+/* ===== ΓΡΑΜΜΕΣ ===== */
 .rows{background:var(--white);border:1px solid var(--line);border-radius:var(--radius)}
 .rows.bad{border-color:#EBD3D1;background:#FFFCFB}
-.row{display:flex;align-items:center;gap:12px;padding:12px 16px;transition:opacity .2s,transform .2s;flex-wrap:wrap}
+.row{display:flex;align-items:center;gap:10px;padding:11px 14px;transition:opacity .2s,transform .2s;flex-wrap:wrap}
 .row+.row{border-top:1px solid var(--line-2)}
-.r-main{flex:1;min-width:180px}
+.r-main{flex:1;min-width:170px}
 .r-main b{font-weight:700}
 .r-main small{display:block;color:var(--muted);font-size:12.5px}
-.r-main small.warn{color:var(--red);font-weight:600}
-.tag{font-size:12px;font-weight:700;padding:4px 10px;border-radius:99px;background:var(--line-2);color:var(--ink);white-space:nowrap}
-.tag.today{background:var(--olive-dark);color:#fff}
-.tag.tmr{background:var(--wheat-tint);color:var(--wheat-dark)}
-.tag.none{background:var(--red-tint);color:var(--red)}
-.tag.env{background:var(--wheat-tint);color:var(--wheat-dark);display:inline-flex;align-items:center;gap:6px}
-.tag.env svg{width:13px;height:13px}
-.day-h{font-size:12.5px;font-weight:700;color:var(--muted);margin:22px 0 8px}
-.day-h:first-child{margin-top:0}
-.tabs{display:flex;align-items:center;gap:6px;margin:26px 0 16px;flex-wrap:wrap}
-.tab{padding:8px 14px;border-radius:8px;font-weight:700;font-size:13px;color:var(--muted);border:1px solid transparent;display:inline-flex;gap:7px;align-items:center}
-.tab:hover{color:var(--ink)}
-.tab.active{background:var(--white);border-color:var(--line);color:var(--ink)}
-.tabs .inp{margin-left:auto;max-width:260px}
-.onboard{padding:24px;margin-bottom:30px;max-width:720px}
-.onboard h2{font-size:18px;margin-bottom:6px}
-.onboard ol{color:var(--muted);margin:0 0 16px 20px}
-.onboard ol li{margin-bottom:4px}
-.btns{display:flex;gap:8px;flex-wrap:wrap}
+.row input[type=date]{padding:6px 8px;font-size:13px;width:150px}
+.given{margin-top:10px}
+.given summary{cursor:pointer;font-weight:700;font-size:13.5px;color:var(--muted);padding:6px 0}
+.given summary:hover{color:var(--ink)}
+.given .rows{margin-top:8px}
 
-/* ============ ΡΥΘΜΙΣΕΙΣ ============ */
-.set{padding:18px 20px;margin-bottom:14px;max-width:720px}
+/* ===== ΡΥΘΜΙΣΕΙΣ ===== */
+.page-h{margin-bottom:22px}
+.page-h h1{font-size:26px;font-weight:700;letter-spacing:-.01em}
+.set{padding:18px 20px;margin-bottom:14px;max-width:680px}
 .set h3{font-size:15px;font-weight:700;margin-bottom:10px}
-.set p{color:var(--muted);font-size:13.5px;margin-bottom:12px;max-width:64ch}
-.set .f{margin-bottom:12px}
+.set p{color:var(--muted);font-size:13.5px;margin-bottom:12px;max-width:62ch}
 .set-row{display:flex;align-items:center;gap:14px;padding:12px 0;border-top:1px solid var(--line-2);flex-wrap:wrap}
 .set-row.first{border-top:0;padding-top:4px}
 .sr-t{flex:1;min-width:200px}
 .sr-t b{display:block;font-weight:600}
 .sr-t small{color:var(--muted);font-size:12.5px}
-.set-row input[type=time]{width:auto}
-.set .state{margin-bottom:12px}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.state{display:inline-flex;align-items:center;gap:7px;font-weight:600;font-size:13.5px;margin-bottom:12px}
+.state::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.state.ok::before{background:var(--olive)}
+.state.bad::before{background:var(--red)}
+.state.wait::before{background:var(--wheat)}
 .switch{position:relative;width:42px;height:24px;flex-shrink:0}
 .switch input{position:absolute;inset:0;opacity:0;width:100%;height:100%;margin:0;cursor:pointer;z-index:1}
 .switch span{position:absolute;inset:0;border-radius:99px;background:#D9D6C9;transition:background .15s}
@@ -190,33 +159,20 @@ input,select,textarea{font:inherit;color:inherit}
 .switch input:checked+span{background:var(--olive-dark)}
 .switch input:checked+span::after{transform:translateX(18px)}
 .switch input:focus-visible+span{outline:2px solid var(--olive);outline-offset:2px}
-.guide{margin-top:14px;border-top:1px solid var(--line-2);padding-top:12px}
-.guide summary{cursor:pointer;font-weight:700;font-size:13.5px;color:var(--olive-deep)}
-.guide ol{margin:12px 0 0 20px;font-size:13.5px;color:var(--ink)}
-.guide li{margin-bottom:8px;max-width:64ch}
-.guide code{font-size:12.5px;background:var(--line-2);padding:1px 5px;border-radius:4px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:2px;background:var(--white);border:1px solid var(--line);border-radius:99px;padding:3px 5px 3px 11px;font-size:12.5px;font-weight:600}
+.chip button{width:20px;height:20px;border-radius:50%;color:#A9A79B;line-height:1;font-size:15px}
+.chip button:hover{background:var(--red-tint);color:var(--red)}
 
-/* ============ TOASTS ============ */
+/* ===== TOASTS ===== */
 .toasts{position:fixed;right:18px;bottom:18px;z-index:90;display:flex;flex-direction:column;gap:8px;width:min(380px,calc(100vw - 36px))}
 .toast{background:var(--ink);color:#fff;border-radius:10px;padding:12px 8px 12px 14px;display:flex;gap:8px;align-items:flex-start;font-size:13.5px;box-shadow:0 12px 30px -12px rgba(0,0,0,.45);animation:tin .2s ease}
 .toast.alert{background:var(--white);color:var(--ink);border:1px solid var(--line);border-left:4px solid var(--wheat)}
 .t-msg{flex:1;padding-top:1px}
 .t-act{font-weight:700;color:#E8C27E;padding:2px 6px;white-space:nowrap}
-.toast.alert .t-act{color:var(--olive-deep)}
 .t-x{opacity:.65;font-size:18px;line-height:1;padding:0 6px}
 @keyframes tin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-
-/* ============ BOTTOM NAV (κινητό) ============ */
-.bottombar{display:none}
-@media (max-width:900px){
-  .main{padding:22px 16px 110px}
-  .bottombar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--white);border-top:1px solid var(--line);padding:6px 4px calc(6px + env(safe-area-inset-bottom));justify-content:space-around}
-  .bb-btn{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;font-weight:700;color:var(--muted);padding:4px 8px;min-width:64px;position:relative}
-  .bb-btn svg{width:22px;height:22px}
-  .bb-btn.active{color:var(--olive-dark)}
-  .bb-btn .cnt{position:absolute;top:0;right:10px}
-  .toasts{bottom:78px;right:12px;left:12px;width:auto}
-}
+@media (max-width:600px){.toasts{right:12px;left:12px;bottom:12px;width:auto}}
 @media (prefers-reduced-motion:reduce){.toast{animation:none}.env,.row{transition:none}}
 </style>
 </head>
@@ -224,26 +180,23 @@ input,select,textarea{font:inherit;color:inherit}
 
 <header class="topbar">
   <div class="topbar-in">
-    <a class="brand" href="#" data-go="today">
+    <a class="brand" href="#" data-go="main">
       <img id="logo" alt="Μύλοι Αρκαδίου">
       <span class="brand-fallback" id="logoFb" hidden>ΜΑ</span>
       <span class="bt"><b>Μύλοι Αρκαδίου</b><span>ΦΑΚΕΛΟΙ ΠΕΛΑΤΩΝ</span></span>
     </a>
-    <nav class="top-nav" id="topNav" aria-label="Κύρια πλοήγηση"></nav>
-    <span class="save-state" id="saveState" aria-live="polite"></span>
+    <span class="save-err" id="saveErr" hidden>Σφάλμα αποθήκευσης</span>
+    <nav class="nav" id="nav" aria-label="Πλοήγηση"></nav>
   </div>
 </header>
 
 <div class="notif-bar" id="notifBar" hidden></div>
 
 <main class="main">
-  <section class="view" id="view-today"></section>
-  <section class="view" id="view-env"></section>
-  <section class="view" id="view-prog"></section>
+  <section class="view" id="view-main"></section>
   <section class="view" id="view-set"></section>
 </main>
 
-<nav class="bottombar" id="bottomBar" aria-label="Πλοήγηση"></nav>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <datalist id="custList"></datalist>
 <input type="file" id="importFile" accept="application/json,.json" hidden>
@@ -251,25 +204,21 @@ input,select,textarea{font:inherit;color:inherit}
 <script>
 'use strict';
 /* =====================================================================
-   ΤΙ ΚΡΑΤΑΕΙ Η ΕΦΑΡΜΟΓΗ (επίτηδες ελάχιστα):
-   - φάκελοι: όνομα πελάτη, πότε μπήκε στο stand, πότε δόθηκε και σε ποιον
-   - πρόγραμμα: ημερομηνία παράδοσης, πελάτης, οδηγός (από το αρχείο ΠΑΡΑΓΓΕΛΙΕΣ)
-   Κανένα ποσό, αριθμός απόδειξης, ποσότητα ή στοιχείο πληρωμής.
+   Φάκελοι πελατών · Μύλοι Αρκαδίου
+   Κρατάει ΜΟΝΟ: όνομα πελάτη, ημέρα παράδοσης, πότε μπήκε / πότε δόθηκε ο φάκελος.
+   Κανένα ποσό, αριθμός απόδειξης ή στοιχείο πληρωμής.
    ===================================================================== */
 const LOGO_URLS = ['https://m-m-m.gr/wp-content/uploads/2024/04/logo-150.png', 'https://i.imgur.com/oDCFSVE.png'];
-const KEY = 'arkadi-fakeloi-v2';
-const HISTORY_DAYS = 90;          // το ιστορικό «Δόθηκαν» σβήνεται μόνο του μετά από τόσες μέρες
-const SYNC_EVERY_MIN = 10;
-const DEFAULT_SETTINGS = { userName:'Ζωή', morningTime:'07:30', eveEnabled:true, eveTime:'14:00', sound:true, syncUrl:'', syncKey:'' };
-const EMPTY_ROUTES = { entries:[], customers:[], updated:null, fetchedAt:null, sample:false };
-
+const KEY = 'arkadi-fakeloi-v3';
+const HISTORY_DAYS = 90;
+const DEFAULT_SETTINGS = { userName:'Ζωή', morningTime:'07:30', eveEnabled:true, eveTime:'14:00', sound:true };
 const DAYS_FULL = ['Κυριακή','Δευτέρα','Τρίτη','Τετάρτη','Πέμπτη','Παρασκευή','Σάββατο'];
 const MONTHS = ['Ιανουαρίου','Φεβρουαρίου','Μαρτίου','Απριλίου','Μαΐου','Ιουνίου','Ιουλίου','Αυγούστου','Σεπτεμβρίου','Οκτωβρίου','Νοεμβρίου','Δεκεμβρίου'];
 const REDUCE = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const ENV_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>';
 
-let DB = { envelopes:[], settings:{...DEFAULT_SETTINGS}, fired:{}, routes:{...EMPTY_ROUTES} };
-let view = 'today', envTab = 'stand', lastDay = '', notifBarClosed = false;
-let syncing = false, syncError = '';
+let DB = { envelopes:[], customers:[], settings:{...DEFAULT_SETTINGS}, fired:{} };
+let view = 'main', lastDay = '', notifBarClosed = false;
 
 /* ===================== HELPERS ===================== */
 const $ = id => document.getElementById(id);
@@ -282,55 +231,24 @@ const tomorrowIso = () => iso(addDays(new Date(),1));
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,8);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ς/g,'σ').replace(/\s+/g,' ').trim();
+const clean = s => String(s || '').replace(/\s+/g,' ').trim().slice(0,80);
 const toMin = t => { const [h,m] = String(t || '00:00').split(':').map(Number); return (h||0)*60 + (m||0); };
 const shortDate = s => { const d = fromIso(s); return `${d.getDate()}/${d.getMonth()+1}`; };
 const longDate = s => { const d = fromIso(s); return `${DAYS_FULL[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`; };
-const hhmm = isoTs => { const d = new Date(isoTs); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
-function whenStr(isoTs){ const d = new Date(isoTs); return iso(d) === todayIso() ? `σήμερα ${hhmm(isoTs)}` : `${d.getDate()}/${d.getMonth()+1} ${hhmm(isoTs)}`; }
-function routeLabel(s, lower=false){
+const hhmm = ts => { const d = new Date(ts); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+function dayLabel(s, lower=false){
   if (s === todayIso()) return lower ? 'σήμερα' : 'Σήμερα';
   if (s === tomorrowIso()) return lower ? 'αύριο' : 'Αύριο';
   const d = fromIso(s); return `${DAYS_FULL[d.getDay()]} ${d.getDate()}/${d.getMonth()+1}`;
 }
-const daysSince = isoTs => Math.max(0, Math.round((fromIso(todayIso()) - fromIso(iso(new Date(isoTs)))) / 86400000));
-const sinceText = isoTs => { const n = daysSince(isoTs); return `Στο stand από ${shortDate(iso(new Date(isoTs)))}` + (n === 0 ? ' (σήμερα)' : n === 1 ? ' (1 μέρα)' : ` (${n} μέρες)`); };
-const ENV_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>';
-
-/* ===================== ΠΕΛΑΤΕΣ & ΠΡΟΓΡΑΜΜΑ ===================== */
-/* Ίδιος πελάτης: ίδιο όνομα (χωρίς τόνους/κεφαλαία), ή όλες οι λέξεις του μικρότερου
-   ονόματος υπάρχουν στο μεγαλύτερο (π.χ. «ΤΣΑΤΣΑΡΩΝΑΚΗΣ» ≈ «ΜΑΝΑ ΤΣΑΤΣΑΡΩΝΑΚΗΣ»). */
-function sameCustomer(a, b){
-  const x = norm(a), y = norm(b);
-  if (!x || !y) return false;
-  if (x === y) return true;
-  const A = x.split(' '), B = y.split(' ');
-  const [s, l] = A.length <= B.length ? [A, B] : [B, A];
-  return s.every(w => w.length >= 3 && l.includes(w));
+function sinceText(ts){
+  const n = Math.max(0, Math.round((fromIso(todayIso()) - fromIso(iso(new Date(ts)))) / 86400000));
+  return `Στο stand από ${shortDate(iso(new Date(ts)))}` + (n === 0 ? ' (σήμερα)' : n === 1 ? ' (1 μέρα)' : ` (${n} μέρες)`);
 }
-const hasRoutes = () => DB.routes.sample || !!DB.routes.fetchedAt;
 const pending = () => DB.envelopes.filter(e => !e.givenAt);
-const routesOn = (name, d) => DB.routes.entries.filter(e => e.d === d && sameCustomer(name, e.c));
-const nextRouteOf = name => DB.routes.entries.find(e => e.d >= todayIso() && sameCustomer(name, e.c)) || null;
-const envFor = name => pending().find(e => sameCustomer(e.name, name)) || null;
-function missedOf(env){
-  const t = todayIso(), added = iso(new Date(env.addedAt));
-  if (routesOn(env.name, t).length) return null;
-  const past = DB.routes.entries.filter(e => e.d < t && e.d >= added && sameCustomer(env.name, e.c));
-  return past.length ? past[past.length-1] : null;
-}
-function driversOf(rs){ return [...new Set(rs.flatMap(r => String(r.drv || '').split(',').map(s => s.trim()).filter(Boolean)))]; }
-function whoText(rs){
-  if (!rs.length) return '';
-  if (rs.every(r => r.own)) return 'Παραλαμβάνει ο ίδιος';
-  const d = driversOf(rs);
-  return d.length ? `Οδηγός: ${d.join(', ')}` : 'Οδηγός: δεν έχει γραφτεί';
-}
-function knownCustomers(){
-  const seen = new Map();
-  [...DB.routes.customers, ...DB.routes.entries.map(e => e.c), ...DB.envelopes.map(e => e.name)].forEach(n => {
-    const k = norm(n); if (k && !seen.has(k)) seen.set(k, n);
-  });
-  return [...seen.values()].sort((a,b) => a.localeCompare(b,'el'));
+const pendingFor = name => pending().find(e => norm(e.name) === norm(name)) || null;
+function rememberCustomer(name){
+  if (!DB.customers.some(n => norm(n) === norm(name))){ DB.customers.push(name); DB.customers.sort((a,b) => a.localeCompare(b,'el')); }
 }
 function tidy(){
   const cutoff = addDays(new Date(), -HISTORY_DAYS).toISOString();
@@ -340,8 +258,8 @@ function tidy(){
 }
 
 /* ===================== STORAGE =====================
-   Μέσα στο Claude: window.storage (προσωπικά, όχι κοινόχρηστα).
-   Από δικό σας link: αποθήκευση στον browser αυτού του υπολογιστή.            */
+   Μέσα στο Claude: window.storage (προσωπικά δεδομένα).
+   Από δικό σας link: αποθήκευση στον browser αυτού του υπολογιστή. */
 const HAS_CLAUDE_STORAGE = !!(window.storage && typeof window.storage.get === 'function');
 async function loadDB(){
   let raw = null;
@@ -354,93 +272,25 @@ async function loadDB(){
     const d = JSON.parse(raw);
     DB = {
       envelopes: Array.isArray(d.envelopes) ? d.envelopes : [],
+      customers: Array.isArray(d.customers) ? d.customers : [],
       settings: {...DEFAULT_SETTINGS, ...(d.settings || {})},
-      fired: d.fired && typeof d.fired === 'object' ? d.fired : {},
-      routes: {...EMPTY_ROUTES, ...(d.routes || {})}
+      fired: d.fired && typeof d.fired === 'object' ? d.fired : {}
     };
   } catch(e){ toast('Τα αποθηκευμένα δεδομένα δεν διαβάστηκαν.', {sticky:true}); }
 }
 let saveTimer = null;
-function save(){ clearTimeout(saveTimer); setSaveState('saving'); saveTimer = setTimeout(persist, 250); }
+function save(){ clearTimeout(saveTimer); saveTimer = setTimeout(persist, 250); }
 async function persist(){
-  const data = JSON.stringify(DB);
   try {
+    const data = JSON.stringify(DB);
     if (HAS_CLAUDE_STORAGE){ const r = await window.storage.set(KEY, data, false); if (!r) throw new Error('no result'); }
     else window.localStorage.setItem(KEY, data);
-    setSaveState('ok');
+    $('saveErr').hidden = true;
   } catch(e){
-    setSaveState('err');
+    $('saveErr').hidden = false;
     toast('Η αποθήκευση απέτυχε. Κατέβασε αντίγραφο από τις Ρυθμίσεις.', {sticky:true});
   }
 }
-function setSaveState(s){
-  const el = $('saveState');
-  el.className = 'save-state' + (s === 'ok' ? '' : ' ' + s);
-  el.textContent = s === 'saving' ? 'Αποθήκευση…' : s === 'err' ? 'Σφάλμα αποθήκευσης' : 'Αποθηκεύτηκε';
-}
-
-/* ===================== ΣΥΓΧΡΟΝΙΣΜΟΣ ΜΕ ΤΟ ΑΡΧΕΙΟ ===================== */
-const VALID_URL = /^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec\/?$/;
-function sanitizeRoutes(data){
-  const str = (v, max) => String(v == null ? '' : v).replace(/\s+/g,' ').trim().slice(0, max);
-  const entries = (Array.isArray(data.entries) ? data.entries : [])
-    .filter(e => e && /^\d{4}-\d{2}-\d{2}$/.test(e.d) && str(e.c, 80))
-    .map(e => ({ d:e.d, c:str(e.c,80), drv:str(e.drv,60), own:!!e.own, chk:!!e.chk }))
-    .sort((a,b) => a.d.localeCompare(b.d) || a.c.localeCompare(b.c,'el'));
-  const customers = (Array.isArray(data.customers) ? data.customers : []).map(c => str(c,80)).filter(Boolean).slice(0, 2000);
-  return { entries, customers };
-}
-async function syncRoutes(manual=false){
-  const { syncUrl:url, syncKey:key } = DB.settings;
-  if (!url || !key){ if (manual) toast('Συμπλήρωσε το link σύνδεσης και το κλειδί.'); return false; }
-  if (!VALID_URL.test(url)){ syncError = 'Το link πρέπει να είναι το URL της εφαρμογής ιστού (script.google.com/…/exec).'; renderAll(); return false; }
-  if (syncing) return false;
-  syncing = true; renderSyncBits();
-  let ok = false;
-  try {
-    const res = await fetch(`${url}?key=${encodeURIComponent(key)}`, { method:'GET', redirect:'follow', cache:'no-store' });
-    if (!res.ok) throw new Error('http');
-    const data = await res.json();
-    if (!data || !data.ok) throw new Error(data && data.error === 'Λάθος κλειδί' ? 'key' : 'server');
-    const clean = sanitizeRoutes(data);
-    if (DB.routes.sample) DB.envelopes = DB.envelopes.filter(e => !e.sample);   // φεύγει το δείγμα
-    DB.routes = { ...clean, updated: data.updated || null, fetchedAt: new Date().toISOString(), sample:false };
-    syncError = ''; ok = true; save();
-    if (manual){
-      const up = DB.routes.entries.filter(e => e.d >= todayIso()).length;
-      toast(`Ενημερώθηκε το πρόγραμμα: ${up} παραδόσεις τις επόμενες εβδομάδες.`);
-    }
-  } catch(e){
-    syncError = e.message === 'key' ? 'Λάθος κλειδί σύνδεσης.'
-              : e.message === 'server' ? 'Το αρχείο δεν διαβάστηκε. Έλεγξε ότι υπάρχει και ότι το script έχει πρόσβαση.'
-              : IN_FRAME ? 'Μέσα στο Claude δεν επιτρέπεται σύνδεση με εξωτερικές υπηρεσίες.' : 'Δεν έγινε σύνδεση με το αρχείο.';
-    if (manual) toast(esc(syncError));
-  } finally {
-    syncing = false;
-    renderAll(); checkReminders();
-  }
-  return ok;
-}
-function syncInfo(){
-  const R = DB.routes, S = DB.settings;
-  if (syncing) return { cls:'wait', txt:'Ενημέρωση από το αρχείο δρομολογίων…' };
-  if (R.sample) return { cls:'wait', txt:'Δείγμα προγράμματος. Σύνδεσε το αρχείο δρομολογίων από τις Ρυθμίσεις.' };
-  if (!S.syncUrl || !S.syncKey) return { cls:'bad', txt:'Το αρχείο δρομολογίων δεν έχει συνδεθεί ακόμα.' };
-  if (syncError) return { cls:'bad', txt: syncError + (R.fetchedAt ? ` Χρησιμοποιείται το πρόγραμμα του ελέγχου ${whenStr(R.fetchedAt)}.` : '') };
-  if (R.fetchedAt) return { cls:'ok', txt:`Πρόγραμμα από το αρχείο ΠΑΡΑΓΓΕΛΙΕΣ. Έλεγχος ${whenStr(R.fetchedAt)}${R.updated ? `, τελευταία αλλαγή στο αρχείο ${whenStr(R.updated)}` : ''}.` };
-  return { cls:'wait', txt:'Αναμονή για πρώτο συγχρονισμό.' };
-}
-function syncLineHTML(withBtn=true){
-  const i = syncInfo(), connected = DB.settings.syncUrl && DB.settings.syncKey;
-  let btn = '';
-  if (withBtn){
-    btn = connected
-      ? `<button class="btn ghost sm" data-act="sync-now" ${syncing ? 'disabled' : ''}>Ενημέρωση τώρα</button>`
-      : `<button class="btn ghost sm" data-go="set">Σύνδεση αρχείου</button>`;
-  }
-  return `<span class="state ${i.cls}">${esc(i.txt)}</span>${btn}`;
-}
-function renderSyncBits(){ document.querySelectorAll('[data-sync-line]').forEach(el => el.innerHTML = syncLineHTML(el.dataset.syncLine !== 'nobtn')); }
 
 /* ===================== TOASTS ===================== */
 function toast(html, {action=null, sticky=false, kind=''} = {}){
@@ -473,16 +323,14 @@ async function enableNotifs(){
   } catch(e){ toast('Ο browser μπλόκαρε το αίτημα για ειδοποιήσεις.'); }
   renderAll();
 }
-function systemNotify(title, body, tag){
-  if (notifState() !== 'granted') return;
-  try {
-    const n = new Notification(title, { body, tag, icon: LOGO_URLS[0], requireInteraction: true });
-    n.onclick = () => { window.focus(); go('today'); n.close(); };
-  } catch(e){}
-}
 function remind(title, body, tag){
-  systemNotify(title, body, tag);
-  toast(`<b>${esc(title)}</b><br>${esc(body)}`, { sticky:true, kind:'alert', action: view !== 'today' ? {label:'Προβολή', fn:() => go('today')} : null });
+  if (notifState() === 'granted'){
+    try {
+      const n = new Notification(title, { body, tag, icon: LOGO_URLS[0], requireInteraction: true });
+      n.onclick = () => { window.focus(); go('main'); n.close(); };
+    } catch(e){}
+  }
+  toast(`<b>${esc(title)}</b><br>${esc(body)}`, { sticky:true, kind:'alert' });
 }
 let actx = null;
 function beep(){
@@ -506,70 +354,48 @@ document.addEventListener('pointerdown', () => {
   try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); } catch(e){}
 }, { once:true });
 
-/* Κάθε φάκελος ειδοποιεί μία φορά τη μέρα για κάθε είδος:
-   day  = παράδοση σήμερα (από την ώρα της πρωινής υπενθύμισης)
-   eve  = παράδοση αύριο (από την ώρα της απογευματινής)
-   miss = είχε παράδοση τις προηγούμενες μέρες και ο φάκελος είναι ακόμα στο stand */
+/* Κάθε φάκελος ειδοποιεί μία φορά τη μέρα για κάθε περίπτωση:
+   day  = παράδοση σήμερα (από την πρωινή ώρα)
+   eve  = παράδοση αύριο (από την απογευματινή ώρα)
+   miss = η μέρα πέρασε και ο φάκελος είναι ακόμα στο stand (από την πρωινή ώρα) */
 function checkReminders(){
-  const now = new Date(), t = iso(now), mins = now.getHours()*60 + now.getMinutes(), S = DB.settings;
-  if (!hasRoutes()){ updateTitle(); return; }
+  const now = new Date(), t = iso(now), tm = tomorrowIso(), mins = now.getHours()*60 + now.getMinutes(), S = DB.settings;
   const due = [];
-  const mark = (kind, env, extra) => { const k = `${t}|${kind}|${env.id}`; if (!DB.fired[k]){ DB.fired[k] = 1; due.push({ kind, env, ...extra }); } };
+  const mark = (kind, env) => { const k = `${t}|${kind}|${env.id}`; if (!DB.fired[k]){ DB.fired[k] = 1; due.push({ kind, env }); } };
   pending().forEach(env => {
-    if (mins >= toMin(S.morningTime)){
-      const rs = routesOn(env.name, t);
-      if (rs.length) mark('day', env, { rs });
-      else { const m = missedOf(env); if (m) mark('miss', env, { m }); }
-    }
-    if (S.eveEnabled && mins >= toMin(S.eveTime)){
-      const rs = routesOn(env.name, tomorrowIso());
-      if (rs.length) mark('eve', env, { rs });
-    }
+    if (!env.date) return;
+    if (mins >= toMin(S.morningTime)){ if (env.date === t) mark('day', env); else if (env.date < t) mark('miss', env); }
+    if (S.eveEnabled && mins >= toMin(S.eveTime) && env.date === tm) mark('eve', env);
   });
-  if (!due.length){ updateTitle(); return; }
+  updateTitle();
+  if (!due.length) return;
   save();
-  const group = kind => due.filter(d => d.kind === kind);
-  const fire = (list, one, many) => {
+  const fire = (kind, one, many) => {
+    const list = due.filter(d => d.kind === kind);
     if (!list.length) return;
-    if (list.length <= 3) list.forEach(d => { const [title, body] = one(d); remind(title, body, `${d.kind}-${d.env.id}`); });
-    else { const [title, body] = many(list); remind(title, body, `${list[0].kind}-summary`); }
+    if (list.length <= 3) list.forEach(d => { const [a,b] = one(d.env); remind(a, b, `${kind}-${d.env.id}`); });
+    else { const [a,b] = many(list); remind(a, b, `${kind}-summary`); }
   };
-  fire(group('day'),
-    d => [`Φάκελος για ${d.env.name}`, d.rs.every(r => r.own) ? 'Παραλαμβάνει σήμερα ο ίδιος. Δώσ\' του τον φάκελο.' : `Παράδοση σήμερα${driversOf(d.rs).length ? ', οδηγός ' + driversOf(d.rs).join(', ') : ''}. Δώσε τον φάκελο στον οδηγό.`],
-    l => [`${l.length} φάκελοι για τις σημερινές παραδόσεις`, l.map(d => d.env.name).join(', ')]);
-  fire(group('eve'),
-    d => [`Αύριο: φάκελος για ${d.env.name}`, d.rs.every(r => r.own) ? 'Αύριο παραλαμβάνει ο ίδιος. Ετοίμασε τον φάκελο.' : `Αύριο παράδοση${driversOf(d.rs).length ? ', οδηγός ' + driversOf(d.rs).join(', ') : ''}. Ετοίμασε τον φάκελο.`],
-    l => [`${l.length} φάκελοι για αύριο`, l.map(d => d.env.name).join(', ')]);
-  fire(group('miss'),
-    d => [`Ο φάκελος για ${d.env.name} είναι ακόμα στο stand`, `Είχε παράδοση ${routeLabel(d.m.d, true)}. Αν δόθηκε, πάτα «Δόθηκε».`],
-    l => [`${l.length} φάκελοι δεν σημειώθηκαν ως δοσμένοι`, l.map(d => d.env.name).join(', ')]);
+  fire('day',  e => [`Φάκελος για ${e.name}`, 'Έχει παράδοση σήμερα. Δώσε τον φάκελο στον οδηγό.'],
+               l => [`${l.length} φάκελοι φεύγουν σήμερα`, l.map(d => d.env.name).join(', ')]);
+  fire('eve',  e => [`Αύριο: φάκελος για ${e.name}`, 'Έχει παράδοση αύριο. Ετοίμασε τον φάκελο από το stand.'],
+               l => [`${l.length} φάκελοι για αύριο`, l.map(d => d.env.name).join(', ')]);
+  fire('miss', e => [`Ο φάκελος για ${e.name} είναι ακόμα στο stand`, `Η παράδοση ήταν ${dayLabel(e.date, true)}. Αν δόθηκε, πάτα «Δόθηκε». Αλλιώς βάλε νέα ημέρα.`],
+               l => [`${l.length} φάκελοι έμειναν στο stand`, l.map(d => d.env.name).join(', ')]);
   beep();
   renderAll();
 }
 function updateTitle(){
-  const n = hasRoutes() ? pending().filter(e => routesOn(e.name, todayIso()).length).length : 0;
+  const n = pending().filter(e => e.date === todayIso()).length;
   document.title = n ? `(${n}) Φάκελοι σήμερα | Μύλοι Αρκαδίου` : 'Φάκελοι | Μύλοι Αρκαδίου';
 }
 
 /* ===================== NAV ===================== */
-const ICON = {
-  today:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
-  env: ENV_SVG,
-  prog:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
-  set:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>'
-};
-const NAV = [
-  { id:'today', label:'ΣΗΜΕΡΑ', short:'Σήμερα' },
-  { id:'env',   label:'ΦΑΚΕΛΟΙ', short:'Φάκελοι' },
-  { id:'prog',  label:'ΠΡΟΓΡΑΜΜΑ', short:'Πρόγραμμα' },
-  { id:'set',   label:'ΡΥΘΜΙΣΕΙΣ', short:'Ρυθμίσεις' }
-];
 function renderNav(){
-  const tc = hasRoutes() ? pending().filter(e => routesOn(e.name, todayIso()).length).length : 0;
-  const pc = pending().length;
-  const badge = id => id === 'today' && tc ? `<span class="cnt red">${tc}</span>` : (id === 'env' && pc ? `<span class="cnt">${pc}</span>` : '');
-  $('topNav').innerHTML = NAV.map(n => `<button class="nav-btn${view===n.id?' active':''}" data-go="${n.id}"${view===n.id?' aria-current="page"':''}>${n.label}${badge(n.id)}</button>`).join('');
-  $('bottomBar').innerHTML = NAV.map(n => `<button class="bb-btn${view===n.id?' active':''}" data-go="${n.id}">${ICON[n.id]}<span>${n.short}</span>${badge(n.id)}</button>`).join('');
+  const n = pending().filter(e => e.date && e.date <= todayIso()).length;
+  $('nav').innerHTML = `
+    <button class="nav-btn${view==='main'?' active':''}" data-go="main">ΦΑΚΕΛΟΙ${n ? `<span class="cnt">${n}</span>` : ''}</button>
+    <button class="nav-btn${view==='set'?' active':''}" data-go="set">ΡΥΘΜΙΣΕΙΣ</button>`;
 }
 function go(v){
   view = v;
@@ -579,16 +405,14 @@ function go(v){
   window.scrollTo({ top:0 });
 }
 function renderAll(){
-  renderNav(); renderNotifBar(); refreshDatalist(); updateTitle(); renderSyncBits();
-  if (view === 'today') renderToday();
-  if (view === 'env') renderEnvList();
-  if (view === 'prog') renderProgram();
+  renderNav(); renderNotifBar(); updateTitle();
+  $('custList').innerHTML = DB.customers.map(n => `<option value="${esc(n)}"></option>`).join('');
+  if (view === 'main') renderMain();
   if (view === 'set') renderSettingsState();
 }
-function refreshDatalist(){ $('custList').innerHTML = knownCustomers().map(n => `<option value="${esc(n)}"></option>`).join(''); }
 function renderNotifBar(){
   const bar = $('notifBar'), st = notifState();
-  if (st === 'granted' || notifBarClosed || !DB.envelopes.length){ bar.hidden = true; return; }
+  if (st === 'granted' || notifBarClosed || !pending().length){ bar.hidden = true; return; }
   let html, cls = '';
   if (st === 'default'){
     html = `<p>Ενεργοποίησε τις ειδοποιήσεις υπολογιστή, για να βγαίνει η υπενθύμιση ακόμα κι όταν δουλεύεις σε άλλο παράθυρο.</p>
@@ -604,42 +428,63 @@ function renderNotifBar(){
   bar.hidden = false;
 }
 
-/* ===================== ΠΡΟΣΘΗΚΗ / ΕΝΕΡΓΕΙΕΣ ΦΑΚΕΛΩΝ ===================== */
-function hintFor(name){
-  if (!name) return '';
-  const ex = envFor(name);
-  if (ex) return `<span class="bad">Υπάρχει ήδη φάκελος για ${esc(ex.name)}.</span>`;
-  if (!hasRoutes()) return 'Η υπενθύμιση θα έρθει μόλις συνδεθεί το αρχείο δρομολογίων.';
-  const nr = nextRouteOf(name);
-  if (nr) return `Επόμενη παράδοση: <b>${esc(routeLabel(nr.d, true))}</b>${norm(nr.c) !== norm(name) ? ` (στο πρόγραμμα: ${esc(nr.c)})` : ''}. ${esc(whoText([nr]))}.`;
-  const known = knownCustomers().some(n => sameCustomer(n, name));
-  return known ? 'Δεν έχει παράδοση στο πρόγραμμα ακόμα. Θα ειδοποιηθείς μόλις μπει.'
-               : 'Νέο όνομα, δεν υπάρχει στο αρχείο. Γράψ\' το όπως εμφανίζεται στις ΠΑΡΑΓΓΕΛΙΕΣ για να ταιριάξει.';
+/* ===================== ΚΥΡΙΑ ΣΕΛΙΔΑ ===================== */
+function buildMain(){
+  $('view-main').innerHTML = `
+    <div class="greet"><h1 id="hello"></h1><p id="sub"></p></div>
+    <div class="card add-card">
+      <div class="add-grid">
+        <label class="f"><span>Πελάτης</span><input class="inp" id="aCust" list="custList" autocomplete="off" placeholder="Όνομα πελάτη"></label>
+        <div class="f"><span>Ημέρα παράδοσης</span>
+          <div class="when">
+            <input class="inp" id="aDate" type="date" aria-label="Ημέρα παράδοσης">
+            <button class="btn ghost sm" data-act="set-today">Σήμερα</button>
+            <button class="btn ghost sm" data-act="set-tmr">Αύριο</button>
+          </div>
+        </div>
+        <button class="btn primary" id="aAdd">Προσθήκη φακέλου</button>
+      </div>
+      <p class="hint" id="aHint">Αν δεν ξέρεις ακόμα την ημέρα, άφησέ την κενή και βάλ' την αργότερα.</p>
+    </div>
+    <div id="lists"></div>`;
+  const inp = $('aCust');
+  inp.addEventListener('input', updateHint);
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing){ e.preventDefault(); addEnvelope(); } });
+  $('aDate').addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); addEnvelope(); } });
+  $('aAdd').onclick = addEnvelope;
 }
-function addEnvelope(raw, inputId){
-  const name = String(raw || '').replace(/\s+/g,' ').trim();
-  if (!name){ if (inputId) $(inputId).focus(); return; }
-  const ex = envFor(name);
-  if (ex){ toast(`Υπάρχει ήδη φάκελος για ${esc(ex.name)}.`); return; }
-  const canon = knownCustomers().find(n => norm(n) === norm(name)) || name;
-  DB.envelopes.push({ id:uid(), name:canon, addedAt:new Date().toISOString(), givenAt:null, givenTo:'' });
+function updateHint(){
+  const ex = pendingFor(clean($('aCust').value));
+  $('aHint').innerHTML = ex
+    ? `Υπάρχει ήδη φάκελος για <b>${esc(ex.name)}</b>${ex.date ? `, παράδοση ${esc(dayLabel(ex.date, true))}` : ', χωρίς ημέρα'}. Αν διαλέξεις ημέρα, θα αλλάξει.`
+    : 'Αν δεν ξέρεις ακόμα την ημέρα, άφησέ την κενή και βάλ\' την αργότερα.';
+}
+function addEnvelope(){
+  const typed = clean($('aCust').value), date = $('aDate').value || '';
+  if (!typed){ $('aCust').focus(); return; }
+  if (date && date < todayIso()){ $('aHint').innerHTML = '<span class="bad">Η ημέρα έχει περάσει. Διάλεξε σήμερα ή επόμενη μέρα.</span>'; return; }
+  const name = DB.customers.find(n => norm(n) === norm(typed)) || typed;
+  const ex = pendingFor(name);
+  if (ex){
+    if (date && date !== ex.date){ ex.date = date; toast(`Νέα ημέρα παράδοσης για ${esc(ex.name)}: ${esc(dayLabel(date, true))}.`); }
+    else toast(`Υπάρχει ήδη φάκελος για ${esc(ex.name)}.`);
+  } else {
+    DB.envelopes.push({ id:uid(), name, date, addedAt:new Date().toISOString(), givenAt:null });
+    rememberCustomer(name);
+    toast(`Φάκελος για ${esc(name)}${date ? `, παράδοση ${esc(dayLabel(date, true))}` : ', χωρίς ημέρα ακόμα'}.`);
+  }
   save();
-  if (inputId){ $(inputId).value = ''; const h = $(inputId + 'Hint'); if (h) h.innerHTML = ''; $(inputId).focus(); }
-  const nr = hasRoutes() ? nextRouteOf(canon) : null;
-  toast(`Φάκελος για ${esc(canon)}. ` + (nr ? `Επόμενη παράδοση ${esc(routeLabel(nr.d, true))}.` : hasRoutes() ? 'Θα ειδοποιηθείς μόλις μπει παράδοση στο πρόγραμμα.' : ''));
+  $('aCust').value = ''; $('aDate').value = ''; updateHint(); $('aCust').focus();
   renderAll(); checkReminders();
 }
 function giveEnvelope(id, btn){
   const env = DB.envelopes.find(e => e.id === id);
   if (!env || env.givenAt) return;
-  const rs = routesOn(env.name, todayIso());
   env.givenAt = new Date().toISOString();
-  env.givenTo = rs.length ? (rs.every(r => r.own) ? 'στον ίδιο' : driversOf(rs).join(', ')) : '';
   save();
   const card = btn && btn.closest('.env,.row');
-  const finish = () => renderAll();
-  if (card && !REDUCE){ card.classList.add('leaving'); setTimeout(finish, 210); } else finish();
-  toast(`Δόθηκε ο φάκελος: ${esc(env.name)}.`, { action:{ label:'Αναίρεση', fn:() => { env.givenAt = null; env.givenTo = ''; save(); renderAll(); } } });
+  if (card && !REDUCE){ card.classList.add('leaving'); setTimeout(renderAll, 210); } else renderAll();
+  toast(`Δόθηκε ο φάκελος: ${esc(env.name)}.`, { action:{ label:'Αναίρεση', fn:() => { env.givenAt = null; save(); renderAll(); } } });
 }
 function removeEnvelope(id){
   const i = DB.envelopes.findIndex(e => e.id === id);
@@ -651,192 +496,74 @@ function removeEnvelope(id){
 function restoreEnvelope(id){
   const env = DB.envelopes.find(e => e.id === id);
   if (!env) return;
-  if (envFor(env.name)){ toast(`Υπάρχει ήδη φάκελος στο stand για ${esc(env.name)}.`); return; }
-  env.givenAt = null; env.givenTo = ''; save(); renderAll();
+  if (pendingFor(env.name)){ toast(`Υπάρχει ήδη φάκελος στο stand για ${esc(env.name)}.`); return; }
+  env.givenAt = null;
+  if (env.date && env.date < todayIso()) env.date = '';
+  save(); renderAll();
   toast(`Ο φάκελος για ${esc(env.name)} γύρισε στο stand.`);
 }
-function wireAdd(inputId, btnId){
-  const inp = $(inputId), hint = $(inputId + 'Hint');
-  inp.addEventListener('input', () => { hint.innerHTML = hintFor(inp.value.trim()); });
-  inp.addEventListener('change', () => { hint.innerHTML = hintFor(inp.value.trim()); });
-  inp.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing){ e.preventDefault(); addEnvelope(inp.value, inputId); } });
-  $(btnId).onclick = () => addEnvelope(inp.value, inputId);
+function setDate(id, value){
+  const env = DB.envelopes.find(e => e.id === id);
+  if (!env) return;
+  if (value && value < todayIso()){ toast('Η ημέρα έχει περάσει. Διάλεξε σήμερα ή επόμενη μέρα.'); renderAll(); return; }
+  env.date = value || '';
+  save(); renderAll(); checkReminders();
+  toast(value ? `${esc(env.name)}: παράδοση ${esc(dayLabel(value, true))}.` : `${esc(env.name)}: χωρίς ημέρα.`);
 }
 
-/* ===================== ΣΗΜΕΡΑ ===================== */
-function buildToday(){
-  $('view-today').innerHTML = `
-    <div class="greet"><h1 id="tHello"></h1><p id="tSub"></p></div>
-    <div class="sync" data-sync-line></div>
-    <div id="tOnboard"></div>
-    <div class="card add-card">
-      <label class="lbl" for="tCust">Νέος φάκελος στο stand</label>
-      <div class="addrow">
-        <input class="inp" id="tCust" list="custList" autocomplete="off" placeholder="Όνομα πελάτη">
-        <button class="btn primary" id="tAdd">Προσθήκη φακέλου</button>
-      </div>
-      <p class="hint" id="tCustHint"></p>
-    </div>
-    <div id="tMain" style="margin-top:28px">
-      <div class="sec">
-        <div class="sec-h"><h2>ΦΕΥΓΟΥΝ ΣΗΜΕΡΑ</h2><span class="rule"></span></div>
-        <div id="tToday"></div>
-      </div>
-      <div class="sec" id="tMissSec">
-        <div class="sec-h bad"><h2>ΔΕΝ ΣΗΜΕΙΩΘΗΚΑΝ ΩΣ ΔΟΣΜΕΝΟΙ</h2><span class="rule"></span></div>
-        <div id="tMiss"></div>
-      </div>
-      <div class="sec" id="tTmrSec">
-        <div class="sec-h"><h2>ΑΥΡΙΟ</h2><span class="rule"></span></div>
-        <div id="tTmr"></div>
-      </div>
-      <div class="sec" id="tNoSec">
-        <div class="sec-h"><h2>ΣΤΟ STAND, ΧΩΡΙΣ ΠΑΡΑΔΟΣΗ ΣΤΟ ΠΡΟΓΡΑΜΜΑ</h2><span class="rule"></span></div>
-        <div id="tNo"></div>
-      </div>
-    </div>`;
-  wireAdd('tCust', 'tAdd');
-}
-function envCard(env, rs){
-  const alias = rs.length && norm(rs[0].c) !== norm(env.name) ? `<p class="alias">στο πρόγραμμα: ${esc(rs[0].c)}</p>` : '';
+function envCard(e){
   return `<article class="env">
     <span class="seal">${ENV_SVG}</span>
-    <h3>${esc(env.name)}</h3>${alias}
-    <p class="who">${esc(whoText(rs))}</p>
-    <p class="since">${sinceText(env.addedAt)}</p>
-    <button class="btn primary block" data-act="give" data-id="${env.id}">Δόθηκε</button>
+    <h3>${esc(e.name)}</h3>
+    <p class="since">${sinceText(e.addedAt)}</p>
+    <button class="btn primary block" data-act="give" data-id="${e.id}">Δόθηκε</button>
   </article>`;
 }
-function rowHTML(env, small, buttons, extraCls=''){
-  return `<div class="row ${extraCls}"><div class="r-main"><b>${esc(env.name)}</b><small>${small}</small></div>${buttons}</div>`;
+function row(e, small, primaryGive=false){
+  return `<div class="row">
+    <div class="r-main"><b>${esc(e.name)}</b><small>${small}</small></div>
+    <input class="inp" type="date" value="${esc(e.date || '')}" min="${todayIso()}" data-date="${e.id}" aria-label="Ημέρα παράδοσης για ${esc(e.name)}">
+    <button class="btn ${primaryGive ? 'primary' : 'ghost'} sm" data-act="give" data-id="${e.id}">Δόθηκε</button>
+    <button class="icon-btn" data-act="rm" data-id="${e.id}" aria-label="Αφαίρεση φακέλου" title="Αφαίρεση (λάθος καταχώρηση)">×</button>
+  </div>`;
 }
-function renderToday(){
+function section(title, body, bad=false){
+  return `<div class="sec"><div class="sec-h${bad ? ' bad' : ''}"><h2>${title}</h2><span class="rule"></span></div>${body}</div>`;
+}
+function renderMain(){
   const t = todayIso(), tm = tomorrowIso(), now = new Date(), S = DB.settings;
-  $('tHello').textContent = `${now.getHours() < 12 ? 'Καλημέρα' : 'Καλησπέρα'}${S.userName ? ', ' + S.userName : ''}`;
+  const byName = (a,b) => a.name.localeCompare(b.name,'el');
   const pend = pending();
-  const onToday = hasRoutes() ? pend.map(e => ({ e, rs: routesOn(e.name, t) })).filter(x => x.rs.length) : [];
-  let sub;
-  if (!pend.length) sub = 'Δεν υπάρχει φάκελος στο stand.';
-  else if (!hasRoutes()) sub = `${pend.length === 1 ? '1 φάκελος' : pend.length + ' φάκελοι'} στο stand.`;
-  else if (onToday.length) sub = `${onToday.length === 1 ? 'Ένας φάκελος φεύγει' : onToday.length + ' φάκελοι φεύγουν'} σήμερα.`;
-  else sub = 'Κανένας φάκελος δεν φεύγει σήμερα.';
-  $('tSub').innerHTML = `<span class="date">${longDate(t)}.</span> ${sub}`;
+  const today = pend.filter(e => e.date === t).sort(byName);
+  const missed = pend.filter(e => e.date && e.date < t).sort((a,b) => a.date.localeCompare(b.date));
+  const tmr = pend.filter(e => e.date === tm).sort(byName);
+  const later = pend.filter(e => e.date && e.date > tm).sort((a,b) => a.date.localeCompare(b.date) || byName(a,b));
+  const nodate = pend.filter(e => !e.date).sort((a,b) => a.addedAt.localeCompare(b.addedAt));
 
-  const fresh = !pend.length && !DB.envelopes.length && !hasRoutes();
-  $('tOnboard').innerHTML = fresh ? `
-    <div class="card onboard">
-      <h2>Δύο βήματα και είσαι έτοιμη</h2>
-      <ol>
-        <li>Σύνδεσε το αρχείο δρομολογίων ΠΑΡΑΓΓΕΛΙΕΣ από τις Ρυθμίσεις (μία φορά).</li>
-        <li>Όταν μπαίνει φάκελος στο stand, γράψε εδώ τον πελάτη. Την ημέρα της παράδοσης έρχεται υπενθύμιση μόνη της.</li>
-      </ol>
-      <div class="btns"><button class="btn primary" data-go="set">Σύνδεση αρχείου</button><button class="btn ghost" data-act="sample">Δοκιμή με δείγμα</button></div>
-    </div>` : '';
-  $('tMain').hidden = fresh;
-  if (fresh) return;
+  $('hello').textContent = `${now.getHours() < 12 ? 'Καλημέρα' : 'Καλησπέρα'}${S.userName ? ', ' + S.userName : ''}`;
+  const sub = !pend.length ? 'Το stand είναι άδειο.'
+    : today.length ? `${today.length === 1 ? 'Ένας φάκελος φεύγει' : today.length + ' φάκελοι φεύγουν'} σήμερα.`
+    : 'Κανένας φάκελος δεν φεύγει σήμερα.';
+  $('sub').innerHTML = `<span class="date">${longDate(t)}.</span> ${sub}`;
 
-  $('tToday').innerHTML = onToday.length
-    ? `<div class="env-grid">${onToday.sort((a,b) => a.e.name.localeCompare(b.e.name,'el')).map(x => envCard(x.e, x.rs)).join('')}</div>`
-    : `<div class="empty">${!hasRoutes() ? 'Σύνδεσε το αρχείο δρομολογίων για να φαίνεται τι φεύγει σήμερα.' : pend.length ? 'Κανένας φάκελος για τις σημερινές παραδόσεις.' : 'Το stand είναι άδειο.'}</div>`;
+  let html = '';
+  html += section('ΦΕΥΓΟΥΝ ΣΗΜΕΡΑ', today.length
+    ? `<div class="env-grid">${today.map(envCard).join('')}</div>`
+    : `<div class="empty">${pend.length ? 'Κανένας φάκελος για σήμερα.' : 'Όταν μπαίνει φάκελος στο stand, γράψε τον πελάτη από πάνω.'}</div>`);
+  if (missed.length) html += section('ΕΜΕΙΝΑΝ ΣΤΟ STAND', `<div class="rows bad">${missed.map(e => row(e, `Η παράδοση ήταν ${esc(dayLabel(e.date, true))}. Αν δόθηκε, πάτα «Δόθηκε». Αλλιώς βάλε νέα ημέρα.`, true)).join('')}</div>`, true);
+  if (tmr.length) html += section('ΑΥΡΙΟ', `<div class="rows">${tmr.map(e => row(e, sinceText(e.addedAt))).join('')}</div>`);
+  if (later.length) html += section('ΕΠΟΜΕΝΕΣ ΜΕΡΕΣ', `<div class="rows">${later.map(e => row(e, `${esc(dayLabel(e.date))}. ${sinceText(e.addedAt)}`)).join('')}</div>`);
+  if (nodate.length) html += section('ΧΩΡΙΣ ΗΜΕΡΑ ΠΑΡΑΔΟΣΗΣ', `<div class="rows">${nodate.map(e => row(e, `${sinceText(e.addedAt)}. Βάλε ημέρα για να έρθει υπενθύμιση.`)).join('')}</div>`);
 
-  const miss = hasRoutes() ? pend.map(e => ({ e, m: missedOf(e) })).filter(x => x.m) : [];
-  $('tMissSec').hidden = !miss.length;
-  $('tMiss').innerHTML = miss.length ? `<div class="rows bad">${miss.map(x =>
-    rowHTML(x.e, `Είχε παράδοση ${esc(routeLabel(x.m.d, true))}. ${esc(whoText([x.m]))}.`,
-      `<button class="btn primary sm" data-act="give" data-id="${x.e.id}">Δόθηκε</button>`)).join('')}</div>` : '';
+  const recent = DB.envelopes.filter(e => e.givenAt && e.givenAt >= addDays(now, -14).toISOString()).sort((a,b) => b.givenAt.localeCompare(a.givenAt));
+  if (recent.length) html += `<details class="given"><summary>Δόθηκαν τις τελευταίες 14 μέρες (${recent.length})</summary>
+    <div class="rows">${recent.map(e => `<div class="row"><div class="r-main"><b>${esc(e.name)}</b><small>Δόθηκε ${iso(new Date(e.givenAt)) === t ? 'σήμερα' : shortDate(iso(new Date(e.givenAt)))} στις ${hhmm(e.givenAt)}</small></div>
+      <button class="btn ghost sm" data-act="restore" data-id="${e.id}">Επαναφορά στο stand</button></div>`).join('')}</div></details>`;
 
-  const tmr = hasRoutes() ? pend.map(e => ({ e, rs: routesOn(e.name, tm) })).filter(x => x.rs.length) : [];
-  $('tTmrSec').hidden = !tmr.length;
-  $('tTmr').innerHTML = tmr.length ? `<div class="rows">${tmr.map(x =>
-    rowHTML(x.e, `${esc(whoText(x.rs))}. ${sinceText(x.e.addedAt)}`,
-      `<button class="btn ghost sm" data-act="give" data-id="${x.e.id}">Δόθηκε</button>`)).join('')}</div>` : '';
-
-  const none = hasRoutes() ? pend.filter(e => !nextRouteOf(e.name) && !missedOf(e)) : [];
-  $('tNoSec').hidden = !none.length;
-  $('tNo').innerHTML = none.length ? `<div class="rows">${none.sort((a,b) => a.addedAt.localeCompare(b.addedAt)).map(e =>
-    rowHTML(e, `${sinceText(e.addedAt)}. Θα ειδοποιηθείς μόλις μπει παράδοση.`,
-      `<button class="btn ghost sm" data-act="give" data-id="${e.id}">Δόθηκε</button>`)).join('')}</div>` : '';
-}
-
-/* ===================== ΦΑΚΕΛΟΙ ===================== */
-function buildEnv(){
-  $('view-env').innerHTML = `
-    <div class="page-h"><h1>Φάκελοι</h1><p>Κάθε φάκελος που μπαίνει στο stand. Η εφαρμογή βρίσκει μόνη της την επόμενη παράδοση του πελάτη από το αρχείο δρομολογίων.</p></div>
-    <div class="card add-card">
-      <label class="lbl" for="eCust">Νέος φάκελος στο stand</label>
-      <div class="addrow">
-        <input class="inp" id="eCust" list="custList" autocomplete="off" placeholder="Όνομα πελάτη">
-        <button class="btn primary" id="eAdd">Προσθήκη φακέλου</button>
-      </div>
-      <p class="hint" id="eCustHint"></p>
-    </div>
-    <div class="tabs" role="tablist">
-      <button class="tab" data-envtab="stand" role="tab">Στο stand <span class="cnt" id="cStand"></span></button>
-      <button class="tab" data-envtab="given" role="tab">Δόθηκαν</button>
-      <input class="inp" id="envSearch" type="search" placeholder="Αναζήτηση πελάτη" aria-label="Αναζήτηση">
-    </div>
-    <div id="envList"></div>`;
-  wireAdd('eCust', 'eAdd');
-  $('envSearch').addEventListener('input', renderEnvList);
-}
-function tagFor(env){
-  if (!hasRoutes()) return '';
-  const nr = nextRouteOf(env.name);
-  if (nr) {
-    const cls = nr.d === todayIso() ? 'today' : nr.d === tomorrowIso() ? 'tmr' : '';
-    return `<span class="tag ${cls}">Παράδοση ${esc(routeLabel(nr.d, true))}</span>`;
-  }
-  return missedOf(env) ? `<span class="tag none">Δεν σημειώθηκε ως δοσμένος</span>` : `<span class="tag">Χωρίς παράδοση ακόμα</span>`;
-}
-function renderEnvList(){
-  const q = norm($('envSearch').value);
-  document.querySelectorAll('[data-envtab]').forEach(b => { b.classList.toggle('active', b.dataset.envtab === envTab); b.setAttribute('aria-selected', b.dataset.envtab === envTab); });
-  const pend = pending();
-  $('cStand').textContent = pend.length; $('cStand').hidden = !pend.length;
-  const list = $('envList');
-  if (envTab === 'stand'){
-    const items = pend.filter(e => !q || norm(e.name).includes(q))
-      .map(e => ({ e, nr: hasRoutes() ? nextRouteOf(e.name) : null }))
-      .sort((a,b) => (a.nr ? a.nr.d : '9999').localeCompare(b.nr ? b.nr.d : '9999') || a.e.name.localeCompare(b.e.name,'el'));
-    list.innerHTML = items.length ? `<div class="rows">${items.map(({e, nr}) =>
-      rowHTML(e, `${sinceText(e.addedAt)}${nr ? '. ' + esc(whoText([nr])) : ''}`,
-        `${tagFor(e)}<button class="btn primary sm" data-act="give" data-id="${e.id}">Δόθηκε</button><button class="icon-btn" data-act="rmenv" data-id="${e.id}" aria-label="Αφαίρεση φακέλου" title="Αφαίρεση (λάθος καταχώρηση)">×</button>`)).join('')}</div>`
-      : `<div class="empty">${q ? 'Κανένα αποτέλεσμα.' : 'Το stand είναι άδειο.'}</div>`;
-  } else {
-    const given = DB.envelopes.filter(e => e.givenAt && (!q || norm(e.name).includes(q))).sort((a,b) => b.givenAt.localeCompare(a.givenAt));
-    if (!given.length){ list.innerHTML = `<div class="empty">${q ? 'Κανένα αποτέλεσμα.' : 'Δεν έχει δοθεί ακόμα κανένας φάκελος.'}</div>`; return; }
-    const groups = {};
-    given.forEach(e => { const d = iso(new Date(e.givenAt)); (groups[d] = groups[d] || []).push(e); });
-    list.innerHTML = Object.keys(groups).sort().reverse().map(d => `
-      <h3 class="day-h">Δόθηκαν ${d === todayIso() ? 'σήμερα' : longDate(d)}</h3>
-      <div class="rows">${groups[d].map(e => rowHTML(e,
-        `${e.givenTo ? (e.givenTo === 'στον ίδιο' ? 'Δόθηκε στον ίδιο' : 'Δόθηκε στον οδηγό ' + esc(e.givenTo)) : 'Δόθηκε'} στις ${hhmm(e.givenAt)}`,
-        `<button class="btn ghost sm" data-act="restore" data-id="${e.id}">Επαναφορά στο stand</button>`)).join('')}</div>`).join('')
-      + `<p class="hint" style="margin-top:14px">Το ιστορικό κρατιέται ${HISTORY_DAYS} μέρες και μετά σβήνεται μόνο του.</p>`;
-  }
-}
-
-/* ===================== ΠΡΟΓΡΑΜΜΑ ===================== */
-function buildProgram(){
-  $('view-prog').innerHTML = `
-    <div class="page-h"><h1>Πρόγραμμα παραδόσεων</h1><p>Διαβάζεται αυτόματα από το αρχείο ΠΑΡΑΓΓΕΛΙΕΣ. Μόνο ημερομηνία, πελάτης και οδηγός, χωρίς ποσότητες.</p></div>
-    <div class="sync" data-sync-line></div>
-    <div id="progList"></div>`;
-}
-function renderProgram(){
-  const t = todayIso(), limit = iso(addDays(new Date(), 14));
-  const up = DB.routes.entries.filter(e => e.d >= t && e.d <= limit);
-  if (!hasRoutes()){ $('progList').innerHTML = `<div class="empty">Σύνδεσε το αρχείο δρομολογίων από τις Ρυθμίσεις. Μετά το πρόγραμμα εμφανίζεται εδώ μόνο του.</div>`; return; }
-  if (!up.length){ $('progList').innerHTML = `<div class="empty">Δεν υπάρχουν παραδόσεις στο αρχείο για τις επόμενες δύο εβδομάδες.</div>`; return; }
-  const groups = {};
-  up.forEach(e => (groups[e.d] = groups[e.d] || []).push(e));
-  $('progList').innerHTML = Object.keys(groups).sort().map(d => `
-    <h3 class="day-h">${d === t ? 'Σήμερα, ' : d === tomorrowIso() ? 'Αύριο, ' : ''}${longDate(d)}</h3>
-    <div class="rows">${groups[d].map(e => {
-      const env = envFor(e.c);
-      return `<div class="row"><div class="r-main"><b>${esc(e.c)}</b><small>${esc(whoText([e]))}</small>${e.chk ? `<small class="warn">Η μέρα και ο αριθμός δεν ταιριάζουν στο αρχείο. Έλεγξε την ημερομηνία.</small>` : ''}</div>
-        ${env ? `<span class="tag env">${ENV_SVG}Φάκελος στο stand</span>` : `<button class="btn ghost sm" data-act="addfor" data-name="${esc(e.c)}">Προσθήκη φακέλου</button>`}</div>`;
-    }).join('')}</div>`).join('');
+  if (!DB.envelopes.length) html += `<p class="hint">Θέλεις να δεις πώς δουλεύει; <button class="btn ghost sm" data-act="sample">Δοκιμή με δείγμα</button></p>`;
+  const wasOpen = document.querySelector('.given') && document.querySelector('.given').open;
+  $('lists').innerHTML = html;
+  if (wasOpen && document.querySelector('.given')) document.querySelector('.given').open = true;
 }
 
 /* ===================== ΡΥΘΜΙΣΕΙΣ ===================== */
@@ -844,40 +571,10 @@ function buildSettings(){
   const S = DB.settings;
   $('view-set').innerHTML = `
     <div class="page-h"><h1>Ρυθμίσεις</h1></div>
-
-    <div class="card set">
-      <h3>Σύνδεση με το αρχείο δρομολογίων</h3>
-      <p>Από το ΠΑΡΑΓΓΕΛΙΕΣ.xlsx διαβάζονται μόνο ημερομηνία παράδοσης, πελάτης και οδηγός. Ποσότητες, πινακίδες και πληρωμές δεν φεύγουν ποτέ από το αρχείο. Ο έλεγχος για αλλαγές γίνεται κάθε ${SYNC_EVERY_MIN} λεπτά.</p>
-      <label class="f"><span>Link σύνδεσης</span><input id="sUrl" value="${esc(S.syncUrl)}" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" spellcheck="false"></label>
-      <label class="f"><span>Κλειδί</span><input id="sKey" type="password" value="${esc(S.syncKey)}" autocomplete="off" spellcheck="false"></label>
-      <div class="sync" data-sync-line="nobtn" style="margin-bottom:12px"></div>
-      <div class="btns">
-        <button class="btn primary sm" data-act="sync-save">Σύνδεση και έλεγχος</button>
-        ${S.syncUrl ? '<button class="btn ghost sm" data-act="sync-remove">Αποσύνδεση</button>' : ''}
-      </div>
-      <details class="guide">
-        <summary>Πώς στήνεται η σύνδεση (μία φορά, περίπου 10 λεπτά)</summary>
-        <ol>
-          <li>Με τον λογαριασμό Google που έχει το αρχείο ΠΑΡΑΓΓΕΛΙΕΣ, άνοιξε το <code>script.google.com</code> και πάτα «Νέο έργο».</li>
-          <li>Σβήσε ό,τι γράφει και επικόλλησε όλο τον κώδικα από το αρχείο <code>Code.gs</code>. Αποθήκευση.</li>
-          <li>Αριστερά, στις «Υπηρεσίες», πάτα + και πρόσθεσε το <b>Drive API</b>.</li>
-          <li>Στις «Ρυθμίσεις έργου» (γρανάζι), βάλε ζώνη ώρας <b>Athens</b>.</li>
-          <li>Πάνω από τον κώδικα διάλεξε τη συνάρτηση <code>setup</code> και πάτα «Εκτέλεση». Δώσε την άδεια που ζητάει. Αν η Google γράψει ότι η εφαρμογή δεν είναι επαληθευμένη, πάτα «Σύνθετες ρυθμίσεις» και «Μετάβαση». Στο αρχείο καταγραφής από κάτω εμφανίζεται το κλειδί.</li>
-          <li>«Ανάπτυξη» → «Νέα ανάπτυξη» → τύπος «Εφαρμογή ιστού». Εκτέλεση ως: <b>Εγώ</b>. Πρόσβαση: <b>Οποιοσδήποτε</b>. Πάτα «Ανάπτυξη» και αντίγραψε το URL. Χωρίς το κλειδί, το link δεν επιστρέφει τίποτα.</li>
-          <li>Επικόλλησε εδώ το URL και το κλειδί και πάτα «Σύνδεση και έλεγχος».</li>
-        </ol>
-      </details>
-    </div>
-
-    <div class="card set">
-      <h3>Γενικά</h3>
-      <label class="f"><span>Όνομα στην αρχική σελίδα</span><input id="sName" value="${esc(S.userName)}" autocomplete="off"></label>
-    </div>
-
     <div class="card set">
       <h3>Υπενθυμίσεις</h3>
       <div class="set-row first">
-        <div class="sr-t"><b>Την ημέρα της παράδοσης</b><small>Για κάθε φάκελο που φεύγει σήμερα, και για όσους δεν σημειώθηκαν ως δοσμένοι.</small></div>
+        <div class="sr-t"><b>Την ημέρα της παράδοσης</b><small>Και για όσους φακέλους έμειναν στο stand.</small></div>
         <input class="inp" type="time" id="sMorning" value="${esc(S.morningTime)}" aria-label="Ώρα πρωινής υπενθύμισης">
       </div>
       <div class="set-row">
@@ -890,7 +587,6 @@ function buildSettings(){
         <label class="switch"><input type="checkbox" id="sSound" ${S.sound ? 'checked' : ''} aria-label="Ήχος"><span></span></label>
       </div>
     </div>
-
     <div class="card set">
       <h3>Ειδοποιήσεις υπολογιστή</h3>
       <div id="sNotif"></div>
@@ -899,19 +595,26 @@ function buildSettings(){
         <button class="btn ghost sm" data-act="notif-test">Δοκιμαστική υπενθύμιση</button>
       </div>
     </div>
-
     <div class="card set">
-      <h3>Τι αποθηκεύεται</h3>
-      <p>Μόνο ονόματα πελατών με φάκελο στο stand, πότε μπήκε ο φάκελος και πότε δόθηκε. Κανένα ποσό, αριθμός απόδειξης ή στοιχείο πληρωμής. ${HAS_CLAUDE_STORAGE ? 'Τα δεδομένα μένουν στον λογαριασμό σου στο Claude.' : 'Τα δεδομένα μένουν σε αυτόν τον browser, σε αυτόν τον υπολογιστή.'} Το αντίγραφο δεν περιέχει το κλειδί σύνδεσης.</p>
+      <h3>Όνομα στην αρχική</h3>
+      <input class="inp" id="sName" value="${esc(S.userName)}" autocomplete="off" aria-label="Όνομα στην αρχική" style="width:100%;max-width:320px">
+    </div>
+    <div class="card set">
+      <h3>Πελάτες που θυμάται</h3>
+      <p>Εμφανίζονται ως προτάσεις όταν γράφεις όνομα. Σβήσε όποιο γράφτηκε λάθος.</p>
+      <div class="chips" id="sCust"></div>
+    </div>
+    <div class="card set">
+      <h3>Αντίγραφο ασφαλείας</h3>
+      <p>Αποθηκεύονται μόνο ονόματα πελατών, ημέρες παράδοσης και πότε δόθηκε κάθε φάκελος. ${HAS_CLAUDE_STORAGE ? 'Τα δεδομένα μένουν στον λογαριασμό σου στο Claude.' : 'Τα δεδομένα μένουν σε αυτόν τον browser, σε αυτόν τον υπολογιστή.'} Το ιστορικό σβήνεται μόνο του μετά από ${HISTORY_DAYS} μέρες.</p>
       <div class="btns">
         <button class="btn ghost sm" data-act="export">Λήψη αντιγράφου</button>
         <button class="btn ghost sm" data-act="import">Επαναφορά από αντίγραφο</button>
       </div>
     </div>
-
     <div class="card set">
       <h3>Διαγραφή δεδομένων</h3>
-      <p>Σβήνει όλους τους φακέλους και το αποθηκευμένο πρόγραμμα. Η σύνδεση με το αρχείο μένει.</p>
+      <p>Σβήνει όλους τους φακέλους και τη λίστα πελατών.</p>
       <button class="btn danger-ghost sm" data-act="wipe">Διαγραφή όλων</button>
     </div>`;
   $('sName').addEventListener('input', e => { DB.settings.userName = e.target.value.trim(); save(); });
@@ -921,7 +624,7 @@ function buildSettings(){
   $('sSound').addEventListener('change', e => { DB.settings.sound = e.target.checked; save(); if (e.target.checked) beep(); });
 }
 function renderSettingsState(){
-  const el = $('sNotif'); if (!el) return;
+  if (!$('sNotif')) return;
   const st = notifState();
   const map = {
     granted:['ok','Ενεργές. Οι υπενθυμίσεις εμφανίζονται και ως ειδοποίηση του υπολογιστή.'],
@@ -930,28 +633,15 @@ function renderSettingsState(){
     unsupported:['bad','Ο browser δεν υποστηρίζει ειδοποιήσεις υπολογιστή.']
   };
   const [cls, txt] = map[st] || map.unsupported;
-  el.innerHTML = `<span class="state ${cls}">${txt}</span>`;
+  $('sNotif').innerHTML = `<span class="state ${cls}">${txt}</span>`;
   $('sNotifBtn').hidden = st === 'granted' || st === 'unsupported';
-}
-async function saveSync(){
-  const url = $('sUrl').value.trim(), key = $('sKey').value.trim();
-  if (!VALID_URL.test(url)){ toast('Το link πρέπει να είναι το URL της εφαρμογής ιστού, που τελειώνει σε /exec.'); $('sUrl').focus(); return; }
-  if (key.length < 16){ toast('Το κλειδί φαίνεται ελλιπές. Αντίγραψέ το ολόκληρο από το αρχείο καταγραφής.'); $('sKey').focus(); return; }
-  DB.settings.syncUrl = url; DB.settings.syncKey = key; syncError = '';
-  save();
-  const ok = await syncRoutes(true);
-  if (ok){ buildSettings(); renderAll(); }
-}
-function removeSync(){
-  DB.settings.syncUrl = ''; DB.settings.syncKey = ''; syncError = '';
-  DB.routes = { ...EMPTY_ROUTES };
-  save(); buildSettings(); renderAll();
-  toast('Η σύνδεση με το αρχείο αφαιρέθηκε.');
+  $('sCust').innerHTML = DB.customers.length
+    ? DB.customers.map((n,i) => `<span class="chip">${esc(n)}<button data-act="forget" data-i="${i}" aria-label="Διαγραφή ${esc(n)}">×</button></span>`).join('')
+    : '<p style="margin:0">Κανένας ακόμα.</p>';
 }
 function exportData(){
   try {
-    const { syncUrl, syncKey, ...safeSettings } = DB.settings;
-    const blob = new Blob([JSON.stringify({ app:'fakeloi', version:2, envelopes:DB.envelopes, settings:safeSettings }, null, 2)], { type:'application/json' });
+    const blob = new Blob([JSON.stringify({ app:'fakeloi', version:3, envelopes:DB.envelopes, customers:DB.customers, settings:DB.settings }, null, 2)], { type:'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `fakeloi-myloi-arkadiou-${todayIso()}.json`;
@@ -967,9 +657,10 @@ $('importFile').addEventListener('change', e => {
       const d = JSON.parse(reader.result);
       if (d.app !== 'fakeloi' || !Array.isArray(d.envelopes)) throw new Error('bad');
       DB.envelopes = d.envelopes.filter(x => x && typeof x.name === 'string' && x.addedAt)
-        .map(x => ({ id:String(x.id || uid()), name:x.name.slice(0,80), addedAt:x.addedAt, givenAt:x.givenAt || null, givenTo:String(x.givenTo || '').slice(0,60) }));
-      const { syncUrl, syncKey, ...rest } = d.settings || {};
-      DB.settings = { ...DB.settings, ...rest };
+        .map(x => ({ id:String(x.id || uid()), name:clean(x.name), date:/^\d{4}-\d{2}-\d{2}$/.test(x.date || '') ? x.date : '', addedAt:x.addedAt, givenAt:x.givenAt || null }));
+      DB.customers = (Array.isArray(d.customers) ? d.customers : []).map(clean).filter(Boolean);
+      DB.envelopes.forEach(x => rememberCustomer(x.name));
+      DB.settings = { ...DEFAULT_SETTINGS, ...(d.settings || {}) };
       tidy(); save(); buildSettings(); renderAll();
       toast(`Επαναφέρθηκαν ${DB.envelopes.length} φάκελοι.`);
     } catch(err){ toast('Το αρχείο δεν είναι αντίγραφο αυτής της εφαρμογής.'); }
@@ -986,29 +677,20 @@ function wipeAll(btn){
     return;
   }
   clearTimeout(wipeTimer);
-  DB.envelopes = []; DB.fired = {}; DB.routes = { ...EMPTY_ROUTES };
+  DB.envelopes = []; DB.customers = []; DB.fired = {};
   save(); buildSettings(); renderAll();
   toast('Όλα τα δεδομένα διαγράφηκαν.');
-  if (DB.settings.syncUrl) syncRoutes(false);
 }
 
 /* ===================== ΔΕΙΓΜΑ ===================== */
 function loadSample(){
   const d = n => iso(addDays(new Date(), n));
-  const entries = [
-    { d:d(-1), c:'ΜΑΝΩΛΑΚΗΣ', drv:'ΓΙΑΝΝΗΣ', own:false },
-    { d:d(0),  c:'ΒΕΡΥΚΑΚΗΣ', drv:'ΓΙΑΝΝΗΣ', own:false },
-    { d:d(0),  c:'ΣΦΑΚΙΑΝΑΚΗΣ', drv:'', own:true },
-    { d:d(0),  c:'ΚΟΚΚΙΝΑΚΗΣ', drv:'ΚΩΣΤΗΣ', own:false },
-    { d:d(1),  c:'ΔΑΜΙΑΝΑΚΗΣ', drv:'ΓΙΑΝΝΗΣ', own:false },
-    { d:d(3),  c:'ΛΙΝΟΞΙΛΑΚΗΣ', drv:'ΓΙΑΝΝΗΣ', own:false },
-    { d:d(3),  c:'ΚΟΚΚΙΝΑΚΗΣ', drv:'ΓΙΑΝΝΗΣ', own:false }
-  ];
-  DB.routes = { entries, customers:[...new Set(entries.map(e => e.c)), 'ΑΡΧΟΝΤΑΚΗΣ'].sort(), updated:new Date().toISOString(), fetchedAt:null, sample:true };
-  const mk = (name, daysAgo) => ({ id:uid(), name, addedAt:addDays(new Date(), -daysAgo).toISOString(), givenAt:null, givenTo:'', sample:true });
-  DB.envelopes.push(mk('ΒΕΡΥΚΑΚΗΣ',6), mk('ΣΦΑΚΙΑΝΑΚΗΣ',3), mk('ΜΑΝΩΛΑΚΗΣ',5), mk('ΔΑΜΙΑΝΑΚΗΣ',1), mk('ΑΡΧΟΝΤΑΚΗΣ',12));
+  const mk = (name, date, daysAgo) => ({ id:uid(), name, date, addedAt:addDays(new Date(), -daysAgo).toISOString(), givenAt:null });
+  [mk('ΒΕΡΥΚΑΚΗΣ', d(0), 6), mk('ΣΦΑΚΙΑΝΑΚΗΣ', d(0), 3), mk('ΜΑΝΩΛΑΚΗΣ', d(-1), 5),
+   mk('ΔΑΜΙΑΝΑΚΗΣ', d(1), 1), mk('ΛΙΝΟΞΙΛΑΚΗΣ', d(4), 2), mk('ΑΡΧΟΝΤΑΚΗΣ', '', 9)]
+    .forEach(e => { DB.envelopes.push(e); rememberCustomer(e.name); });
   save(); renderAll();
-  toast('Φορτώθηκε δείγμα. Με τη σύνδεση του αρχείου αντικαθίσταται από το πραγματικό πρόγραμμα.');
+  toast('Φορτώθηκε δείγμα. Το σβήνεις από τις Ρυθμίσεις.');
   setTimeout(checkReminders, 700);
 }
 
@@ -1016,19 +698,16 @@ function loadSample(){
 document.addEventListener('click', e => {
   const g = e.target.closest('[data-go]');
   if (g){ e.preventDefault(); go(g.dataset.go); return; }
-  const tab = e.target.closest('[data-envtab]');
-  if (tab){ envTab = tab.dataset.envtab; renderEnvList(); return; }
   const a = e.target.closest('[data-act]');
   if (!a) return;
   const id = a.dataset.id;
   switch (a.dataset.act){
     case 'give': giveEnvelope(id, a); break;
-    case 'rmenv': removeEnvelope(id); break;
+    case 'rm': removeEnvelope(id); break;
     case 'restore': restoreEnvelope(id); break;
-    case 'addfor': addEnvelope(a.dataset.name); break;
-    case 'sync-now': syncRoutes(true); break;
-    case 'sync-save': saveSync(); break;
-    case 'sync-remove': removeSync(); break;
+    case 'set-today': $('aDate').value = todayIso(); $('aCust').focus(); break;
+    case 'set-tmr': $('aDate').value = tomorrowIso(); $('aCust').focus(); break;
+    case 'forget': { const n = DB.customers[Number(a.dataset.i)]; DB.customers.splice(Number(a.dataset.i), 1); save(); renderAll(); if (n) toast(`Αφαιρέθηκε από τη λίστα: ${esc(n)}.`); break; }
     case 'notif-on': enableNotifs(); break;
     case 'notif-test': remind('Δοκιμαστική υπενθύμιση', 'Έτσι θα εμφανίζεται η υπενθύμιση για τους φακέλους.', 'test-' + Date.now()); beep(); break;
     case 'notif-close': notifBarClosed = true; renderNotifBar(); break;
@@ -1038,11 +717,13 @@ document.addEventListener('click', e => {
     case 'wipe': wipeAll(a); break;
   }
 });
-let lastSync = 0;
+document.addEventListener('change', e => {
+  const el = e.target.closest('[data-date]');
+  if (el) setDate(el.dataset.date, el.value);
+});
 function tick(){
   const t = todayIso();
   if (t !== lastDay){ lastDay = t; tidy(); save(); renderAll(); }
-  if (DB.settings.syncUrl && DB.settings.syncKey && Date.now() - lastSync > SYNC_EVERY_MIN*60000){ lastSync = Date.now(); syncRoutes(false); }
   checkReminders();
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden){ tick(); renderAll(); } });
@@ -1057,9 +738,8 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden){ tic
   await loadDB();
   lastDay = todayIso();
   tidy();
-  buildToday(); buildEnv(); buildProgram();
-  setSaveState('ok');
-  go('today');
+  buildMain();
+  go('main');
   setTimeout(tick, 600);
   setInterval(tick, 30000);
 })();
