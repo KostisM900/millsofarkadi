@@ -476,6 +476,19 @@ input{font:inherit;color:inherit}
 .chk-hist .tag.wait{background:var(--wheat-tint);color:var(--wheat-dark)}
 .rv-sum{font-size:12.5px;font-weight:700;color:var(--olive-deep);margin-top:4px}
 @media (max-width:600px){.sec-h .late-set{width:100%;order:3}.sec-h{flex-wrap:wrap}}
+
+/* ===== ΔΙΑΓΡΑΦΗ ΠΑΡΑΣΤΑΤΙΚΩΝ ===== */
+.chk-del{width:26px;height:26px;font-size:16px;margin-left:4px;opacity:.45}
+.chk-row:hover .chk-del,.chk-del:focus-visible{opacity:1}
+@media (hover:none){.chk-del{opacity:.8}}
+.check-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.check-top .back{margin-bottom:0}
+.del-opts{display:flex;flex-direction:column;gap:8px}
+.del-opt{text-align:left;border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--white);display:flex;flex-direction:column;gap:3px}
+.del-opt:hover{border-color:var(--red);background:#FFFBFA}
+.del-opt b{font-size:14px}
+.del-opt small{color:var(--muted);font-size:12.5px}
+.del-opt:first-child b{color:var(--red)}
 </style>
 </head>
 <body>
@@ -1975,6 +1988,104 @@ async function saveReview(){
     await openCheck(id);
   } catch(e){ ARC.busy = false; handleError(e, 'Ο έλεγχος δεν αποθηκεύτηκε.'); renderArchive(); }
 }
+/* Ο αριθμός στο όνομα του ελέγχου («· 7 παραστατικά») ακολουθεί τις διαγραφές */
+const relabel = (label, n) => String(label || '').replace(/\d+ παραστατικ(ό|ά)$/, n === 1 ? '1 παραστατικό' : `${n} παραστατικά`);
+/* Σβήνει παραστατικά από τη βάση και από όποιον έλεγχο τα έχει. Αν ένας έλεγχος αδειάσει, σβήνεται κι αυτός. */
+function deleteDocs(codes, { silent=false } = {}){
+  codes = [...new Set(codes)].filter(Boolean);
+  if (!codes.length) return;
+  const snap = {
+    docs: codes.map(c => [c, ARC.docs.get(c), ARC.missing.get(c), ARC.openDocs.get(c)]),
+    checks: ARC.checks.map(c => ({ ...c, codes:[...c.codes] }))
+  };
+  const touched = ARC.checks.filter(c => c.codes.some(x => codes.includes(x)))
+    .map(c => { const left = c.codes.filter(x => !codes.includes(x)); return { id:c.id, left, label:relabel(c.label, left.length) }; });
+  const info = codes.map(c => ({ code:c, doc_date:docDate(c) || null, archived_at: ARC.missing.has(c) ? null : ((ARC.docs.get(c) || {}).archived_at || new Date().toISOString()) }));
+  arcMutate(
+    () => {
+      codes.forEach(c => { ARC.docs.delete(c); ARC.missing.delete(c); ARC.openDocs.delete(c); });
+      touched.forEach(t => {
+        const chk = ARC.checks.find(c => c.id === t.id);
+        if (!t.left.length){ ARC.checks = ARC.checks.filter(c => c.id !== t.id); if (ARC.openId === t.id){ ARC.openId = null; setHash('arc'); } }
+        else if (chk){ chk.codes = t.left; chk.label = t.label; }
+      });
+      renderNav();
+    },
+    async () => {
+      for (let i = 0; i < codes.length; i += 80) await api(`archive_docs?code=in.${encodeURIComponent(inList(codes.slice(i, i + 80)))}`, { method:'DELETE', prefer:'return=minimal' });
+      for (const t of touched){
+        if (!t.left.length) await api(`archive_checks?id=eq.${t.id}`, { method:'DELETE', prefer:'return=minimal' });
+        else await api(`archive_checks?id=eq.${t.id}`, { method:'PATCH', body:{ codes:t.left, label:t.label }, prefer:'return=minimal' });
+      }
+    },
+    () => {
+      snap.docs.forEach(([c, d, m, o]) => { if (d) ARC.docs.set(c, d); if (m) ARC.missing.set(c, m); if (o) ARC.openDocs.set(c, o); });
+      ARC.checks = snap.checks; renderNav();
+    },
+    'Η διαγραφή δεν αποθηκεύτηκε.'
+  );
+  if (silent) return;
+  toast(codes.length === 1 ? `Διαγράφηκε το ${esc(codes[0])}.` : `Διαγράφηκαν ${codes.length} παραστατικά.`, { action:{ label:'Αναίρεση', fn:() => arcMutate(
+    () => {
+      snap.docs.forEach(([c, d, m, o]) => { if (d) ARC.docs.set(c, d); if (m) ARC.missing.set(c, m); if (o) ARC.openDocs.set(c, o); });
+      ARC.checks = snap.checks.map(c => ({ ...c, codes:[...c.codes] })); renderNav();
+    },
+    async () => {
+      await api('archive_docs?on_conflict=code', { method:'POST', body:info, prefer:'resolution=ignore-duplicates,return=minimal' });
+      for (const t of touched){
+        const orig = snap.checks.find(c => c.id === t.id);
+        if (!t.left.length) await api('archive_checks', { method:'POST', body:{ id:orig.id, label:orig.label, codes:orig.codes, created_at:orig.created_at }, prefer:'return=minimal' });
+        else await api(`archive_checks?id=eq.${t.id}`, { method:'PATCH', body:{ codes:orig.codes, label:orig.label }, prefer:'return=minimal' });
+      }
+    },
+    () => { codes.forEach(c => { ARC.docs.delete(c); ARC.missing.delete(c); }); },
+    'Η αναίρεση δεν αποθηκεύτηκε.'
+  ) } });
+}
+/* Διαγραφή ελέγχου: ρωτάει αν θα φύγουν και τα παραστατικά του (όσα δεν ανήκουν και σε άλλον έλεγχο) */
+function openDeleteCheck(id){
+  const chk = ARC.checks.find(c => c.id === id); if (!chk) return;
+  const own = chk.codes.filter(code => !ARC.checks.some(c => c.id !== id && c.codes.includes(code)));
+  const waiting = own.filter(c => ARC.missing.has(c)).length;
+  const box = $('modalBox');
+  box.innerHTML = `
+    <button class="icon-btn m-x" data-m="cancel" aria-label="Κλείσιμο">×</button>
+    <p class="m-eyebrow">Διαγραφή ελέγχου</p>
+    <h2>${esc(chk.label)}</h2>
+    <p class="m-meta"><span>${chk.codes.length === 1 ? '1 παραστατικό' : chk.codes.length + ' παραστατικά'}${waiting ? `, ${waiting} σε αναμονή` : ''}${own.length < chk.codes.length ? `. ${chk.codes.length - own.length} υπάρχουν και σε άλλο έλεγχο και δεν σβήνονται.` : ''}</span></p>
+    <div class="del-opts">
+      <button class="del-opt" data-m="all"><b>Ο έλεγχος και τα παραστατικά του</b><small>Φεύγουν και από την αναμονή. Για λάθος ανέβασμα ή ακυρωμένα παραστατικά.</small></button>
+      <button class="del-opt" data-m="only"><b>Μόνο ο έλεγχος</b><small>Τα παραστατικά μένουν: όσα περιμένεις συνεχίζουν να φαίνονται στην «Σε αναμονή».</small></button>
+    </div>
+    <div class="m-f"><span class="m-sp"></span><button class="btn ghost" data-m="cancel">Ακύρωση</button></div>`;
+  const close = () => { $('modal').hidden = true; box.innerHTML = ''; document.removeEventListener('keydown', onKey); };
+  const onKey = e => { if (e.key === 'Escape') close(); };
+  box.onclick = e => {
+    const b = e.target.closest('[data-m]'); if (!b) return;
+    if (b.dataset.m === 'cancel') return close();
+    close();
+    if (b.dataset.m === 'all'){
+      deleteDocs(own, { silent:true });
+      if (ARC.checks.some(c => c.id === id)) deleteCheckOnly(id, true);
+      toast(`Διαγράφηκε ο έλεγχος και ${own.length === 1 ? '1 παραστατικό' : own.length + ' παραστατικά'}.`);
+    } else deleteCheckOnly(id);
+  };
+  $('modal').onclick = e => { if (e.target === $('modal')) close(); };
+  document.addEventListener('keydown', onKey);
+  $('modal').hidden = false;
+}
+function deleteCheckOnly(id, silent=false){
+  const chk = ARC.checks.find(c => c.id === id); if (!chk) return;
+  const idx = ARC.checks.indexOf(chk);
+  if (ARC.openId === id){ ARC.openId = null; setHash('arc'); }
+  arcMutate(
+    () => { ARC.checks = ARC.checks.filter(c => c !== chk); },
+    () => api(`archive_checks?id=eq.${id}`, { method:'DELETE', prefer:'return=minimal' }),
+    () => { ARC.checks.splice(idx, 0, chk); },
+    'Ο έλεγχος δεν διαγράφηκε.'
+  );
+  if (!silent) toast('Διαγράφηκε ο έλεγχος. Τα παραστατικά του έμειναν στη λίστα «Σε αναμονή» όσα δεν έχουν αρχειοθετηθεί.');
+}
 function deleteCheck(id, btn){
   if (!btn.dataset.armed){ btn.dataset.armed = '1'; btn.textContent = 'Σίγουρα;'; btn.classList.add('armed'); setTimeout(() => { if (btn.isConnected){ delete btn.dataset.armed; btn.textContent = '×'; btn.classList.remove('armed'); } }, 3500); return; }
   const chk = ARC.checks.find(c => c.id === id); if (!chk) return;
@@ -2013,6 +2124,7 @@ function chkRow(code, withDate=false){
     <span class="chk-code">${esc(code)}</span>
     ${withDate ? `<span class="chk-date">${esc(arcDate(d))}</span>` : ''}
     <span class="chk-st">${label}</span>
+    <button type="button" class="icon-btn chk-del" data-arc="doc-del" data-code="${esc(code)}" aria-label="Διαγραφή ${esc(code)}" title="Διαγραφή παραστατικού (λάθος ανάγνωση ή ακυρωμένο)">×</button>
   </label>`;
 }
 /* Λίστα ομαδοποιημένη ανά ημέρα παραστατικού (οι παλιότερες πρώτες) */
@@ -2119,7 +2231,7 @@ function renderArchive(){
     const pct = codes.length ? Math.round(done / codes.length * 100) : 0;
     body.innerHTML = `
       <section class="card check">
-        <button class="btn ghost sm back" data-arc="back">← Όλοι οι έλεγχοι</button>
+        <div class="check-top"><button class="btn ghost sm back" data-arc="back">← Όλοι οι έλεγχοι</button><button class="btn link-danger" data-arc="del-check">Διαγραφή ελέγχου</button></div>
         <h2>${esc(chk.label)}</h2>
         <p class="check-sub">Ανέβηκε ${shortDate(iso(new Date(chk.created_at)))} στις ${hhmm(chk.created_at)}${days.size > 1 ? `, παραστατικά από ${days.size} διαφορετικές μέρες` : ''}</p>
         <div class="progress"><i style="width:${pct}%"></i></div>
@@ -2195,7 +2307,9 @@ document.addEventListener('click', e => {
     case 'open': openCheck(a.dataset.id); break;
     case 'day-done': setArchived(String(a.dataset.codes || '').split(',').filter(Boolean), true); break;
     case 'back': ARC.openId = null; setHash('arc'); renderArchive(); break;
-    case 'del': deleteCheck(a.dataset.id, a); break;
+    case 'del': openDeleteCheck(a.dataset.id); break;
+    case 'doc-del': e.preventDefault(); e.stopPropagation(); deleteDocs([a.dataset.code]); break;
+    case 'del-check': openDeleteCheck(ARC.openId); break;
     case 'all-done': { const chk = ARC.checks.find(c => c.id === ARC.openId); if (chk) setArchived(chk.codes.filter(c => ARC.missing.has(c)), true); break; }
     case 'copy-missing': {
       const chk = ARC.checks.find(c => c.id === ARC.openId); if (!chk) break;
