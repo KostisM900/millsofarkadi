@@ -428,6 +428,31 @@ input{font:inherit;color:inherit}
 .drop.compact svg{width:22px;height:22px;margin:0}
 .drop.compact b{font-size:13.5px}
 .review-h .btns{margin-left:auto}
+
+/* ===== ΛΙΣΤΑ ΕΠΙΛΟΓΗΣ ΠΕΛΑΤΗ (τύπου SoftOne) ===== */
+.combo-wrap{position:relative}
+.combo{position:absolute;left:0;right:0;top:100%;margin-top:4px;z-index:70;background:var(--white);border:1px solid var(--line);border-radius:10px;box-shadow:0 18px 40px -16px rgba(40,40,34,.4);max-height:340px;overflow-y:auto;padding:4px;min-width:300px}
+.combo-item{display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;text-align:left;padding:8px 10px;border-radius:7px;font-size:14px;font-weight:600}
+.combo-item:hover{background:var(--line-2)}
+.combo-item.active{background:var(--olive-tint);color:var(--olive-deep)}
+.combo-item mark{background:none;color:inherit;font-weight:800;text-decoration:underline;text-decoration-color:var(--olive);text-underline-offset:3px}
+.ci-name{white-space:normal;line-height:1.3}
+.ci-tag{font-size:11px;font-weight:700;color:var(--wheat-dark);background:var(--wheat-tint);border-radius:5px;padding:2px 7px;white-space:nowrap}
+.combo-new{color:var(--olive-deep);border-top:1px dashed var(--line);border-radius:0 0 7px 7px}
+.combo-foot{font-size:11.5px;color:var(--muted);padding:7px 10px 5px;border-top:1px solid var(--line-2);margin-top:4px}
+.combo-empty{font-size:13px;color:var(--muted);padding:10px}
+.modal .combo{max-height:240px}
+/* ===== ΛΙΣΤΑ ΠΕΛΑΤΩΝ (ρυθμίσεις) ===== */
+.h3-cnt{color:var(--muted);font-weight:600;font-size:13px}
+.cust-search{margin:0 0 12px}
+.cust-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:2px 14px;max-height:440px;overflow-y:auto;border:1px solid var(--line-2);border-radius:10px;padding:6px 10px 10px}
+.cg-h{grid-column:1 / -1;display:flex;align-items:center;gap:8px;margin-top:8px;font-weight:800;font-size:12.5px;color:var(--olive-deep)}
+.cg-h::after{content:"";flex:1;height:1px;background:var(--line-2)}
+.cg-item{display:flex;align-items:center;gap:2px;min-width:0;padding:2px 0}
+.cg-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:600}
+.cg-item .icon-btn{width:26px;height:26px;font-size:15px}
+.cg-item .icon-btn.edit:hover{background:var(--olive-tint);color:var(--olive-deep)}
+.cust-grid .empty{grid-column:1 / -1;border:0}
 </style>
 </head>
 <body>
@@ -437,7 +462,7 @@ input{font:inherit;color:inherit}
     <a class="brand" href="#" data-go="main">
       <img id="logo" alt="Μύλοι Αρκαδίου">
       <span class="brand-fallback" id="logoFb" hidden>ΜΑ</span>
-      <span class="bt"><b>Μύλοι Αρκαδίου</b><span>ΦΑΚΕΛΟΙ ΠΕΛΑΤΩΝ</span></span>
+      <span class="bt"><b>Μύλοι Αρκαδίου</b><span id="brandSub">ΦΑΚΕΛΟΙ ΠΕΛΑΤΩΝ</span></span>
     </a>
     <span class="net" id="net" hidden title="Οι αλλαγές δεν φτάνουν στη βάση"><span>Εκτός σύνδεσης</span></span>
     <nav class="nav" id="nav" aria-label="Πλοήγηση"></nav>
@@ -471,6 +496,11 @@ input{font:inherit;color:inherit}
 const SB_URL = 'https://vfbznhwkuxidvvcjgpaj.supabase.co';
 const SB_KEY = 'sb_publishable_DEt0kj1lYRxlglhOpUE2gw_amhEcWDA';
 
+/* Ποιος είναι ποιος: ο λογαριασμός ορίζει το όνομα στην αρχική (και σε κλητική) */
+const ACCOUNTS = {
+  'social@m-m-m.gr': { name:'Κωστής', voc:'Κωστή' },
+  'sales2@m-m-m.gr': { name:'Ζωή',    voc:'Ζωή' }
+};
 const LOGO_URLS = ['https://m-m-m.gr/wp-content/uploads/2024/04/logo-150.png', 'https://i.imgur.com/oDCFSVE.png'];
 const LOCAL_KEY = 'arkadi-fakeloi-local-v1';   // ρυθμίσεις συσκευής, σύνδεση, προσωρινό αντίγραφο για εκτός σύνδεσης
 const HISTORY_DAYS = 90;
@@ -672,6 +702,7 @@ function logout(msg){
   DB = { envelopes:[], customers:[] };
   Object.assign(ARC, { loaded:false, checks:[], missing:new Map(), openId:null, openDocs:new Map(), review:[], reviewIssues:[], images:[], q:'' });
   if ($('view-arc')) $('view-arc').innerHTML = '';
+  pendingRoute = null;
   go('login');
   if (msg) toast(esc(msg));
 }
@@ -834,9 +865,35 @@ function pruneFired(){
   const fcut = iso(addDays(new Date(), -7));
   Object.keys(LOCAL.fired).forEach(k => { if (k.slice(0,10) < fcut) delete LOCAL.fired[k]; });
 }
+/* ---------- Σελίδες με δικό τους σύνδεσμο (permalink) ---------- */
+const PAGES = {
+  main:  { slug:'fakeloi',        sub:'ΦΑΚΕΛΟΙ ΠΕΛΑΤΩΝ',              title:'Φάκελοι' },
+  stand: { slug:'stand',          sub:'STAND ΦΑΚΕΛΩΝ',                title:'Stand' },
+  arc:   { slug:'archeiothetisi', sub:'ΑΡΧΕΙΟΘΕΤΗΣΗ ΠΑΡΑΣΤΑΤΙΚΩΝ',    title:'Αρχειοθέτηση' },
+  set:   { slug:'rythmiseis',     sub:'ΡΥΘΜΙΣΕΙΣ',                    title:'Ρυθμίσεις' },
+  login: { slug:'syndesi',        sub:'ΣΥΝΔΕΣΗ',                      title:'Σύνδεση' }
+};
+function parseHash(){
+  const [slug = '', sub = ''] = decodeURIComponent(location.hash.replace(/^#\/?/, '')).split('/');
+  const v = Object.keys(PAGES).find(k => PAGES[k].slug === slug) || 'main';
+  return { v, sub };
+}
+function setHash(v, sub=''){
+  const target = `#/${PAGES[v].slug}${sub ? '/' + sub : ''}`;
+  if (location.hash === target) return;
+  try { history.pushState(null, '', target); } catch(e){ try { location.hash = target; } catch(_){} }
+}
+function onHashChange(){
+  const { v, sub } = parseHash();
+  if (!LOCAL.session){ if (view !== 'login') go('login'); return; }
+  if (v === view && (v !== 'arc' || sub === (ARC.openId || ''))) return;
+  go(v, { sub, fromHash:true });
+}
+window.addEventListener('hashchange', onHashChange);
+window.addEventListener('popstate', onHashChange);
 function updateTitle(){
   const n = LOCAL.session ? groupsOf(pending()).filter(g => g.date === todayIso()).length : 0;
-  document.title = n ? `(${n}) Φάκελοι σήμερα | Μύλοι Αρκαδίου` : 'Φάκελοι | Μύλοι Αρκαδίου';
+  document.title = `${n ? `(${n}) ` : ''}${(PAGES[view] || PAGES.main).title} | Μύλοι Αρκαδίου`;
 }
 
 /* ===================== NAV ===================== */
@@ -849,14 +906,25 @@ function renderNav(){
     ${canArchive() ? `<button class="nav-btn${view==='arc'?' active':''}" data-go="arc"><span class="nl-long">ΑΡΧΕΙΟΘΕΤΗΣΗ</span><span class="nl-short">ΑΡΧΕΙΟ</span></button>` : ''}
     <button class="nav-btn${view==='set'?' active':''}" data-go="set" aria-label="Ρυθμίσεις"><span class="nl-long">ΡΥΘΜΙΣΕΙΣ</span><svg class="nl-short" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>`;
 }
-function go(v){
-  if (!LOCAL.session) v = 'login';
+let pendingRoute = null;
+function go(v, opts = {}){
+  if (!LOCAL.session){ if (v !== 'login') pendingRoute = { v, sub: opts.sub || '' }; v = 'login'; }
+  if (LOCAL.session && v === 'login') v = 'main';
+  if (v === 'arc' && !canArchive()) v = 'main';
+  if (!PAGES[v]) v = 'main';
   view = v;
-  if (v === 'arc' && !canArchive()) v = view = 'main';
   document.querySelectorAll('.view').forEach(el => el.classList.toggle('active', el.id === 'view-' + v));
+  $('brandSub').textContent = PAGES[v].sub;
   if (v === 'set') buildSettings();
   if (v === 'login') buildLogin();
-  if (v === 'arc'){ renderArchive(); if (!ARC.loaded) loadArchive(); }
+  if (v === 'arc'){
+    const sub = opts.sub || '';
+    if (sub){ if (ARC.loaded) openCheck(sub); else ARC.pendingOpen = sub; }
+    else if (opts.fromHash) ARC.openId = null;
+    renderArchive();
+    if (!ARC.loaded) loadArchive();
+  }
+  setHash(v, v === 'arc' ? (opts.sub || ARC.openId || '') : '');
   renderAll();
   window.scrollTo({ top:0 });
 }
@@ -904,7 +972,8 @@ function buildLogin(){
     try {
       await login(email, pass);
       setOnline(true);
-      go('main');
+      const to = pendingRoute || { v:'main', sub:'' }; pendingRoute = null;
+      go(to.v, { sub: to.sub });
       await refresh();
     } catch(e){
       $('lErr').innerHTML = `<span class="bad">${e instanceof NetError
@@ -957,7 +1026,87 @@ function groupsOf(list){
 const envelopeOf = name => pending().filter(e => norm(e.name) === norm(name));
 const kindSeg = (sel, attr, withAll=false) => `<div class="seg" role="radiogroup">${withAll ? `<button type="button" role="radio" aria-checked="${sel === ''}" class="${sel === '' ? 'on' : ''}" data-${attr}="">Όλα</button>` : ''}${Object.entries(KINDS).map(([k,v]) =>
   `<button type="button" role="radio" aria-checked="${sel === k}" class="${sel === k ? 'on' : ''}" data-${attr}="${k}">${withAll ? (k === 'apodeixi' ? 'Αποδείξεις' : 'Τιμολόγια') : v}</button>`).join('')}</div>`;
-const matchesQuery = (name, q) => !q || q.split(' ').every(w => norm(name).includes(w));
+/* Αναζήτηση όπως στο SoftOne: χωρίς * ψάχνει από την αρχή του ονόματος.
+   Το * σημαίνει «οτιδήποτε»: *ΓΛΥΜ = περιέχει ΓΛΥΜ, ΑΡΤ*ΓΛΥ = ξεκινά ΑΡΤ και μετά κάπου ΓΛΥ, * = όλοι. */
+const escRe = s => s.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+function wildRe(q){ const t = norm(q); return t.includes('*') ? new RegExp('^' + t.split('*').map(escRe).join('.*')) : new RegExp('^' + escRe(t)); }
+function comboMatches(q){
+  if (!norm(q)) return [];
+  const re = wildRe(q);
+  return customerNames().filter(n => re.test(norm(n))).sort((a,b) => a.localeCompare(b,'el'));
+}
+/* Στην αναζήτηση της αρχικής: με * όπως στο SoftOne, αλλιώς όπως πριν (λέξεις οπουδήποτε) */
+const matchesQuery = (name, q) => !q || (q.includes('*') ? wildRe(q).test(norm(name)) : q.split(' ').every(w => norm(name).includes(w)));
+/* Πού ταιριάζει το κείμενο μέσα στο όνομα (για τονισμό) */
+function markMatch(name, q){
+  const n = norm(name), parts = norm(q).split('*').filter(Boolean);
+  if (!parts.length) return esc(name);
+  const spans = []; let from = 0;
+  for (const p of parts){ const i = n.indexOf(p, from); if (i < 0) break; spans.push([i, i + p.length]); from = i + p.length; }
+  if (n.length !== name.length) return esc(name);
+  let out = '', pos = 0;
+  spans.forEach(([a, b]) => { out += esc(name.slice(pos, a)) + '<mark>' + esc(name.slice(a, b)) + '</mark>'; pos = b; });
+  return out + esc(name.slice(pos));
+}
+/* Λίστα επιλογής κάτω από το πεδίο (αντί για τη λίστα του Chrome) */
+function attachCombo(input, { onPick, allowNew = true } = {}){
+  const wrap = input.parentElement; wrap.classList.add('combo-wrap');
+  const box = document.createElement('div');
+  box.className = 'combo'; box.hidden = true; box.setAttribute('role', 'listbox');
+  box.id = input.id + 'List';
+  wrap.appendChild(box);
+  input.setAttribute('role', 'combobox'); input.setAttribute('aria-autocomplete', 'list'); input.setAttribute('aria-controls', box.id); input.setAttribute('aria-expanded', 'false');
+  let items = [], active = -1;
+  const close = () => { box.hidden = true; input.setAttribute('aria-expanded', 'false'); active = -1; };
+  const pick = i => {
+    const it = items[i]; if (!it) return;
+    if (!it.isNew) input.value = it.name;
+    close();
+    input.dispatchEvent(new Event('input', { bubbles:true }));
+    close();
+    if (onPick) onPick(it.isNew ? input.value : it.name, it.isNew);
+  };
+  const draw = () => {
+    const q = input.value;
+    if (!norm(q)){ close(); return; }
+    const names = comboMatches(q);
+    items = names.slice(0, 80).map(name => ({ name }));
+    const exact = names.some(n => norm(n) === norm(q));
+    if (allowNew && !exact && !q.includes('*')) items.push({ name:upper(clean(q)), isNew:true });
+    if (!items.length){ box.innerHTML = `<div class="combo-empty">Δεν βρέθηκε πελάτης. Με <b>*</b> ψάχνεις μέσα στο όνομα, π.χ. <b>*${esc(upper(clean(q)).replace(/\*/g,''))}</b>.</div>`; box.hidden = false; input.setAttribute('aria-expanded', 'true'); return; }
+    if (active < 0 || active >= items.length) active = 0;
+    box.innerHTML = items.map((it, i) => {
+      if (it.isNew) return `<button type="button" class="combo-item combo-new${i === active ? ' active' : ''}" role="option" aria-selected="${i === active}" data-ci="${i}">+ Νέος πελάτης «${esc(it.name)}»</button>`;
+      const env = envelopeOf(it.name);
+      return `<button type="button" class="combo-item${i === active ? ' active' : ''}" role="option" aria-selected="${i === active}" data-ci="${i}">
+        <span class="ci-name">${markMatch(it.name, q)}</span>
+        ${env.length ? `<span class="ci-tag">φάκελος στο stand · ${esc(slotOf(it.name).short)}</span>` : ''}</button>`;
+    }).join('') + `<div class="combo-foot">${names.length > 80 ? `${names.length} πελάτες, γράψε κι άλλο για να περιοριστούν. ` : ''}↑ ↓ για επιλογή, Enter για να το πάρεις, Esc για κλείσιμο. Με * ψάχνεις μέσα στο όνομα.</div>`;
+    box.hidden = false; input.setAttribute('aria-expanded', 'true');
+    const a = box.querySelector('.combo-item.active'); if (a && a.scrollIntoView) a.scrollIntoView({ block:'nearest' });
+  };
+  input.addEventListener('input', () => { active = 0; draw(); });
+  input.addEventListener('focus', () => { if (norm(input.value) && !box.dataset.suppress) draw(); delete box.dataset.suppress; });
+  input.addEventListener('blur', () => setTimeout(close, 120));
+  input.addEventListener('keydown', e => {
+    if (e.isComposing) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+      if (box.hidden){ draw(); e.preventDefault(); return; }
+      e.preventDefault();
+      active = (active + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+      draw();
+    } else if (e.key === 'Enter' && !box.hidden && active >= 0 && items[active]){
+      e.preventDefault(); e.stopImmediatePropagation(); pick(active);
+    } else if (e.key === 'Escape' && !box.hidden){
+      e.preventDefault(); e.stopImmediatePropagation(); close();
+    } else if (e.key === 'Tab' && !box.hidden && active >= 0 && items[active] && !items[active].isNew){
+      pick(active);
+    }
+  });
+  box.addEventListener('mousedown', e => e.preventDefault());
+  box.addEventListener('click', e => { const b = e.target.closest('[data-ci]'); if (b) pick(Number(b.dataset.ci)); });
+  return { close, refresh: draw };
+}
 const idsFilter = ids => ids.length === 1 ? `id=eq.${ids[0]}` : `id=in.(${ids.join(',')})`;
 const docsByIds = idsStr => String(idsStr || '').split(',').map(id => DB.envelopes.find(e => e.id === id)).filter(Boolean);
 const docBody = e => ({ id:e.id, name:e.name, date:e.date || null, kind:e.kind || null, note:e.note || null, added_at:e.addedAt, given_at:e.givenAt || null });
@@ -967,7 +1116,7 @@ function buildMain(){
     <div class="greet"><h1 id="hello"></h1><p id="sub"></p></div>
     <div class="card add-card">
       <div class="add-grid">
-        <label class="f"><span>Πελάτης</span><input class="inp" id="aCust" list="custList" autocomplete="off" placeholder="Όνομα πελάτη"></label>
+        <label class="f"><span>Πελάτης</span><input class="inp" id="aCust" autocomplete="off" spellcheck="false" placeholder="Όνομα πελάτη ή *μέρος του"></label>
         <div class="f"><span>Είδος</span><div id="aKind">${kindSeg(addKind, 'kind')}</div></div>
         <div class="f"><span>Ημέρα παράδοσης</span>
           <div class="when">
@@ -994,6 +1143,7 @@ function buildMain(){
     <div id="lists"></div>`;
   const inp = $('aCust');
   upperInput(inp);
+  attachCombo(inp, { onPick: () => { updateHint(); $('aDate').focus(); } });
   inp.addEventListener('input', updateHint);
   $('aDate').addEventListener('input', () => { previewAddDate(); updateHint(); });
   $('aDate').addEventListener('blur', () => { const r = parseDateInput($('aDate').value); if (r.ok && r.value) $('aDate').value = fmtDate(r.value); });
@@ -1253,11 +1403,12 @@ function openRename(oldName){
     <p class="m-eyebrow">Διόρθωση ονόματος</p>
     <h2>${esc(oldName)}</h2>
     <p class="m-meta"><span>Αλλάζει στον φάκελο και στο ιστορικό του πελάτη.</span></p>
-    <label class="f m-field"><span>Σωστό όνομα</span><input class="inp" id="rName" list="custList" value="${esc(oldName)}" autocomplete="off"></label>
+    <label class="f m-field"><span>Σωστό όνομα</span><input class="inp" id="rName" value="${esc(oldName)}" autocomplete="off" spellcheck="false"></label>
     <p class="hint" id="rHint"></p>
     <div class="m-f"><span class="m-sp"></span><button class="btn ghost" data-m="cancel">Ακύρωση</button><button class="btn primary" data-m="save">Αποθήκευση</button></div>`;
   const inp = $('rName'), hint = $('rHint');
   upperInput(inp);
+  attachCombo(inp, { allowNew:false });
   const check = () => {
     const v = cleanName(inp.value);
     const other = v && norm(v) !== norm(oldName) ? customerNames().find(n => norm(n) === norm(v)) : null;
@@ -1395,7 +1546,7 @@ function renderMain(){
   const nwTitle = nw === tm ? 'ΑΥΡΙΟ' : upper(dayLabel(nw));
   const nodate = G.filter(g => !g.date).sort(byName);
 
-  $('hello').textContent = `${now.getHours() < 12 ? 'Καλημέρα' : 'Καλησπέρα'}${S.userName ? ', ' + S.userName : ''}`;
+  $('hello').textContent = `${now.getHours() < 12 ? 'Καλημέρα' : 'Καλησπέρα'}${account() ? ', ' + account().voc : ''}`;
   const todayAll = allG.filter(g => g.date === t).length;
   const sub = !allG.length ? 'Το stand είναι άδειο.'
     : (todayAll ? `${todayAll === 1 ? 'Ένας φάκελος φεύγει' : todayAll + ' φάκελοι φεύγουν'} σήμερα.` : 'Κανένας φάκελος δεν φεύγει σήμερα.')
@@ -1546,6 +1697,7 @@ function printStand(kind){
    Η αναγνώριση κειμένου γίνεται ΜΕΣΑ στον browser (Tesseract). Η εικόνα δεν ανεβαίνει πουθενά·
    στη βάση αποθηκεύονται μόνο οι αριθμοί των παραστατικών, η ημερομηνία τους και αν αρχειοθετήθηκαν. */
 const ARCHIVE_EMAILS = ['social@m-m-m.gr'];
+const account = () => ACCOUNTS[String((LOCAL.session && LOCAL.session.email) || '').toLowerCase()] || null;
 const canArchive = () => !!(LOCAL.session && ARCHIVE_EMAILS.includes(String(LOCAL.session.email || '').toLowerCase()));
 const TESSERACT_URL = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
 const ARC = { loaded:false, loading:false, setupMissing:false, checks:[], missing:new Map(), openId:null, openDocs:new Map(),
@@ -1734,12 +1886,17 @@ async function loadArchive(){
   } catch(e){
     if (/HTTP 40[04]|PGRST|42P01/.test(String(e && e.message))) ARC.setupMissing = true;
     else handleError(e, 'Δεν φόρτωσαν οι έλεγχοι αρχειοθέτησης.');
-  } finally { ARC.loading = false; if (view === 'arc') renderArchive(); }
+  } finally {
+    ARC.loading = false;
+    if (ARC.pendingOpen){ const id = ARC.pendingOpen; ARC.pendingOpen = null; if (ARC.checks.some(c => c.id === id)) { openCheck(id); return; } else if (view === 'arc') setHash('arc'); }
+    if (view === 'arc') renderArchive();
+  }
 }
 async function openCheck(id){
   const chk = ARC.checks.find(c => c.id === id);
   if (!chk) return;
   ARC.openId = id; ARC.filter = 'all'; ARC.openDocs = new Map();
+  if (view === 'arc') setHash('arc', id);
   renderArchive();
   try {
     for (let i = 0; i < chk.codes.length; i += 80){
@@ -1965,7 +2122,7 @@ document.addEventListener('click', e => {
     case 'rv-add': reviewAdd(); break;
     case 'add-gap': reviewAdd(a.dataset.code); break;
     case 'open': openCheck(a.dataset.id); break;
-    case 'back': ARC.openId = null; renderArchive(); break;
+    case 'back': ARC.openId = null; setHash('arc'); renderArchive(); break;
     case 'del': deleteCheck(a.dataset.id, a); break;
     case 'all-done': { const chk = ARC.checks.find(c => c.id === ARC.openId); if (chk) setArchived(chk.codes.filter(c => ARC.missing.has(c)), true); break; }
     case 'copy-missing': {
@@ -2022,13 +2179,13 @@ function buildSettings(){
       </div>
     </div>
     <div class="card set">
-      <h3>Όνομα στην αρχική</h3>
-      <input class="inp" id="sName" value="${esc(S.userName)}" autocomplete="off" aria-label="Όνομα στην αρχική" style="width:100%;max-width:320px">
-    </div>
-    <div class="card set">
-      <h3>Πελάτες που θυμάται</h3>
-      <p>Εμφανίζονται ως προτάσεις όταν γράφεις όνομα, σε όλους τους υπολογιστές. Πάτα ένα όνομα για να το διορθώσεις, ή το × για να το σβήσεις.</p>
-      <div class="chips" id="sCust"></div>
+      <h3>Πελάτες που θυμάται <span class="h3-cnt" id="sCustN"></span></h3>
+      <p>Εμφανίζονται στη λίστα όταν γράφεις πελάτη, σε όλους τους υπολογιστές. Πάτα ✎ για διόρθωση ή × για διαγραφή.</p>
+      <div class="search cust-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input class="inp" id="sCustQ" type="search" placeholder="Αναζήτηση πελάτη (με * οπουδήποτε στο όνομα)" autocomplete="off" aria-label="Αναζήτηση πελάτη">
+      </div>
+      <div class="cust-grid" id="sCust"></div>
     </div>
     <div class="card set">
       <h3>Λογαριασμός</h3>
@@ -2039,7 +2196,8 @@ function buildSettings(){
       </div>
     </div>`;
   const S2 = LOCAL.settings;
-  $('sName').addEventListener('input', e => { S2.userName = e.target.value.trim(); saveLocal(); });
+  upperInput($('sCustQ'));
+  $('sCustQ').addEventListener('input', e => { custQ = e.target.value; renderCustGrid(); });
   $('sMorning').addEventListener('change', e => { if (e.target.value){ S2.morningTime = e.target.value; saveLocal(); checkReminders(); } });
   $('sEve').addEventListener('change', e => { S2.eveEnabled = e.target.checked; $('sEveTime').disabled = !e.target.checked; saveLocal(); checkReminders(); });
   $('sEveTime').addEventListener('change', e => { if (e.target.value){ S2.eveTime = e.target.value; saveLocal(); checkReminders(); } });
@@ -2057,10 +2215,23 @@ function renderSettingsState(){
   const [cls, txt] = map[st] || map.unsupported;
   $('sNotif').innerHTML = `<span class="state ${cls}">${txt}</span>`;
   $('sNotifBtn').hidden = st === 'granted' || st === 'unsupported';
-  $('sCust').innerHTML = DB.customers.length
-    ? DB.customers.map(c => `<span class="chip"><button class="chip-name" data-act="rename" data-name="${esc(c.name)}" title="Διόρθωση ονόματος">${esc(c.name)}</button><button data-act="forget" data-key="${esc(c.key || norm(c.name))}" aria-label="Διαγραφή ${esc(c.name)}">×</button></span>`).join('')
-    : '<p style="margin:0">Κανένας ακόμα.</p>';
-  $('sAcc').innerHTML = `Συνδεδεμένη ως <b>${esc(LOCAL.session ? LOCAL.session.email : '')}</b>. Τα δεδομένα είναι στη βάση Supabase και φαίνονται από κάθε υπολογιστή που συνδέεται. Από το ιστορικό σβήνονται μόνο φάκελοι που <b>έχουν δοθεί</b> πριν από ${HISTORY_DAYS} μέρες. Όσοι είναι ακόμα στο stand δεν σβήνονται ποτέ, όσος καιρός κι αν περάσει.`;
+  renderCustGrid();
+  $('sAcc').innerHTML = `Λογαριασμός: <b>${esc(account() ? account().name : '')}</b> (${esc(LOCAL.session ? LOCAL.session.email : '')}). Τα δεδομένα είναι στη βάση Supabase και φαίνονται από κάθε υπολογιστή που συνδέεται. Από το ιστορικό σβήνονται μόνο φάκελοι που <b>έχουν δοθεί</b> πριν από ${HISTORY_DAYS} μέρες. Όσοι είναι ακόμα στο stand δεν σβήνονται ποτέ, όσος καιρός κι αν περάσει.`;
+}
+let custQ = '';
+function renderCustGrid(){
+  const el = $('sCust'); if (!el) return;
+  const list = (custQ.trim() ? comboMatches(custQ) : customerNames().slice().sort((a,b) => a.localeCompare(b,'el')));
+  $('sCustN').textContent = DB.customers.length ? `(${DB.customers.length})` : '';
+  if (!DB.customers.length){ el.innerHTML = '<p class="empty">Κανένας ακόμα.</p>'; return; }
+  if (!list.length){ el.innerHTML = `<p class="empty">Κανένας πελάτης δεν ταιριάζει.</p>`; return; }
+  let last = '';
+  el.innerHTML = list.map(n => {
+    const L = letterOf(n), head = L !== last ? `<div class="cg-h">${L}</div>` : ''; last = L;
+    return `${head}<div class="cg-item"><span class="cg-name" title="${esc(n)}">${esc(n)}</span>
+      <button class="icon-btn edit" data-act="rename" data-name="${esc(n)}" aria-label="Διόρθωση ${esc(n)}" title="Διόρθωση ονόματος">✎</button>
+      <button class="icon-btn" data-act="forget" data-key="${esc(norm(n))}" aria-label="Διαγραφή ${esc(n)}" title="Διαγραφή από τη λίστα">×</button></div>`;
+  }).join('');
 }
 function forgetCustomer(key){
   const c = DB.customers.find(x => (x.key || norm(x.name)) === key);
@@ -2165,7 +2336,8 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden){ las
   pruneFired();
   if (LOCAL.cache){ DB.envelopes = LOCAL.cache.envelopes || []; DB.customers = LOCAL.cache.customers || []; }
   buildMain();
-  go(LOCAL.session ? 'main' : 'login');
+  const start = parseHash();
+  go(start.v, { sub: start.sub, fromHash:true });
   setTimeout(tick, 300);
   setInterval(tick, 10000);
 })();
