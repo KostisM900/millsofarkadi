@@ -354,7 +354,7 @@ const LOGO_URLS = ['https://m-m-m.gr/wp-content/uploads/2024/04/logo-150.png', '
 const LOCAL_KEY = 'arkadi-fakeloi-local-v1';   // ρυθμίσεις συσκευής, σύνδεση, προσωρινό αντίγραφο για εκτός σύνδεσης
 const HISTORY_DAYS = 90;
 const REFRESH_SEC = 30;
-const DEFAULT_SETTINGS = { userName:'Ζωή', morningTime:'07:30', eveEnabled:true, eveTime:'14:00', sound:true, standSlots:3 };
+const DEFAULT_SETTINGS = { userName:'Ζωή', morningTime:'07:30', eveEnabled:true, eveTime:'14:00', sound:true, standSlots:3, workDays:[1,2,3,4,5] };
 const DAYS_FULL = ['Κυριακή','Δευτέρα','Τρίτη','Τετάρτη','Πέμπτη','Παρασκευή','Σάββατο'];
 const MONTHS = ['Ιανουαρίου','Φεβρουαρίου','Μαρτίου','Απριλίου','Μαΐου','Ιουνίου','Ιουλίου','Αυγούστου','Σεπτεμβρίου','Οκτωβρίου','Νοεμβρίου','Δεκεμβρίου'];
 const REDUCE = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -451,6 +451,11 @@ function sinceText(ts){
   return `Στο stand από ${shortDate(iso(new Date(ts)))}` + (n === 0 ? ' (σήμερα)' : n === 1 ? ' (1 μέρα)' : ` (${n} μέρες)`);
 }
 const pending = () => DB.envelopes.filter(e => !e.givenAt);
+/* Εργάσιμες μέρες (0 = Κυριακή … 6 = Σάββατο). Η υπενθύμιση «την προηγούμενη μέρα» έρχεται
+   την προηγούμενη ΕΡΓΑΣΙΜΗ: για παράδοση Δευτέρα, την Παρασκευή. */
+function workDays(){ const w = (LOCAL.settings.workDays || []).filter(d => d >= 0 && d <= 6); return w.length ? w : [0,1,2,3,4,5,6]; }
+function prevWorkDay(dateIso){ let d = fromIso(dateIso); for (let i = 0; i < 7; i++){ d = addDays(d, -1); if (workDays().includes(d.getDay())) return iso(d); } return iso(addDays(fromIso(dateIso), -1)); }
+function nextWorkDay(dateIso){ let d = fromIso(dateIso); for (let i = 0; i < 7; i++){ d = addDays(d, 1); if (workDays().includes(d.getDay())) return iso(d); } return iso(addDays(fromIso(dateIso), 1)); }
 const pendingFor = name => pending().find(e => norm(e.name) === norm(name)) || null;
 const customerNames = () => DB.customers.map(c => c.name);
 
@@ -677,7 +682,7 @@ function checkReminders(){
   pending().forEach(env => {
     if (!env.date) return;
     if (mins >= toMin(S.morningTime)){ if (env.date === t) mark('day', env); else if (env.date < t) mark('miss', env); }
-    if (S.eveEnabled && mins >= toMin(S.eveTime) && env.date === tm) mark('eve', env);
+    if (S.eveEnabled && mins >= toMin(S.eveTime) && env.date > t && prevWorkDay(env.date) === t) mark('eve', env);
   });
   updateTitle();
   if (!due.length) return;
@@ -694,8 +699,8 @@ function checkReminders(){
   const notesOf = g => { const ns = g.items.map(e => e.note).filter(Boolean); return ns.length ? ` Σχόλιο: ${ns.join(' / ')}` : ''; };
   fire('day',  g => [`Φάκελος για ${g.name}${inside(g)}`, `Έχει παράδοση σήμερα. Πάρε τον φάκελο${locOf(g)} και δώσ' τον στον οδηγό.${notesOf(g)}`],
                l => [`${l.length} φάκελοι φεύγουν σήμερα`, l.map(g => g.name).join(', ')]);
-  fire('eve',  g => [`Αύριο: φάκελος για ${g.name}${inside(g)}`, `Έχει παράδοση αύριο. Ετοίμασε τον φάκελο${locOf(g)}.${notesOf(g)}`],
-               l => [`${l.length} φάκελοι για αύριο`, l.map(g => g.name).join(', ')]);
+  fire('eve',  g => [`${dayLabel(g.date)}: φάκελος για ${g.name}${inside(g)}`, `Έχει παράδοση ${g.date === tm ? 'αύριο' : dayLabel(g.date)}. Ετοίμασε τον φάκελο${locOf(g)}.${notesOf(g)}`],
+               l => [`${l.length} φάκελοι για ${l[0].date === tm ? 'αύριο' : dayLabel(l[0].date)}`, l.map(g => g.name).join(', ')]);
   fire('miss', g => [`Ο φάκελος για ${g.name} είναι ακόμα στο stand`, `Η παράδοση ήταν ${dayLabel(g.date, true)}. Είναι ${slotIn(g.name)}. Αν δόθηκε, πάτα «Δόθηκε». Αλλιώς βάλε νέα ημέρα.`],
                l => [`${l.length} φάκελοι έμειναν στο stand`, l.map(g => g.name).join(', ')]);
   beep();
@@ -1218,8 +1223,10 @@ function renderMain(){
   const G = allG.filter(g => matchesQuery(g.name, query) && (!kindFilter || g.items.some(e => e.kind === kindFilter)));
   const today = G.filter(g => g.date === t).sort(byName);
   const missed = G.filter(g => g.date && g.date < t).sort((a,b) => a.date.localeCompare(b.date));
-  const tmr = G.filter(g => g.date === tm).sort(byName);
-  const later = G.filter(g => g.date && g.date > tm).sort((a,b) => a.date.localeCompare(b.date) || byName(a,b));
+  const nw = nextWorkDay(t);                                   // επόμενη εργάσιμη (την Παρασκευή: η Δευτέρα)
+  const tmr = G.filter(g => g.date > t && g.date <= nw).sort((a,b) => a.date.localeCompare(b.date) || byName(a,b));
+  const later = G.filter(g => g.date && g.date > nw).sort((a,b) => a.date.localeCompare(b.date) || byName(a,b));
+  const nwTitle = nw === tm ? 'ΑΥΡΙΟ' : upper(dayLabel(nw));
   const nodate = G.filter(g => !g.date).sort((a,b) => a.addedAt.localeCompare(b.addedAt));
 
   $('hello').textContent = `${now.getHours() < 12 ? 'Καλημέρα' : 'Καλησπέρα'}${S.userName ? ', ' + S.userName : ''}`;
@@ -1251,7 +1258,7 @@ function renderMain(){
     ? `<div class="env-grid">${today.map(envCard).join('')}</div>`
     : `<div class="empty">${kindFilter ? (kindFilter === 'timologio' ? 'Κανένας φάκελος με τιμολόγιο για σήμερα.' : 'Κανένας φάκελος με απόδειξη για σήμερα.') : allG.length ? 'Κανένας φάκελος για σήμερα.' : 'Όταν μπαίνει φάκελος στο stand, γράψε τον πελάτη από πάνω.'}</div>`);
   if (missed.length) html += section('ΕΜΕΙΝΑΝ ΣΤΟ STAND', `<div class="rows bad">${missed.map(g => row(g, `Η παράδοση ήταν ${esc(dayLabel(g.date, true))}. Αν δόθηκε, πάτα «Δόθηκε». Αλλιώς βάλε νέα ημέρα.`, true)).join('')}</div>`, true);
-  if (tmr.length) html += section('ΑΥΡΙΟ', `<div class="rows">${tmr.map(g => row(g, sinceText(g.addedAt))).join('')}</div>`);
+  if (tmr.length) html += section(nwTitle, `<div class="rows">${tmr.map(g => row(g, `${g.date !== nw || nw !== tm ? esc(dayLabel(g.date)) + '. ' : ''}${sinceText(g.addedAt)}`)).join('')}</div>`);
   if (later.length) html += section('ΕΠΟΜΕΝΕΣ ΜΕΡΕΣ', `<div class="rows">${later.map(g => row(g, `${esc(dayLabel(g.date))}. ${sinceText(g.addedAt)}`)).join('')}</div>`);
   if (nodate.length) html += section('ΧΩΡΙΣ ΗΜΕΡΑ ΠΑΡΑΔΟΣΗΣ', `<div class="rows">${nodate.map(g => row(g, `${sinceText(g.addedAt)}. Βάλε ημέρα για να έρθει υπενθύμιση.`)).join('')}</div>`);
 
@@ -1376,9 +1383,13 @@ function buildSettings(){
         <input class="inp" type="time" id="sMorning" value="${esc(S.morningTime)}" aria-label="Ώρα πρωινής υπενθύμισης">
       </div>
       <div class="set-row">
-        <div class="sr-t"><b>Την προηγούμενη μέρα</b><small>Για να ετοιμαστεί ο φάκελος από νωρίς.</small></div>
+        <div class="sr-t"><b>Την προηγούμενη εργάσιμη μέρα</b><small>Για να ετοιμαστεί ο φάκελος από νωρίς. Για παράδοση Δευτέρα, έρχεται την Παρασκευή.</small></div>
         <label class="switch"><input type="checkbox" id="sEve" ${S.eveEnabled ? 'checked' : ''} aria-label="Υπενθύμιση την προηγούμενη μέρα"><span></span></label>
         <input class="inp" type="time" id="sEveTime" value="${esc(S.eveTime)}" ${S.eveEnabled ? '' : 'disabled'} aria-label="Ώρα υπενθύμισης την προηγούμενη μέρα">
+      </div>
+      <div class="set-row">
+        <div class="sr-t"><b>Εργάσιμες μέρες</b><small>Οι μέρες που δουλεύει το γραφείο.</small></div>
+        <div class="seg" id="sWork">${[1,2,3,4,5,6,0].map(d => `<button type="button" aria-pressed="${workDays().includes(d)}" class="${(LOCAL.settings.workDays || []).includes(d) ? 'on' : ''}" data-wd="${d}">${['Κυρ','Δευ','Τρί','Τετ','Πέμ','Παρ','Σάβ'][d]}</button>`).join('')}</div>
       </div>
       <div class="set-row">
         <div class="sr-t"><b>Ήχος</b><small>Σύντομος ήχος μαζί με την υπενθύμιση.</small></div>
@@ -1462,6 +1473,15 @@ document.addEventListener('click', e => {
   if (g){ e.preventDefault(); go(g.dataset.go); return; }
   const kb = e.target.closest('[data-kind]');
   if (kb){ addKind = kb.dataset.kind; $('aKind').innerHTML = kindSeg(addKind, 'kind'); updateHint(); return; }
+  const wd = e.target.closest('[data-wd]');
+  if (wd){
+    const d = Number(wd.dataset.wd), cur = LOCAL.settings.workDays || [];
+    const next = cur.includes(d) ? cur.filter(x => x !== d) : [...cur, d];
+    if (!next.length){ toast('Χρειάζεται τουλάχιστον μία εργάσιμη μέρα.'); return; }
+    LOCAL.settings.workDays = next.sort(); saveLocal();
+    wd.classList.toggle('on', next.includes(d)); wd.setAttribute('aria-pressed', next.includes(d));
+    checkReminders(); return;
+  }
   const sb = e.target.closest('[data-slots]');
   if (sb){ LOCAL.settings.standSlots = Number(sb.dataset.slots); saveLocal(); renderAll(); return; }
   const kf = e.target.closest('[data-kfilter]');
