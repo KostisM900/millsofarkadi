@@ -605,7 +605,8 @@ async function cleanupHistory(){
   if (LOCAL.cleanedOn === todayIso()) return;
   const cutoff = addDays(new Date(), -HISTORY_DAYS).toISOString();
   try {
-    await api(`envelopes?given_at=lt.${encodeURIComponent(cutoff)}`, { method:'DELETE' });
+    // ΜΟΝΟ έγγραφα που έχουν δοθεί (given_at όχι κενό) πριν από 90 μέρες. Όσα είναι ακόμα στο stand δεν σβήνονται ποτέ.
+    await api(`envelopes?given_at=not.is.null&given_at=lt.${encodeURIComponent(cutoff)}`, { method:'DELETE' });
     LOCAL.cleanedOn = todayIso(); saveLocal();
   } catch(e){}
 }
@@ -1222,12 +1223,12 @@ function renderMain(){
   const allG = groupsOf(pending());
   const G = allG.filter(g => matchesQuery(g.name, query) && (!kindFilter || g.items.some(e => e.kind === kindFilter)));
   const today = G.filter(g => g.date === t).sort(byName);
-  const missed = G.filter(g => g.date && g.date < t).sort((a,b) => a.date.localeCompare(b.date));
+  const missed = G.filter(g => g.date && g.date < t).sort(byName);
   const nw = nextWorkDay(t);                                   // επόμενη εργάσιμη (την Παρασκευή: η Δευτέρα)
-  const tmr = G.filter(g => g.date > t && g.date <= nw).sort((a,b) => a.date.localeCompare(b.date) || byName(a,b));
-  const later = G.filter(g => g.date && g.date > nw).sort((a,b) => a.date.localeCompare(b.date) || byName(a,b));
+  const tmr = G.filter(g => g.date > t && g.date <= nw).sort(byName);
+  const later = G.filter(g => g.date && g.date > nw).sort(byName);
   const nwTitle = nw === tm ? 'ΑΥΡΙΟ' : upper(dayLabel(nw));
-  const nodate = G.filter(g => !g.date).sort((a,b) => a.addedAt.localeCompare(b.addedAt));
+  const nodate = G.filter(g => !g.date).sort(byName);
 
   $('hello').textContent = `${now.getHours() < 12 ? 'Καλημέρα' : 'Καλησπέρα'}${S.userName ? ', ' + S.userName : ''}`;
   const todayAll = allG.filter(g => g.date === t).length;
@@ -1246,7 +1247,7 @@ function renderMain(){
       : `<b>Όχι.</b> Κανένας φάκελος στο stand για «${esc($('q').value.trim())}».${gHits.length ? ' Από κάτω όσοι έχουν ήδη δοθεί.' : ''}`;
     if (today.length) html += section('ΦΕΥΓΟΥΝ ΣΗΜΕΡΑ', `<div class="env-grid">${today.map(envCard).join('')}</div>`);
     if (missed.length) html += section('ΕΜΕΙΝΑΝ ΣΤΟ STAND', `<div class="rows bad">${missed.map(g => row(g, `Η παράδοση ήταν ${esc(dayLabel(g.date, true))}.`, true)).join('')}</div>`, true);
-    const rest = [...tmr, ...later, ...nodate];
+    const rest = [...tmr, ...later, ...nodate].sort(byName);
     if (rest.length) html += section('ΣΤΟ STAND', `<div class="rows">${rest.map(g => row(g, `${g.date ? esc(dayLabel(g.date)) + '. ' : 'Χωρίς ημέρα. '}${sinceText(g.addedAt)}`)).join('')}</div>`);
     if (gHits.length) html += section('ΔΟΘΗΚΑΝ', givenRows(gHits));
     $('lists').innerHTML = html;
@@ -1443,7 +1444,7 @@ function renderSettingsState(){
   $('sCust').innerHTML = DB.customers.length
     ? DB.customers.map(c => `<span class="chip"><button class="chip-name" data-act="rename" data-name="${esc(c.name)}" title="Διόρθωση ονόματος">${esc(c.name)}</button><button data-act="forget" data-key="${esc(c.key || norm(c.name))}" aria-label="Διαγραφή ${esc(c.name)}">×</button></span>`).join('')
     : '<p style="margin:0">Κανένας ακόμα.</p>';
-  $('sAcc').innerHTML = `Συνδεδεμένη ως <b>${esc(LOCAL.session ? LOCAL.session.email : '')}</b>. Τα δεδομένα είναι στη βάση Supabase και φαίνονται από κάθε υπολογιστή που συνδέεται. Το ιστορικό σβήνεται μόνο του μετά από ${HISTORY_DAYS} μέρες.`;
+  $('sAcc').innerHTML = `Συνδεδεμένη ως <b>${esc(LOCAL.session ? LOCAL.session.email : '')}</b>. Τα δεδομένα είναι στη βάση Supabase και φαίνονται από κάθε υπολογιστή που συνδέεται. Από το ιστορικό σβήνονται μόνο φάκελοι που <b>έχουν δοθεί</b> πριν από ${HISTORY_DAYS} μέρες. Όσοι είναι ακόμα στο stand δεν σβήνονται ποτέ, όσος καιρός κι αν περάσει.`;
 }
 function forgetCustomer(key){
   const c = DB.customers.find(x => (x.key || norm(x.name)) === key);
