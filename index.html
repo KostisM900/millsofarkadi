@@ -187,6 +187,57 @@ input{font:inherit;color:inherit}
 .net::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--red)}
 .net{color:var(--red)}
 @media (max-width:600px){.net span{display:none}}
+
+/* ===== ΑΝΑΖΗΤΗΣΗ ===== */
+.search{position:relative;margin:-14px 0 10px}
+.search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:17px;height:17px;color:var(--muted);pointer-events:none}
+.search .inp{width:100%;padding-left:38px;background:var(--white)}
+.q-info{font-size:14px;margin:0 0 22px}
+.q-info b{color:var(--olive-deep)}
+#lists{margin-top:22px}
+/* ===== ΟΝΟΜΑ / ΠΟΛΛΟΙ ΦΑΚΕΛΟΙ ===== */
+.name-btn{font:inherit;font-weight:700;display:inline-flex;align-items:center;gap:6px;text-align:inherit;border-radius:5px}
+.name-btn svg{width:13px;height:13px;color:#B8B6AA;flex-shrink:0;opacity:0;transition:opacity .15s}
+.name-btn:hover svg,.name-btn:focus-visible svg{opacity:1}
+.name-btn:hover{color:var(--olive-deep)}
+@media (hover:none){.name-btn svg{opacity:1}}
+.seal b{font-size:14px;font-weight:800}
+.env .count{font-weight:700;color:var(--wheat-dark);font-size:13px;margin-top:2px}
+.pill{display:inline-block;margin-left:8px;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--wheat-tint);color:var(--wheat-dark);vertical-align:1px}
+.chip-name{font:inherit;font-weight:600}
+.chip-name:hover{color:var(--olive-deep);text-decoration:underline}
+/* ===== MODAL ===== */
+.modal-back{position:fixed;inset:0;background:rgba(40,40,34,.38);z-index:80;display:flex;align-items:flex-start;justify-content:center;padding:12vh 16px}
+.modal{background:var(--white);border-radius:14px;width:100%;max-width:440px;padding:22px;box-shadow:0 30px 60px -20px rgba(40,40,34,.4)}
+.modal h2{font-size:18px;font-weight:700;margin-bottom:4px}
+.modal > p{color:var(--muted);font-size:13.5px;margin-bottom:14px}
+.m-f{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
+
+/* ===== ΕΙΔΟΣ & ΣΧΟΛΙΟ ===== */
+.add-grid{grid-template-columns:minmax(200px,1.4fr) auto auto}
+.add-grid .f-note{grid-column:1 / 3}
+@media (max-width:860px){.add-grid{grid-template-columns:1fr 1fr}.add-grid .f-note{grid-column:1 / -1}.add-grid > label:first-child{grid-column:1 / -1}}
+@media (max-width:560px){.add-grid{grid-template-columns:1fr}}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--white)}
+.seg button{padding:8px 13px;font-size:13px;font-weight:700;color:var(--muted);white-space:nowrap}
+.seg button + button{border-left:1px solid var(--line)}
+.seg button:hover{color:var(--ink)}
+.seg button.on{background:var(--olive-dark);color:#fff}
+.search-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:-14px 0 10px}
+.search-row .search{flex:1;min-width:220px;margin:0}
+.ktag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.02em;padding:2px 7px;border-radius:5px;flex-shrink:0}
+.ktag.timologio{background:var(--olive-tint);color:var(--olive-deep)}
+.ktag.apodeixi{background:var(--wheat-tint);color:var(--wheat-dark)}
+.ktag.none{background:var(--line-2);color:var(--muted)}
+.items{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+.env .items{margin:10px 0 2px;align-items:center}
+.item{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;padding:3px 6px;margin-left:-6px;border-radius:6px;text-align:left;max-width:100%}
+.env .item{margin-left:0}
+.item:hover{background:var(--line-2)}
+.item .note{color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:320px}
+.item .note.add{color:#ADAB9F}
+.item svg{width:12px;height:12px;color:#B8B6AA;flex-shrink:0}
+.modal textarea.inp{width:100%;resize:vertical;font:inherit;font-size:14px}
 </style>
 </head>
 <body>
@@ -211,6 +262,7 @@ input{font:inherit;color:inherit}
   <section class="view" id="view-set"></section>
 </main>
 
+<div class="modal-back" id="modal" hidden><div class="modal" role="dialog" aria-modal="true" aria-label="Διόρθωση ονόματος" id="modalBox"></div></div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <datalist id="custList"></datalist>
 
@@ -353,6 +405,7 @@ async function api(path, { method='GET', body, prefer } = {}, retried=false){
 }
 const fromRow = r => ({
   id: r.id, name: r.name, date: r.date || '',
+  kind: r.kind || '', note: r.note || '',
   addedAt: new Date(r.added_at).toISOString(),
   givenAt: r.given_at ? new Date(r.given_at).toISOString() : null
 });
@@ -381,7 +434,7 @@ async function refresh(){
   refreshing = true;
   try {
     const [envs, custs] = await Promise.all([
-      api('envelopes?select=id,name,date,added_at,given_at&order=added_at.asc'),
+      api('envelopes?select=id,name,date,kind,note,added_at,given_at&order=added_at.asc'),
       api('customers?select=id,name,name_key&order=name.asc')
     ]);
     if (pendingOps) return;   // μην πατήσεις πάνω σε αλλαγή που μόλις έγινε
@@ -487,18 +540,22 @@ function checkReminders(){
   updateTitle();
   if (!due.length) return;
   saveLocal();
+  // ένα μήνυμα ανά πελάτη + ημέρα, όσοι φάκελοι κι αν είναι
   const fire = (kind, one, many) => {
-    const list = due.filter(d => d.kind === kind);
+    const list = groupsOf(due.filter(d => d.kind === kind).map(d => d.env)).map(g => ({ g, n: pending().filter(e => norm(e.name) === norm(g.name) && (e.date || '') === g.date).length }));
     if (!list.length) return;
-    if (list.length <= 3) list.forEach(d => { const [a,b] = one(d.env); remind(a, b, `${kind}-${d.env.id}`); });
+    if (list.length <= 3) list.forEach(({g, n}) => { const [a,b] = one(g, n); remind(a, b, `${kind}-${norm(g.name)}-${g.date}`); });
     else { const [a,b] = many(list); remind(a, b, `${kind}-summary`); }
   };
-  fire('day',  e => [`Φάκελος για ${e.name}`, 'Έχει παράδοση σήμερα. Δώσε τον φάκελο στον οδηγό.'],
-               l => [`${l.length} φάκελοι φεύγουν σήμερα`, l.map(d => d.env.name).join(', ')]);
-  fire('eve',  e => [`Αύριο: φάκελος για ${e.name}`, 'Έχει παράδοση αύριο. Ετοίμασε τον φάκελο από το stand.'],
-               l => [`${l.length} φάκελοι για αύριο`, l.map(d => d.env.name).join(', ')]);
-  fire('miss', e => [`Ο φάκελος για ${e.name} είναι ακόμα στο stand`, `Η παράδοση ήταν ${dayLabel(e.date, true)}. Αν δόθηκε, πάτα «Δόθηκε». Αλλιώς βάλε νέα ημέρα.`],
-               l => [`${l.length} φάκελοι έμειναν στο stand`, l.map(d => d.env.name).join(', ')]);
+  const groupItems = g => pending().filter(e => norm(e.name) === norm(g.name) && (e.date || '') === g.date);
+  const forWhom = (g, n) => { const ks = kindSummary(groupItems(g)); return (n > 1 ? `${n} φάκελοι για ${g.name}` : `Φάκελος για ${g.name}`) + (ks ? ` (${ks})` : ''); };
+  const notesOf = g => { const ns = groupItems(g).map(e => e.note).filter(Boolean); return ns.length ? ` Σχόλιο: ${ns.join(' / ')}` : ''; };
+  fire('day',  (g,n) => [forWhom(g,n), `Έχει παράδοση σήμερα. Δώσε ${n > 1 ? 'τους φακέλους' : 'τον φάκελο'} στον οδηγό.${notesOf(g)}`],
+               l => [`Φάκελοι για ${l.length} πελάτες σήμερα`, l.map(x => x.g.name + (x.n > 1 ? ` (${x.n})` : '')).join(', ')]);
+  fire('eve',  (g,n) => [`Αύριο: ${forWhom(g,n).charAt(0).toLowerCase() + forWhom(g,n).slice(1)}`, `Έχει παράδοση αύριο. Ετοίμασε ${n > 1 ? 'τους φακέλους' : 'τον φάκελο'} από το stand.${notesOf(g)}`],
+               l => [`Φάκελοι για ${l.length} πελάτες αύριο`, l.map(x => x.g.name + (x.n > 1 ? ` (${x.n})` : '')).join(', ')]);
+  fire('miss', (g,n) => [`${n > 1 ? `${n} φάκελοι για ${g.name} είναι` : `Ο φάκελος για ${g.name} είναι`} ακόμα στο stand`, `Η παράδοση ήταν ${dayLabel(g.date, true)}. Αν δόθηκε, πάτα «Δόθηκε». Αλλιώς βάλε νέα ημέρα.`],
+               l => [`Φάκελοι για ${l.length} πελάτες έμειναν στο stand`, l.map(x => x.g.name).join(', ')]);
   beep();
 }
 function pruneFired(){
@@ -586,12 +643,45 @@ function buildLogin(){
 }
 
 /* ===================== ΚΥΡΙΑ ΣΕΛΙΔΑ ===================== */
+/* Ένας πελάτης μπορεί να έχει πολλούς φακέλους. Στην οθόνη ενώνονται ανά πελάτη + ημέρα,
+   και οι ενέργειες (Δόθηκε, αλλαγή ημέρας) ισχύουν για όλους τους φακέλους της ομάδας. */
+function groupsOf(list){
+  const m = new Map();
+  list.forEach(e => {
+    const k = norm(e.name) + '|' + (e.date || '');
+    if (!m.has(k)) m.set(k, { name:e.name, date:e.date || '', items:[] });
+    m.get(k).items.push(e);
+  });
+  return [...m.values()].map(g => {
+    g.items.sort((a,b) => a.addedAt.localeCompare(b.addedAt));
+    g.addedAt = g.items[0].addedAt;
+    g.ids = g.items.map(e => e.id).join(',');
+    return g;
+  });
+}
+const countText = n => n === 1 ? '1 φάκελος' : `${n} φάκελοι`;
+const KINDS = { apodeixi:'Απόδειξη', timologio:'Τιμολόγιο' };
+const NOTE_MAX = 200;
+function kindSummary(items){
+  const t = items.filter(e => e.kind === 'timologio').length, a = items.filter(e => e.kind === 'apodeixi').length;
+  const parts = [];
+  if (t) parts.push(t === 1 ? '1 τιμολόγιο' : `${t} τιμολόγια`);
+  if (a) parts.push(a === 1 ? '1 απόδειξη' : `${a} αποδείξεις`);
+  return parts.join(', ');
+}
+let addKind = 'apodeixi', kindFilter = '';
+const kindSeg = (sel, attr, withAll=false) => `<div class="seg" role="radiogroup">${withAll ? `<button type="button" role="radio" aria-checked="${sel === ''}" class="${sel === '' ? 'on' : ''}" data-${attr}="">Όλα</button>` : ''}${Object.entries(KINDS).map(([k,v]) =>
+  `<button type="button" role="radio" aria-checked="${sel === k}" class="${sel === k ? 'on' : ''}" data-${attr}="${k}">${withAll ? (k === 'apodeixi' ? 'Αποδείξεις' : 'Τιμολόγια') : v}</button>`).join('')}</div>`;
+const matchesQuery = (name, q) => !q || q.split(' ').every(w => norm(name).includes(w));
+let query = '';
+
 function buildMain(){
   $('view-main').innerHTML = `
     <div class="greet"><h1 id="hello"></h1><p id="sub"></p></div>
     <div class="card add-card">
       <div class="add-grid">
         <label class="f"><span>Πελάτης</span><input class="inp" id="aCust" list="custList" autocomplete="off" placeholder="Όνομα πελάτη"></label>
+        <div class="f"><span>Είδος</span><div id="aKind">${kindSeg(addKind, 'kind')}</div></div>
         <div class="f"><span>Ημέρα παράδοσης</span>
           <div class="when">
             <input class="inp" id="aDate" type="date" aria-label="Ημέρα παράδοσης">
@@ -599,87 +689,111 @@ function buildMain(){
             <button class="btn ghost sm" data-act="set-tmr">Αύριο</button>
           </div>
         </div>
+        <label class="f f-note"><span>Σχόλιο (προαιρετικό)</span><input class="inp" id="aNote" maxlength="${NOTE_MAX}" autocomplete="off" placeholder="π.χ. στα χέρια του ιδιοκτήτη"></label>
         <button class="btn primary" id="aAdd">Προσθήκη φακέλου</button>
       </div>
-      <p class="hint" id="aHint">Αν δεν ξέρεις ακόμα την ημέρα, άφησέ την κενή και βάλ' την αργότερα.</p>
+      <p class="hint" id="aHint"></p>
     </div>
+    <div class="search-row">
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input class="inp" id="q" type="search" placeholder="Αναζήτηση: έχω φάκελο για…" autocomplete="off" aria-label="Αναζήτηση πελάτη">
+    </div>
+    <div id="kFilter" aria-label="Φίλτρο είδους">${kindSeg(kindFilter, 'kfilter', true)}</div>
+    </div>
+    <p class="q-info" id="qInfo" hidden></p>
     <div id="lists"></div>`;
   const inp = $('aCust');
   inp.addEventListener('input', updateHint);
   inp.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing){ e.preventDefault(); addEnvelope(); } });
   $('aDate').addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); addEnvelope(); } });
+  $('aNote').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing){ e.preventDefault(); addEnvelope(); } });
   $('aAdd').onclick = addEnvelope;
+  $('q').addEventListener('input', e => { query = norm(e.target.value); renderMain(); });
+  $('q').addEventListener('keydown', e => { if (e.key === 'Escape'){ e.target.value = ''; query = ''; renderMain(); } });
+  updateHint();
+}
+/* Αν ο πελάτης έχει ήδη φάκελο με ημέρα, ο νέος μπαίνει στην ίδια ημέρα όταν δεν διαλέξεις άλλη */
+function existingDateFor(name){
+  const ds = pending().filter(e => norm(e.name) === norm(name) && e.date && e.date >= todayIso()).map(e => e.date).sort();
+  return ds[0] || '';
 }
 function updateHint(){
-  const ex = pendingFor(clean($('aCust').value));
-  $('aHint').innerHTML = ex
-    ? `Υπάρχει ήδη φάκελος για <b>${esc(ex.name)}</b>${ex.date ? `, παράδοση ${esc(dayLabel(ex.date, true))}` : ', χωρίς ημέρα'}. Αν διαλέξεις ημέρα, θα αλλάξει.`
-    : 'Αν δεν ξέρεις ακόμα την ημέρα, άφησέ την κενή και βάλ\' την αργότερα.';
+  const name = clean($('aCust').value);
+  const mine = name ? pending().filter(e => norm(e.name) === norm(name)) : [];
+  if (!mine.length){ $('aHint').innerHTML = 'Αν δεν ξέρεις ακόμα την ημέρα, άφησέ την κενή και βάλ\' την αργότερα.'; return; }
+  const d = existingDateFor(name);
+  $('aHint').innerHTML = `Υπάρχει ήδη ${mine.length === 1 ? '1 φάκελος' : mine.length + ' φάκελοι'} για <b>${esc(mine[0].name)}</b>. `
+    + (d ? `Ο νέος θα μπει μαζί, με παράδοση ${esc(dayLabel(d, true))}, αν δεν διαλέξεις άλλη ημέρα.` : 'Θα προστεθεί ακόμα ένας.');
 }
 function rememberCustomer(name){
   const key = norm(name);
-  if (DB.customers.some(c => c.key === key || norm(c.name) === key)) return;
+  if (DB.customers.some(c => (c.key || norm(c.name)) === key)) return;
   const c = { id:uuid(), name, key };
   mutate(
-    () => { DB.customers.push(c); DB.customers.sort((a,b) => a.name.localeCompare(b.name,'el')); },
+    () => { DB.customers.push(c); sortCustomers(); },
     () => api('customers?on_conflict=name_key', { method:'POST', body:{ id:c.id, name, name_key:key }, prefer:'resolution=ignore-duplicates,return=minimal' }),
     () => { DB.customers = DB.customers.filter(x => x !== c); },
     'Δεν αποθηκεύτηκε ο πελάτης στη λίστα.'
   );
 }
+const sortCustomers = () => DB.customers.sort((a,b) => a.name.localeCompare(b.name,'el'));
 function addEnvelope(){
-  const typed = clean($('aCust').value), date = $('aDate').value || '';
+  const typed = clean($('aCust').value);
+  let date = $('aDate').value || '';
   if (!typed){ $('aCust').focus(); return; }
   if (date && date < todayIso()){ $('aHint').innerHTML = '<span class="bad">Η ημέρα έχει περάσει. Διάλεξε σήμερα ή επόμενη μέρα.</span>'; return; }
-  const name = customerNames().find(n => norm(n) === norm(typed)) || typed;
-  const ex = pendingFor(name);
-  $('aCust').value = ''; $('aDate').value = ''; updateHint(); $('aCust').focus();
-  if (ex){
-    if (date && date !== ex.date) setDate(ex.id, date);
-    else toast(`Υπάρχει ήδη φάκελος για ${esc(ex.name)}.`);
-    return;
-  }
-  const env = { id:uuid(), name, date, addedAt:new Date().toISOString(), givenAt:null };
+  const existing = pending().find(e => norm(e.name) === norm(typed));
+  const name = existing ? existing.name : (customerNames().find(n => norm(n) === norm(typed)) || typed);
+  const inherited = !date && existingDateFor(name);
+  if (inherited) date = inherited;
+  const note = clean($('aNote').value).slice(0, NOTE_MAX), kind = addKind;
+  const env = { id:uuid(), name, date, kind, note, addedAt:new Date().toISOString(), givenAt:null };
+  $('aCust').value = ''; $('aDate').value = ''; $('aNote').value = ''; updateHint(); $('aCust').focus();
   mutate(
     () => { DB.envelopes.push(env); },
-    () => api('envelopes', { method:'POST', body:{ id:env.id, name, date: date || null, added_at:env.addedAt }, prefer:'return=minimal' }),
+    () => api('envelopes', { method:'POST', body:{ id:env.id, name, date: date || null, kind, note: note || null, added_at:env.addedAt }, prefer:'return=minimal' }),
     () => { DB.envelopes = DB.envelopes.filter(e => e.id !== env.id); },
     `Δεν αποθηκεύτηκε ο φάκελος για ${name}.`
   ).then(() => checkReminders());
   rememberCustomer(name);
-  toast(`Φάκελος για ${esc(name)}${date ? `, παράδοση ${esc(dayLabel(date, true))}` : ', χωρίς ημέρα ακόμα'}.`);
+  const total = pending().filter(e => norm(e.name) === norm(name)).length;
+  toast(`${KINDS[kind]} στον φάκελο${total > 1 ? ` (${total}ος)` : ''} για ${esc(name)}${date ? `, παράδοση ${esc(dayLabel(date, true))}` : ', χωρίς ημέρα ακόμα'}.`);
 }
-function giveEnvelope(id, btn){
-  const env = DB.envelopes.find(e => e.id === id);
-  if (!env || env.givenAt) return;
-  const stamp = new Date().toISOString();
+const idsFilter = ids => ids.length === 1 ? `id=eq.${ids[0]}` : `id=in.(${ids.join(',')})`;
+function giveGroup(idsStr, btn){
+  const envs = idsStr.split(',').map(id => DB.envelopes.find(e => e.id === id)).filter(e => e && !e.givenAt);
+  if (!envs.length) return;
+  const ids = envs.map(e => e.id), stamp = new Date().toISOString(), name = envs[0].name;
   const card = btn && btn.closest('.env,.row');
   const run = () => mutate(
-    () => { env.givenAt = stamp; },
-    () => api(`envelopes?id=eq.${env.id}`, { method:'PATCH', body:{ given_at:stamp }, prefer:'return=minimal' }),
-    () => { env.givenAt = null; },
-    `Δεν σημειώθηκε ο φάκελος για ${env.name}.`
+    () => { envs.forEach(e => e.givenAt = stamp); },
+    () => api(`envelopes?${idsFilter(ids)}`, { method:'PATCH', body:{ given_at:stamp }, prefer:'return=minimal' }),
+    () => { envs.forEach(e => e.givenAt = null); },
+    `Δεν σημειώθηκε ο φάκελος για ${name}.`
   );
   if (card && !REDUCE){ card.classList.add('leaving'); setTimeout(run, 200); } else run();
-  toast(`Δόθηκε ο φάκελος: ${esc(env.name)}.`, { action:{ label:'Αναίρεση', fn:() => mutate(
-    () => { env.givenAt = null; },
-    () => api(`envelopes?id=eq.${env.id}`, { method:'PATCH', body:{ given_at:null }, prefer:'return=minimal' }),
-    () => { env.givenAt = stamp; },
+  toast(`${envs.length > 1 ? `Δόθηκαν ${envs.length} φάκελοι` : 'Δόθηκε ο φάκελος'}: ${esc(name)}.`, { action:{ label:'Αναίρεση', fn:() => mutate(
+    () => { envs.forEach(e => e.givenAt = null); },
+    () => api(`envelopes?${idsFilter(ids)}`, { method:'PATCH', body:{ given_at:null }, prefer:'return=minimal' }),
+    () => { envs.forEach(e => e.givenAt = stamp); },
     'Η αναίρεση δεν αποθηκεύτηκε.'
   ) } });
 }
-function removeEnvelope(id){
-  const env = DB.envelopes.find(e => e.id === id);
+/* Το × αφαιρεί ΕΝΑΝ φάκελο (τον πιο πρόσφατο της ομάδας), για λάθος καταχώρηση */
+function removeOne(idsStr){
+  const envs = idsStr.split(',').map(id => DB.envelopes.find(e => e.id === id)).filter(Boolean);
+  const env = envs[envs.length - 1];
   if (!env) return;
   mutate(
-    () => { DB.envelopes = DB.envelopes.filter(e => e.id !== id); },
-    () => api(`envelopes?id=eq.${id}`, { method:'DELETE', prefer:'return=minimal' }),
+    () => { DB.envelopes = DB.envelopes.filter(e => e.id !== env.id); },
+    () => api(`envelopes?id=eq.${env.id}`, { method:'DELETE', prefer:'return=minimal' }),
     () => { DB.envelopes.push(env); },
     `Δεν αφαιρέθηκε ο φάκελος για ${env.name}.`
   );
-  toast(`Αφαιρέθηκε ο φάκελος: ${esc(env.name)}.`, { action:{ label:'Αναίρεση', fn:() => mutate(
+  toast(`Αφαιρέθηκε ${envs.length > 1 ? 'ένας φάκελος' : 'ο φάκελος'}: ${esc(env.name)}.`, { action:{ label:'Αναίρεση', fn:() => mutate(
     () => { DB.envelopes.push(env); },
-    () => api('envelopes', { method:'POST', body:{ id:env.id, name:env.name, date:env.date || null, added_at:env.addedAt, given_at:env.givenAt }, prefer:'return=minimal' }),
+    () => api('envelopes', { method:'POST', body:{ id:env.id, name:env.name, date:env.date || null, kind:env.kind || null, note:env.note || null, added_at:env.addedAt, given_at:env.givenAt }, prefer:'return=minimal' }),
     () => { DB.envelopes = DB.envelopes.filter(e => e.id !== env.id); },
     'Η αναίρεση δεν αποθηκεύτηκε.'
   ) } });
@@ -687,9 +801,8 @@ function removeEnvelope(id){
 function restoreEnvelope(id){
   const env = DB.envelopes.find(e => e.id === id);
   if (!env) return;
-  if (pendingFor(env.name)){ toast(`Υπάρχει ήδη φάκελος στο stand για ${esc(env.name)}.`); return; }
   const prev = { givenAt:env.givenAt, date:env.date };
-  const newDate = env.date && env.date < todayIso() ? '' : env.date;
+  const newDate = env.date && env.date < todayIso() ? (existingDateFor(env.name) || '') : env.date;
   mutate(
     () => { env.givenAt = null; env.date = newDate; },
     () => api(`envelopes?id=eq.${id}`, { method:'PATCH', body:{ given_at:null, date:newDate || null }, prefer:'return=minimal' }),
@@ -698,38 +811,152 @@ function restoreEnvelope(id){
   );
   toast(`Ο φάκελος για ${esc(env.name)} γύρισε στο stand.`);
 }
-function setDate(id, value){
-  const env = DB.envelopes.find(e => e.id === id);
-  if (!env) return;
+function setGroupDate(idsStr, value){
+  const envs = idsStr.split(',').map(id => DB.envelopes.find(e => e.id === id)).filter(Boolean);
+  if (!envs.length) return;
   if (value && value < todayIso()){ toast('Η ημέρα έχει περάσει. Διάλεξε σήμερα ή επόμενη μέρα.'); renderAll(); return; }
-  const prev = env.date;
+  const prev = envs.map(e => [e, e.date]);
   mutate(
-    () => { env.date = value || ''; },
-    () => api(`envelopes?id=eq.${id}`, { method:'PATCH', body:{ date:value || null }, prefer:'return=minimal' }),
-    () => { env.date = prev; },
+    () => { envs.forEach(e => e.date = value || ''); },
+    () => api(`envelopes?${idsFilter(envs.map(e => e.id))}`, { method:'PATCH', body:{ date:value || null }, prefer:'return=minimal' }),
+    () => { prev.forEach(([e,d]) => e.date = d); },
     'Η νέα ημέρα δεν αποθηκεύτηκε.'
   ).then(() => checkReminders());
-  toast(value ? `${esc(env.name)}: παράδοση ${esc(dayLabel(value, true))}.` : `${esc(env.name)}: χωρίς ημέρα.`);
+  toast(value ? `${esc(envs[0].name)}: παράδοση ${esc(dayLabel(value, true))}.` : `${esc(envs[0].name)}: χωρίς ημέρα.`);
 }
 
-function envCard(e){
+/* ---------- Είδος & σχόλιο ενός φακέλου ---------- */
+function openEdit(id){
+  const env = DB.envelopes.find(e => e.id === id);
+  if (!env) return;
+  let kind = env.kind || '';
+  const box = $('modalBox');
+  const draw = () => {
+    box.innerHTML = `
+      <h2>Φάκελος για ${esc(env.name)}</h2>
+      <p>${sinceText(env.addedAt)}${env.date ? `. Παράδοση ${esc(dayLabel(env.date, true))}.` : '.'}</p>
+      <div class="f" style="margin-bottom:12px"><span>Είδος</span>${kindSeg(kind, 'ekind')}</div>
+      <label class="f"><span>Σχόλιο</span><textarea class="inp" id="eNote" rows="3" maxlength="${NOTE_MAX}" placeholder="π.χ. στα χέρια του ιδιοκτήτη">${esc(env.note)}</textarea></label>
+      <p class="hint">Μόνο οδηγίες για τον φάκελο. Όχι ποσά ή στοιχεία πληρωμής.</p>
+      <div class="m-f"><button class="btn ghost" data-m="cancel">Ακύρωση</button><button class="btn primary" data-m="save">Αποθήκευση</button></div>`;
+  };
+  const close = () => { $('modal').hidden = true; box.innerHTML = ''; document.removeEventListener('keydown', onKey); };
+  const save = () => {
+    const note = clean($('eNote').value).slice(0, NOTE_MAX);
+    const prev = { kind:env.kind, note:env.note };
+    close();
+    if (note === env.note && kind === env.kind) return;
+    mutate(
+      () => { env.kind = kind; env.note = note; },
+      () => api(`envelopes?id=eq.${env.id}`, { method:'PATCH', body:{ kind: kind || null, note: note || null }, prefer:'return=minimal' }),
+      () => { env.kind = prev.kind; env.note = prev.note; },
+      'Οι αλλαγές στον φάκελο δεν αποθηκεύτηκαν.'
+    );
+    toast(`Αποθηκεύτηκε ο φάκελος για ${esc(env.name)}.`);
+  };
+  const onKey = e => { if (e.key === 'Escape') close(); };
+  box.onclick = e => {
+    const k = e.target.closest('[data-ekind]');
+    if (k){ const note = $('eNote').value; kind = k.dataset.ekind; draw(); $('eNote').value = note; return; }
+    const b = e.target.closest('[data-m]'); if (!b) return;
+    if (b.dataset.m === 'cancel') close(); if (b.dataset.m === 'save') save();
+  };
+  $('modal').onclick = e => { if (e.target === $('modal')) close(); };
+  document.addEventListener('keydown', onKey);
+  draw();
+  $('modal').hidden = false;
+  setTimeout(() => $('eNote') && $('eNote').focus(), 30);
+}
+
+/* ---------- Διόρθωση ονόματος: αλλάζει σε όλους τους φακέλους και στη λίστα πελατών ---------- */
+function openRename(oldName){
+  const box = $('modalBox');
+  box.innerHTML = `
+    <h2>Διόρθωση ονόματος</h2>
+    <p>Αλλάζει σε όλους τους φακέλους του πελάτη, και σε αυτούς που έχουν ήδη δοθεί.</p>
+    <label class="f"><span>Σωστό όνομα</span><input class="inp" id="rName" list="custList" value="${esc(oldName)}" autocomplete="off"></label>
+    <p class="hint" id="rHint"></p>
+    <div class="m-f"><button class="btn ghost" data-m="cancel">Ακύρωση</button><button class="btn primary" data-m="save">Αποθήκευση</button></div>`;
+  const inp = $('rName'), hint = $('rHint');
+  const check = () => {
+    const v = clean(inp.value);
+    const other = v && norm(v) !== norm(oldName) ? customerNames().find(n => norm(n) === norm(v)) : null;
+    hint.innerHTML = other ? `Υπάρχει ήδη πελάτης «${esc(other)}». Οι φάκελοι θα ενωθούν κάτω από αυτό το όνομα.` : '';
+  };
+  const close = () => { $('modal').hidden = true; box.innerHTML = ''; document.removeEventListener('keydown', onKey); };
+  const save = () => {
+    const v = clean(inp.value);
+    if (!v){ hint.innerHTML = '<span class="bad">Γράψε το σωστό όνομα.</span>'; return; }
+    const target = customerNames().find(n => norm(n) === norm(v) && norm(n) !== norm(oldName)) || v;
+    close();
+    if (target !== oldName) renameCustomer(oldName, target);
+  };
+  const onKey = e => { if (e.key === 'Escape') close(); if (e.key === 'Enter' && document.activeElement === inp){ e.preventDefault(); save(); } };
+  inp.addEventListener('input', check);
+  box.onclick = e => { const b = e.target.closest('[data-m]'); if (!b) return; if (b.dataset.m === 'cancel') close(); if (b.dataset.m === 'save') save(); };
+  $('modal').onclick = e => { if (e.target === $('modal')) close(); };
+  document.addEventListener('keydown', onKey);
+  $('modal').hidden = false;
+  setTimeout(() => { inp.focus(); inp.select(); }, 30);
+}
+function renameCustomer(oldName, newName){
+  const oldKey = norm(oldName), newKey = norm(newName);
+  const envs = DB.envelopes.filter(e => norm(e.name) === oldKey);
+  const prevNames = envs.map(e => [e, e.name]);
+  const snap = JSON.parse(JSON.stringify(DB.customers));
+  const cust = DB.customers.find(c => (c.key || norm(c.name)) === oldKey);
+  const target = oldKey !== newKey ? DB.customers.find(c => (c.key || norm(c.name)) === newKey) : null;
+  mutate(
+    () => {
+      envs.forEach(e => e.name = newName);
+      if (cust && target) DB.customers = DB.customers.filter(c => c !== cust);
+      else if (cust){ cust.name = newName; cust.key = newKey; }
+      else if (!target) DB.customers.push({ id:uuid(), name:newName, key:newKey });
+      sortCustomers();
+    },
+    async () => {
+      if (envs.length) await api(`envelopes?${idsFilter(envs.map(e => e.id))}`, { method:'PATCH', body:{ name:newName }, prefer:'return=minimal' });
+      if (cust && target) await api(`customers?name_key=eq.${encodeURIComponent(oldKey)}`, { method:'DELETE', prefer:'return=minimal' });
+      else if (cust) await api(`customers?name_key=eq.${encodeURIComponent(oldKey)}`, { method:'PATCH', body:{ name:newName, name_key:newKey }, prefer:'return=minimal' });
+      else if (!target) await api('customers?on_conflict=name_key', { method:'POST', body:{ name:newName, name_key:newKey }, prefer:'resolution=ignore-duplicates,return=minimal' });
+    },
+    () => { prevNames.forEach(([e,n]) => e.name = n); DB.customers = snap; },
+    'Η διόρθωση ονόματος δεν αποθηκεύτηκε.'
+  );
+  toast(`Το όνομα άλλαξε: ${esc(oldName)} → ${esc(newName)}.`);
+}
+
+/* ---------- Εμφάνιση ---------- */
+const PENCIL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+const kindTag = e => e.kind ? `<span class="ktag ${e.kind}">${KINDS[e.kind]}</span>` : `<span class="ktag none">Είδος;</span>`;
+const itemsHTML = g => `<div class="items">${g.items.map(e => `<button class="item" data-act="edit" data-id="${e.id}" title="Είδος και σχόλιο">${kindTag(e)}${e.note ? `<span class="note">${esc(e.note)}</span>` : '<span class="note add">σχόλιο</span>'}${PENCIL}</button>`).join('')}</div>`;
+const nameBtn = g => `<button class="name-btn" data-act="rename" data-name="${esc(g.name)}" title="Διόρθωση ονόματος">${esc(g.name)}${PENCIL}</button>`;
+function envCard(g){
+  const n = g.items.length;
   return `<article class="env">
-    <span class="seal">${ENV_SVG}</span>
-    <h3>${esc(e.name)}</h3>
-    <p class="since">${sinceText(e.addedAt)}</p>
-    <button class="btn primary block" data-act="give" data-id="${e.id}">Δόθηκε</button>
+    <span class="seal"${n > 1 ? ' title="' + countText(n) + '"' : ''}>${n > 1 ? `<b>${n}</b>` : ENV_SVG}</span>
+    <h3>${nameBtn(g)}</h3>
+    ${n > 1 ? `<p class="count">${countText(n)}: ${kindSummary(g.items) || ''}</p>` : ''}
+    ${itemsHTML(g)}
+    <p class="since">${sinceText(g.addedAt)}</p>
+    <button class="btn primary block" data-act="give" data-ids="${g.ids}">${n > 1 ? `Δόθηκαν και οι ${n}` : 'Δόθηκε'}</button>
   </article>`;
 }
-function row(e, small, primaryGive=false){
+function row(g, small, primaryGive=false){
+  const n = g.items.length;
   return `<div class="row">
-    <div class="r-main"><b>${esc(e.name)}</b><small>${small}</small></div>
-    <input class="inp" type="date" value="${esc(e.date || '')}" min="${todayIso()}" data-date="${e.id}" aria-label="Ημέρα παράδοσης για ${esc(e.name)}">
-    <button class="btn ${primaryGive ? 'primary' : 'ghost'} sm" data-act="give" data-id="${e.id}">Δόθηκε</button>
-    <button class="icon-btn" data-act="rm" data-id="${e.id}" aria-label="Αφαίρεση φακέλου" title="Αφαίρεση (λάθος καταχώρηση)">×</button>
+    <div class="r-main"><b>${nameBtn(g)}</b>${n > 1 ? `<span class="pill">${countText(n)}</span>` : ''}<small>${small}</small>${itemsHTML(g)}</div>
+    <input class="inp" type="date" value="${esc(g.date)}" min="${todayIso()}" data-date="${g.ids}" aria-label="Ημέρα παράδοσης για ${esc(g.name)}">
+    <button class="btn ${primaryGive ? 'primary' : 'ghost'} sm" data-act="give" data-ids="${g.ids}">${n > 1 ? 'Δόθηκαν' : 'Δόθηκε'}</button>
+    <button class="icon-btn" data-act="rm" data-ids="${g.ids}" aria-label="Αφαίρεση ${n > 1 ? 'ενός φακέλου' : 'φακέλου'}" title="Αφαίρεση ${n > 1 ? 'ενός φακέλου' : 'φακέλου'} (λάθος καταχώρηση)">×</button>
   </div>`;
 }
 function section(title, body, bad=false){
   return `<div class="sec"><div class="sec-h${bad ? ' bad' : ''}"><h2>${title}</h2><span class="rule"></span></div>${body}</div>`;
+}
+function givenRows(list){
+  return `<div class="rows">${list.map(e => `<div class="row"><div class="r-main"><b>${esc(e.name)}</b> ${e.kind ? kindTag(e) : ''}${e.note ? `<small>${esc(e.note)}</small>` : ''}<small>Δόθηκε ${iso(new Date(e.givenAt)) === todayIso() ? 'σήμερα' : shortDate(iso(new Date(e.givenAt)))} στις ${hhmm(e.givenAt)}</small></div>
+      <button class="btn ghost sm" data-act="restore" data-id="${e.id}">Επαναφορά στο stand</button></div>`).join('')}</div>`;
 }
 function renderMain(){
   if (!$('lists')) return;
@@ -737,32 +964,51 @@ function renderMain(){
   if (active && active.matches && active.matches('[data-date]')) return;   // μην κλείνεις το ημερολόγιο ενώ διαλέγει μέρα
   const t = todayIso(), tm = tomorrowIso(), now = new Date(), S = LOCAL.settings;
   const byName = (a,b) => a.name.localeCompare(b.name,'el');
-  const pend = pending();
-  const today = pend.filter(e => e.date === t).sort(byName);
-  const missed = pend.filter(e => e.date && e.date < t).sort((a,b) => a.date.localeCompare(b.date));
-  const tmr = pend.filter(e => e.date === tm).sort(byName);
-  const later = pend.filter(e => e.date && e.date > tm).sort((a,b) => a.date.localeCompare(b.date) || byName(a,b));
-  const nodate = pend.filter(e => !e.date).sort((a,b) => a.addedAt.localeCompare(b.addedAt));
+  const allPend = pending();
+  const pend = allPend.filter(e => matchesQuery(e.name, query) && (!kindFilter || e.kind === kindFilter));
+  const G = groupsOf(pend);
+  const today = G.filter(g => g.date === t).sort(byName);
+  const missed = G.filter(g => g.date && g.date < t).sort((a,b) => a.date.localeCompare(b.date));
+  const tmr = G.filter(g => g.date === tm).sort(byName);
+  const later = G.filter(g => g.date && g.date > tm).sort((a,b) => a.date.localeCompare(b.date) || byName(a,b));
+  const nodate = G.filter(g => !g.date).sort((a,b) => a.addedAt.localeCompare(b.addedAt));
 
   $('hello').textContent = `${now.getHours() < 12 ? 'Καλημέρα' : 'Καλησπέρα'}${S.userName ? ', ' + S.userName : ''}`;
-  const sub = !pend.length ? 'Το stand είναι άδειο.'
-    : today.length ? `${today.length === 1 ? 'Ένας φάκελος φεύγει' : today.length + ' φάκελοι φεύγουν'} σήμερα.`
-    : 'Κανένας φάκελος δεν φεύγει σήμερα.';
+  const todayAll = allPend.filter(e => e.date === t).length;
+  const sub = !allPend.length ? 'Το stand είναι άδειο.'
+    : todayAll ? `${todayAll === 1 ? 'Ένας φάκελος φεύγει' : todayAll + ' φάκελοι φεύγουν'} σήμερα. Στο stand συνολικά: ${allPend.length}.`
+    : `Κανένας φάκελος δεν φεύγει σήμερα. Στο stand συνολικά: ${allPend.length}.`;
   $('sub').innerHTML = `<span class="date">${longDate(t)}.</span> ${sub}`;
 
+  const given = DB.envelopes.filter(e => e.givenAt).sort((a,b) => b.givenAt.localeCompare(a.givenAt));
   let html = '';
+  if (query){
+    const gHits = given.filter(e => matchesQuery(e.name, query) && (!kindFilter || e.kind === kindFilter)).slice(0, 20);
+    const who = [...new Set(pend.map(e => e.name))];
+    $('qInfo').hidden = false;
+    $('qInfo').innerHTML = pend.length
+      ? `<b>Ναι.</b> ${countText(pend.length)} στο stand για ${who.map(esc).join(', ')}${kindSummary(pend) ? ` (${kindSummary(pend)})` : ''}.`
+      : `<b>Όχι.</b> Κανένας φάκελος στο stand για «${esc($('q').value.trim())}».${gHits.length ? ' Δες από κάτω όσους έχουν ήδη δοθεί.' : ''}`;
+    if (today.length) html += section('ΦΕΥΓΟΥΝ ΣΗΜΕΡΑ', `<div class="env-grid">${today.map(envCard).join('')}</div>`);
+    if (missed.length) html += section('ΕΜΕΙΝΑΝ ΣΤΟ STAND', `<div class="rows bad">${missed.map(g => row(g, `Η παράδοση ήταν ${esc(dayLabel(g.date, true))}.`, true)).join('')}</div>`, true);
+    const rest = [...tmr, ...later, ...nodate];
+    if (rest.length) html += section('ΣΤΟ STAND', `<div class="rows">${rest.map(g => row(g, `${g.date ? esc(dayLabel(g.date)) + '. ' : 'Χωρίς ημέρα. '}${sinceText(g.addedAt)}`)).join('')}</div>`);
+    if (gHits.length) html += section('ΔΟΘΗΚΑΝ', givenRows(gHits));
+    $('lists').innerHTML = html;
+    return;
+  }
+  $('qInfo').hidden = true;
+
   html += section('ΦΕΥΓΟΥΝ ΣΗΜΕΡΑ', today.length
     ? `<div class="env-grid">${today.map(envCard).join('')}</div>`
-    : `<div class="empty">${pend.length ? 'Κανένας φάκελος για σήμερα.' : 'Όταν μπαίνει φάκελος στο stand, γράψε τον πελάτη από πάνω.'}</div>`);
-  if (missed.length) html += section('ΕΜΕΙΝΑΝ ΣΤΟ STAND', `<div class="rows bad">${missed.map(e => row(e, `Η παράδοση ήταν ${esc(dayLabel(e.date, true))}. Αν δόθηκε, πάτα «Δόθηκε». Αλλιώς βάλε νέα ημέρα.`, true)).join('')}</div>`, true);
-  if (tmr.length) html += section('ΑΥΡΙΟ', `<div class="rows">${tmr.map(e => row(e, sinceText(e.addedAt))).join('')}</div>`);
-  if (later.length) html += section('ΕΠΟΜΕΝΕΣ ΜΕΡΕΣ', `<div class="rows">${later.map(e => row(e, `${esc(dayLabel(e.date))}. ${sinceText(e.addedAt)}`)).join('')}</div>`);
-  if (nodate.length) html += section('ΧΩΡΙΣ ΗΜΕΡΑ ΠΑΡΑΔΟΣΗΣ', `<div class="rows">${nodate.map(e => row(e, `${sinceText(e.addedAt)}. Βάλε ημέρα για να έρθει υπενθύμιση.`)).join('')}</div>`);
+    : `<div class="empty">${kindFilter ? (kindFilter === 'timologio' ? 'Κανένα τιμολόγιο για σήμερα.' : 'Καμία απόδειξη για σήμερα.') : pend.length ? 'Κανένας φάκελος για σήμερα.' : 'Όταν μπαίνει φάκελος στο stand, γράψε τον πελάτη από πάνω.'}</div>`);
+  if (missed.length) html += section('ΕΜΕΙΝΑΝ ΣΤΟ STAND', `<div class="rows bad">${missed.map(g => row(g, `Η παράδοση ήταν ${esc(dayLabel(g.date, true))}. Αν δόθηκε, πάτα «Δόθηκε». Αλλιώς βάλε νέα ημέρα.`, true)).join('')}</div>`, true);
+  if (tmr.length) html += section('ΑΥΡΙΟ', `<div class="rows">${tmr.map(g => row(g, sinceText(g.addedAt))).join('')}</div>`);
+  if (later.length) html += section('ΕΠΟΜΕΝΕΣ ΜΕΡΕΣ', `<div class="rows">${later.map(g => row(g, `${esc(dayLabel(g.date))}. ${sinceText(g.addedAt)}`)).join('')}</div>`);
+  if (nodate.length) html += section('ΧΩΡΙΣ ΗΜΕΡΑ ΠΑΡΑΔΟΣΗΣ', `<div class="rows">${nodate.map(g => row(g, `${sinceText(g.addedAt)}. Βάλε ημέρα για να έρθει υπενθύμιση.`)).join('')}</div>`);
 
-  const recent = DB.envelopes.filter(e => e.givenAt && e.givenAt >= addDays(now, -14).toISOString()).sort((a,b) => b.givenAt.localeCompare(a.givenAt));
-  if (recent.length) html += `<details class="given"><summary>Δόθηκαν τις τελευταίες 14 μέρες (${recent.length})</summary>
-    <div class="rows">${recent.map(e => `<div class="row"><div class="r-main"><b>${esc(e.name)}</b><small>Δόθηκε ${iso(new Date(e.givenAt)) === t ? 'σήμερα' : shortDate(iso(new Date(e.givenAt)))} στις ${hhmm(e.givenAt)}</small></div>
-      <button class="btn ghost sm" data-act="restore" data-id="${e.id}">Επαναφορά στο stand</button></div>`).join('')}</div></details>`;
+  const recent = given.filter(e => e.givenAt >= addDays(now, -14).toISOString());
+  if (recent.length) html += `<details class="given"><summary>Δόθηκαν τις τελευταίες 14 μέρες (${recent.length})</summary>${givenRows(recent)}</details>`;
 
   const wasOpen = document.querySelector('.given') && document.querySelector('.given').open;
   $('lists').innerHTML = html;
@@ -804,7 +1050,7 @@ function buildSettings(){
     </div>
     <div class="card set">
       <h3>Πελάτες που θυμάται</h3>
-      <p>Εμφανίζονται ως προτάσεις όταν γράφεις όνομα, σε όλους τους υπολογιστές. Σβήσε όποιο γράφτηκε λάθος.</p>
+      <p>Εμφανίζονται ως προτάσεις όταν γράφεις όνομα, σε όλους τους υπολογιστές. Πάτα ένα όνομα για να το διορθώσεις, ή το × για να το σβήσεις.</p>
       <div class="chips" id="sCust"></div>
     </div>
     <div class="card set">
@@ -835,7 +1081,7 @@ function renderSettingsState(){
   $('sNotif').innerHTML = `<span class="state ${cls}">${txt}</span>`;
   $('sNotifBtn').hidden = st === 'granted' || st === 'unsupported';
   $('sCust').innerHTML = DB.customers.length
-    ? DB.customers.map(c => `<span class="chip">${esc(c.name)}<button data-act="forget" data-key="${esc(c.key || norm(c.name))}" aria-label="Διαγραφή ${esc(c.name)}">×</button></span>`).join('')
+    ? DB.customers.map(c => `<span class="chip"><button class="chip-name" data-act="rename" data-name="${esc(c.name)}" title="Διόρθωση ονόματος">${esc(c.name)}</button><button data-act="forget" data-key="${esc(c.key || norm(c.name))}" aria-label="Διαγραφή ${esc(c.name)}">×</button></span>`).join('')
     : '<p style="margin:0">Κανένας ακόμα.</p>';
   $('sAcc').innerHTML = `Συνδεδεμένη ως <b>${esc(LOCAL.session ? LOCAL.session.email : '')}</b>. Τα δεδομένα είναι στη βάση Supabase και φαίνονται από κάθε υπολογιστή που συνδέεται. Το ιστορικό σβήνεται μόνο του μετά από ${HISTORY_DAYS} μέρες.`;
 }
@@ -865,12 +1111,18 @@ function exportData(){
 document.addEventListener('click', e => {
   const g = e.target.closest('[data-go]');
   if (g){ e.preventDefault(); go(g.dataset.go); return; }
+  const kb = e.target.closest('[data-kind]');
+  if (kb){ addKind = kb.dataset.kind; $('aKind').innerHTML = kindSeg(addKind, 'kind'); return; }
+  const kf = e.target.closest('[data-kfilter]');
+  if (kf){ kindFilter = kf.dataset.kfilter; $('kFilter').innerHTML = kindSeg(kindFilter, 'kfilter', true); renderMain(); return; }
   const a = e.target.closest('[data-act]');
   if (!a) return;
   const id = a.dataset.id;
   switch (a.dataset.act){
-    case 'give': giveEnvelope(id, a); break;
-    case 'rm': removeEnvelope(id); break;
+    case 'give': giveGroup(a.dataset.ids, a); break;
+    case 'rm': removeOne(a.dataset.ids); break;
+    case 'rename': openRename(a.dataset.name); break;
+    case 'edit': openEdit(id); break;
     case 'restore': restoreEnvelope(id); break;
     case 'set-today': $('aDate').value = todayIso(); $('aCust').focus(); break;
     case 'set-tmr': $('aDate').value = tomorrowIso(); $('aCust').focus(); break;
@@ -884,7 +1136,7 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('change', e => {
   const el = e.target.closest('[data-date]');
-  if (el){ el.blur(); setDate(el.dataset.date, el.value); }
+  if (el){ el.blur(); setGroupDate(el.dataset.date, el.value); }
 });
 let lastRefresh = 0;
 function tick(){
