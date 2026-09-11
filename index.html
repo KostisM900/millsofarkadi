@@ -357,6 +357,77 @@ input{font:inherit;color:inherit}
   .idx-bar{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;margin-right:-14px;scrollbar-width:thin}
   .idx-bar button{flex-shrink:0}
 }
+
+/* ===== ΑΡΧΕΙΟΘΕΤΗΣΗ ===== */
+.nl-short{display:none}
+@media (max-width:600px){ .nl-long{display:none} .nl-short{display:inline} svg.nl-short{width:19px;height:19px;vertical-align:-4px} }
+.drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:26px 20px;border:2px dashed #D6D3C5;border-radius:14px;background:var(--white);cursor:pointer;margin-bottom:24px;transition:border-color .15s,background .15s}
+.drop:hover,.drop.over{border-color:var(--olive);background:var(--olive-tint)}
+.drop svg{width:34px;height:34px;color:var(--olive-dark);margin-bottom:4px}
+.drop b{font-size:15px}
+.drop small{color:var(--muted);font-size:12.5px;max-width:56ch}
+.drop.busy{pointer-events:none;opacity:.85}
+.ocr-prog{width:min(420px,100%);margin-top:10px;font-size:12.5px;font-weight:600;color:var(--olive-deep)}
+.ocr-prog div,.progress{height:8px;border-radius:99px;background:var(--line-2);overflow:hidden;margin-top:6px}
+.ocr-prog i,.progress i{display:block;height:100%;background:var(--olive);border-radius:99px;transition:width .2s}
+.review{padding:18px 20px;margin-bottom:26px}
+.review-h{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:12px}
+.review-h h2{font-size:18px;font-weight:800}
+.review-h p{color:var(--muted);font-size:13px}
+.review .notice{margin:0 0 12px}
+.review .notice .btn{margin:4px 4px 0 0}
+.review-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:18px;align-items:start}
+@media (max-width:760px){.review-grid{grid-template-columns:1fr}}
+.review-imgs{display:flex;flex-direction:column;gap:10px;position:sticky;top:80px}
+.review-imgs img{width:100%;border:1px solid var(--line);border-radius:8px;display:block}
+.rv-list{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.rv-row{display:flex;align-items:center;gap:8px;padding:6px 8px 6px 10px;flex-wrap:wrap}
+.rv-row + .rv-row{border-top:1px solid var(--line-2)}
+.rv-row.bad{background:var(--red-tint)}
+.rv-row.bad .rv-code{border-color:var(--red)}
+.rv-n{width:20px;color:var(--muted);font-size:12px;font-weight:700;text-align:right}
+.rv-code{width:150px;padding:6px 9px;font-weight:700;letter-spacing:.03em;font-variant-numeric:tabular-nums}
+.rv-date{font-size:12.5px;color:var(--muted);min-width:78px}
+.rv-tag{font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px;background:var(--line-2);color:var(--muted)}
+.rv-tag.warn{background:var(--red-tint);color:var(--red)}
+.rv-row .icon-btn{margin-left:auto}
+.rv-add{display:flex;gap:8px;margin-top:10px}
+.rv-add .inp{flex:1}
+.check{padding:18px 20px;margin-bottom:24px}
+.check .back{margin-bottom:12px}
+.check h2{font-size:19px;font-weight:800}
+.check-sub{color:var(--muted);font-size:12.5px;margin-bottom:12px}
+.check-sum{margin:8px 0 14px;font-size:14px}
+.check-sum .miss{color:var(--red);font-weight:700}
+.check-bar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.chk-list{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--white)}
+.chk-row{display:flex;align-items:center;gap:12px;padding:10px 14px;cursor:pointer;position:relative}
+.chk-row + .chk-row{border-top:1px solid var(--line-2)}
+.chk-row:hover{background:#FDFDFA}
+.chk-row input{position:absolute;opacity:0;width:1px;height:1px}
+.chk-box{width:22px;height:22px;border-radius:6px;border:2px solid #C9C6B8;flex-shrink:0;display:grid;place-items:center;background:var(--white)}
+.chk-row input:checked + .chk-box{background:var(--olive-dark);border-color:var(--olive-dark)}
+.chk-row input:checked + .chk-box::after{content:"";width:6px;height:11px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.chk-row input:focus-visible + .chk-box{outline:2px solid var(--olive);outline-offset:2px}
+.chk-code{font-weight:800;letter-spacing:.03em;font-variant-numeric:tabular-nums;min-width:130px}
+.chk-date{color:var(--muted);font-size:13px}
+.chk-st{margin-left:auto;font-size:12px;font-weight:700;color:var(--red)}
+.chk-row.done .chk-st{color:var(--olive-deep)}
+.chk-row.done .chk-code{color:var(--muted)}
+.arc-search{margin:0 0 20px}
+.chk-hist .r-main{text-align:left;font:inherit}
+.chk-hist .r-main:hover b{color:var(--olive-deep)}
+.icon-btn.armed{width:auto;padding:0 8px;font-size:12px;font-weight:700;color:var(--red);background:var(--red-tint)}
+.rv-alt{font-size:11.5px;font-weight:700;color:var(--wheat-dark);background:var(--wheat-tint);border-radius:5px;padding:2px 7px}
+.rv-alt:hover{text-decoration:underline}
+.chk-hist .tag{font-size:12px;font-weight:700;padding:4px 10px;border-radius:99px;white-space:nowrap}
+.chk-hist .tag.none{background:var(--red-tint);color:var(--red)}
+.chk-hist .tag.today{background:var(--olive-tint);color:var(--olive-deep)}
+.drop.compact{flex-direction:row;padding:12px 16px;gap:10px;margin-bottom:18px}
+.drop.compact small{display:none}
+.drop.compact svg{width:22px;height:22px;margin:0}
+.drop.compact b{font-size:13.5px}
+.review-h .btns{margin-left:auto}
 </style>
 </head>
 <body>
@@ -379,6 +450,7 @@ input{font:inherit;color:inherit}
   <section class="view" id="view-login"></section>
   <section class="view" id="view-main"></section>
   <section class="view" id="view-stand"></section>
+  <section class="view" id="view-arc"></section>
   <section class="view" id="view-set"></section>
 </main>
 
@@ -598,6 +670,8 @@ async function login(email, password){
 function logout(msg){
   LOCAL.session = null; LOCAL.cache = null; saveLocal();
   DB = { envelopes:[], customers:[] };
+  Object.assign(ARC, { loaded:false, checks:[], missing:new Map(), openId:null, openDocs:new Map(), review:[], reviewIssues:[], images:[], q:'' });
+  if ($('view-arc')) $('view-arc').innerHTML = '';
   go('login');
   if (msg) toast(esc(msg));
 }
@@ -772,14 +846,17 @@ function renderNav(){
   $('nav').innerHTML = `
     <button class="nav-btn${view==='main'?' active':''}" data-go="main">ΦΑΚΕΛΟΙ${n ? `<span class="cnt">${n}</span>` : ''}</button>
     <button class="nav-btn${view==='stand'?' active':''}" data-go="stand">STAND</button>
-    <button class="nav-btn${view==='set'?' active':''}" data-go="set">ΡΥΘΜΙΣΕΙΣ</button>`;
+    ${canArchive() ? `<button class="nav-btn${view==='arc'?' active':''}" data-go="arc"><span class="nl-long">ΑΡΧΕΙΟΘΕΤΗΣΗ</span><span class="nl-short">ΑΡΧΕΙΟ</span></button>` : ''}
+    <button class="nav-btn${view==='set'?' active':''}" data-go="set" aria-label="Ρυθμίσεις"><span class="nl-long">ΡΥΘΜΙΣΕΙΣ</span><svg class="nl-short" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>`;
 }
 function go(v){
   if (!LOCAL.session) v = 'login';
   view = v;
+  if (v === 'arc' && !canArchive()) v = view = 'main';
   document.querySelectorAll('.view').forEach(el => el.classList.toggle('active', el.id === 'view-' + v));
   if (v === 'set') buildSettings();
   if (v === 'login') buildLogin();
+  if (v === 'arc'){ renderArchive(); if (!ARC.loaded) loadArchive(); }
   renderAll();
   window.scrollTo({ top:0 });
 }
@@ -1463,6 +1540,453 @@ function printStand(kind){
   window.addEventListener('afterprint', done);
   try { window.print(); } catch(e){ toast('Η εκτύπωση δεν επιτρέπεται εδώ. Άνοιξε την εφαρμογή από το δικό σας link.'); done(); }
 }
+
+/* ===================== ΕΛΕΓΧΟΣ ΑΡΧΕΙΟΘΕΤΗΣΗΣ ΠΑΡΑΣΤΑΤΙΚΩΝ ===================== */
+/* Μόνο για τον λογαριασμό social@m-m-m.gr (η πραγματική προστασία είναι οι κανόνες RLS στη βάση).
+   Η αναγνώριση κειμένου γίνεται ΜΕΣΑ στον browser (Tesseract). Η εικόνα δεν ανεβαίνει πουθενά·
+   στη βάση αποθηκεύονται μόνο οι αριθμοί των παραστατικών, η ημερομηνία τους και αν αρχειοθετήθηκαν. */
+const ARCHIVE_EMAILS = ['social@m-m-m.gr'];
+const canArchive = () => !!(LOCAL.session && ARCHIVE_EMAILS.includes(String(LOCAL.session.email || '').toLowerCase()));
+const TESSERACT_URL = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+const ARC = { loaded:false, loading:false, setupMissing:false, checks:[], missing:new Map(), openId:null, openDocs:new Map(),
+              review:[], reviewIssues:[], images:[], busy:false, filter:'missing', q:'' };
+
+/* ---------- Ανάγνωση κωδικών από το κείμενο της εικόνας ---------- */
+const LAT2GR = { A:'Α',B:'Β',E:'Ε',Z:'Ζ',H:'Η',I:'Ι',K:'Κ',M:'Μ',N:'Ν',O:'Ο',P:'Ρ',T:'Τ',Y:'Υ',X:'Χ' };
+const DIGIT_LIKE = { 'O':'0','Ο':'0','Q':'0','Θ':'0','D':'0','I':'1','Ι':'1','Ί':'1','Ϊ':'1','L':'1','|':'1','!':'1','S':'5','Z':'2' };
+const isDigitish = c => /[0-9]/.test(c) || c in DIGIT_LIKE;
+function splitCode(token){
+  const t = String(token).toUpperCase();
+  let i = t.length, real = 0;
+  while (i > 0 && isDigitish(t[i-1])){ i--; if (/[0-9]/.test(t[i])) real++; }
+  let digits = t.slice(i), prefix = t.slice(0, i);
+  while (digits.length && /[SZL]/.test(digits[0])){ prefix += digits[0]; digits = digits.slice(1); }
+  if (real < 3 || digits.length < 4) return null;
+  if (!/^[A-ZΑ-Ω]{1,6}$/.test(prefix)) return null;
+  const pre = [...prefix].map(c => LAT2GR[c] || c).join('');
+  const num = [...digits].map(c => DIGIT_LIKE[c] || c).join('');
+  if (!/^\d+$/.test(num)) return null;
+  return { prefix: pre, num, raw: digits, latin: /[A-Z]/.test(prefix) };
+}
+/* Διαβάζει τις γραμμές της εικόνας. Κρατάει τη σειρά των γραμμών (για σύγκριση δύο αναγνώσεων). */
+function parseDocText(text){
+  const rows = [], issues = [];
+  String(text || '').split(/\r?\n/).forEach(raw => {
+    const up = raw.normalize('NFC').toUpperCase();
+    const dm = up.replace(/[ΊΙIL|]/g, '1').match(/(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})/);
+    let found = null;
+    for (const tk of (up.match(/[A-ZΑ-ΩΆΈΉΊΌΎΏΪΫ0-9|!]{5,}/g) || [])){ const c = splitCode(tk); if (c){ found = c; break; } }
+    let date = '';
+    if (dm){ let [, d, m, y] = dm; y = y.length === 2 ? '20' + y : y; const dt = new Date(+y, +m - 1, +d); if (dt.getMonth() === +m - 1 && dt.getDate() === +d) date = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
+    if (found) rows.push({ ...found, date });
+    else if (dm) issues.push({ date, raw: raw.trim() });
+  });
+  // 1) κοινό πρόθεμα (ΤΑΑ → ΤΔΑ), προτιμώντας ό,τι διαβάστηκε με ελληνικά
+  const tally = list => { const c = {}; list.forEach(r => c[r.prefix] = (c[r.prefix] || 0) + 1); return Object.entries(c).sort((a,b) => b[1] - a[1]); };
+  const greek = rows.filter(r => !r.latin);
+  const dom = (greek.length ? tally(greek) : tally(rows).filter(([, n]) => n >= 2))[0];
+  if (dom) rows.forEach(r => {
+    if (r.prefix !== dom[0] && r.prefix.length === dom[0].length && [...r.prefix].filter((c,i) => c !== dom[0][i]).length === 1){ r.fixedFrom = r.prefix + r.num; r.prefix = dom[0]; }
+  });
+  // 2) ένα ψηφίο παραπάνω (π.χ. «Ί1210» → 1210): σβήνει το ψηφίο που κάνει τον αριθμό να ταιριάζει στη σειρά
+  const lens = {}; rows.forEach(r => lens[r.num.length] = (lens[r.num.length] || 0) + 1);
+  const domLen = Number((Object.entries(lens).sort((a,b) => b[1] - a[1])[0] || [0])[0]);
+  rows.filter(r => r.num.length === domLen + 1).forEach(r => {
+    const good = rows.filter(x => x !== r && x.prefix === r.prefix && x.num.length === domLen).map(x => Number(x.num));
+    if (!good.length) return;
+    const lo = Math.min(...good) - 1, hi = Math.max(...good) + 1;
+    const order = [...r.raw].map((c, i) => [i, !/[0-9]/.test(c)]).sort((a, b) => b[1] - a[1]).map(x => x[0]);
+    for (const i of order){
+      const cand = r.num.slice(0, i) + r.num.slice(i + 1), n = Number(cand);
+      if (n >= lo && n <= hi && !good.includes(n)){ r.fixedFrom = r.fixedFrom || (r.prefix + r.num); r.num = cand; break; }
+    }
+  });
+  const lens2 = {}; rows.forEach(r => lens2[r.num.length] = (lens2[r.num.length] || 0) + 1);
+  const domLen2 = Number((Object.entries(lens2).sort((a,b) => b[1] - a[1])[0] || [0])[0]);
+  return { rows: rows.map(r => ({ code: r.prefix + r.num, date: r.date, fixedFrom: r.fixedFrom || '', check: r.num.length !== domLen2 })), issues };
+}
+function codeParts(code){ const m = String(code).match(/^([Α-ΩA-Z]+)(\d+)$/); return m ? { prefix:m[1], n:Number(m[2]), len:m[2].length } : null; }
+/* Δύο αναγνώσεις της ίδιας εικόνας (με και χωρίς περιορισμό χαρακτήρων).
+   Ό,τι βγαίνει ίδιο και στις δύο είναι σίγουρο· όπου διαφωνούν, κρατάει αυτό που ταιριάζει
+   στη σειρά αρίθμησης και το σημαδεύει «έλεγξέ το», με την άλλη ανάγνωση ως εναλλακτική. */
+function mergePasses(a, b){
+  const bCodes = new Set(b.rows.map(r => r.code)), aCodes = new Set(a.rows.map(r => r.code));
+  const sure = a.rows.filter(r => bCodes.has(r.code)).map(r => r.code);
+  const sureNums = p => sure.map(codeParts).filter(x => x && x.prefix === p.prefix && x.len === p.len).map(x => x.n);
+  const fits = code => { const p = codeParts(code); if (!p) return -1; const ns = sureNums(p); if (!ns.length) return 0; if (ns.includes(p.n)) return -1;
+    const lo = Math.min(...ns), hi = Math.max(...ns); return (p.n > lo && p.n < hi) ? 2 : (p.n === lo - 1 || p.n === hi + 1) ? 1 : 0; };
+  const out = [], used = new Set();
+  const push = (r, extra={}) => { if (used.has(r.code)) return; used.add(r.code); out.push({ ...r, ...extra }); };
+  if (a.rows.length === b.rows.length){
+    a.rows.forEach((ra, i) => {
+      const rb = b.rows[i];
+      if (ra.code === rb.code) return push({ ...ra, check: ra.check && rb.check, fixedFrom: ra.fixedFrom && rb.fixedFrom ? ra.fixedFrom : '' });
+      const pick = fits(rb.code) > fits(ra.code) ? [rb, ra] : [ra, rb];
+      push(pick[0], { check:true, alt:pick[1].code, date: pick[0].date || pick[1].date });
+    });
+  } else {
+    const main = a.rows.length >= b.rows.length ? a : b, other = main === a ? bCodes : aCodes;
+    main.rows.forEach(r => push(r, other.has(r.code) ? {} : { check:true }));
+  }
+  return { rows: out, issues: a.issues.length <= b.issues.length ? a.issues : b.issues };
+}
+/* Κενά στην αρίθμηση: αν πηδάει από 1209 σε 1211, μάλλον χάθηκε μία γραμμή από την εικόνα */
+function sequenceGaps(codes){
+  const by = {};
+  codes.map(codeParts).filter(Boolean).forEach(p => (by[p.prefix + '|' + p.len] = by[p.prefix + '|' + p.len] || []).push(p.n));
+  const gaps = [];
+  Object.entries(by).forEach(([k, ns]) => {
+    const [prefix, len] = k.split('|'); ns.sort((a,b) => a - b);
+    for (let i = 1; i < ns.length; i++){
+      const diff = ns[i] - ns[i-1];
+      if (diff > 1 && diff <= 20) for (let x = ns[i-1] + 1; x < ns[i]; x++) gaps.push(prefix + String(x).padStart(+len, '0'));
+    }
+  });
+  return gaps;
+}
+function normManualCode(raw){
+  const t = upper(clean(raw)).replace(/[\s\-\/.]/g, '');
+  const c = t && splitCode(t);
+  return c ? c.prefix + c.num : null;
+}
+const byCode = (a, b) => { const x = codeParts(a), y = codeParts(b); return x && y && x.prefix === y.prefix ? x.n - y.n : String(a).localeCompare(String(b), 'el'); };
+
+/* ---------- Αναγνώριση κειμένου στον browser ---------- */
+let tessWorker = null;
+function loadScript(src){ return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('script')); document.head.appendChild(s); }); }
+async function getWorker(onStatus){
+  if (tessWorker) return tessWorker;
+  onStatus('Φόρτωση αναγνώρισης κειμένου (μόνο την πρώτη φορά, λίγα δευτερόλεπτα)…', 0);
+  if (!window.Tesseract) await loadScript(TESSERACT_URL);
+  tessWorker = await Tesseract.createWorker(['ell','eng'], 1, {
+    logger: m => { if (m.status === 'recognizing text') onStatus('Ανάγνωση της εικόνας…', m.progress); }
+  });
+  await tessWorker.setParameters({ tessedit_pageseg_mode:'6', preserve_interword_spaces:'1' });
+  return tessWorker;
+}
+/* Γκρι + μεγέθυνση: τα στιγμιότυπα έχουν μικρά γράμματα, η μεγέθυνση βελτιώνει πολύ την ανάγνωση */
+async function prepImage(file){
+  const url = URL.createObjectURL(file);
+  const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+  const scale = img.naturalWidth < 700 ? 3 : img.naturalWidth < 1400 ? 2 : 1;
+  const c = document.createElement('canvas');
+  c.width = img.naturalWidth * scale; c.height = img.naturalHeight * scale;
+  const ctx = c.getContext('2d');
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, 0, 0, c.width, c.height);
+  const d = ctx.getImageData(0, 0, c.width, c.height), p = d.data;
+  for (let i = 0; i < p.length; i += 4){ const g = 0.299*p[i] + 0.587*p[i+1] + 0.114*p[i+2]; p[i] = p[i+1] = p[i+2] = g; }
+  ctx.putImageData(d, 0, 0);
+  return { canvas:c, url };
+}
+function setOcrStatus(text, pct){
+  const el = $('arcProg'); if (!el) return;
+  el.hidden = false;
+  el.querySelector('span').textContent = text;
+  el.querySelector('i').style.width = `${Math.round((pct || 0) * 100)}%`;
+}
+async function handleImages(files){
+  files = [...files].filter(f => f && f.type && f.type.startsWith('image/'));
+  if (!files.length){ toast('Διάλεξε εικόνα (στιγμιότυπο οθόνης).'); return; }
+  if (ARC.busy) return;
+  ARC.busy = true; renderArchive();
+  let added = 0;
+  try {
+    const worker = await getWorker(setOcrStatus);
+    for (const f of files){
+      const { canvas, url } = await prepImage(f);
+      ARC.images.push(url);
+      /* Δύο αναγνώσεις: μία ελεύθερη και μία μόνο με κεφαλαία ελληνικά και ψηφία.
+         Ό,τι συμφωνεί είναι σίγουρο· όπου διαφωνούν, σημαδεύεται για έλεγχο. */
+      setOcrStatus('Ανάγνωση της εικόνας (1/2)…', 0);
+      await worker.setParameters({ tessedit_char_whitelist:'' });
+      const pa = parseDocText((await worker.recognize(canvas)).data.text);
+      setOcrStatus('Ανάγνωση της εικόνας (2/2)…', 0);
+      await worker.setParameters({ tessedit_char_whitelist:'ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ0123456789/. ' });
+      const pb = parseDocText((await worker.recognize(canvas)).data.text);
+      await worker.setParameters({ tessedit_char_whitelist:'' });
+      const res = mergePasses(pa, pb);
+      res.rows.forEach(d => { if (!ARC.review.some(r => r.code === d.code)){ ARC.review.push(d); added++; } });
+      ARC.reviewIssues.push(...res.issues);
+    }
+    ARC.review.sort((a,b) => byCode(a.code, b.code));
+    toast(added ? `Βρέθηκαν ${added} παραστατικά. Έλεγξέ τα με την εικόνα και πάτα «Αποθήκευση ελέγχου».` : 'Δεν βρέθηκαν παραστατικά στην εικόνα. Δοκίμασε πιο καθαρό στιγμιότυπο ή πρόσθεσέ τα με το χέρι.', { sticky: !added });
+  } catch(e){
+    toast(IN_FRAME ? 'Η αναγνώριση κειμένου δεν φορτώνει μέσα στο Claude. Άνοιξε την εφαρμογή από το δικό σας link.' : 'Η αναγνώριση κειμένου δεν φόρτωσε. Έλεγξε τη σύνδεση στο internet και ξαναδοκίμασε.', { sticky:true });
+  } finally {
+    ARC.busy = false; renderArchive();
+  }
+}
+
+/* ---------- Βάση ---------- */
+const inList = codes => `(${codes.map(c => `"${c}"`).join(',')})`;
+async function loadArchive(){
+  if (ARC.loading || !canArchive()) return;
+  ARC.loading = true;
+  try {
+    const [checks, miss] = await Promise.all([
+      api('archive_checks?select=id,label,codes,created_at&order=created_at.desc&limit=100'),
+      api('archive_docs?select=code,doc_date&archived_at=is.null&order=code.asc')
+    ]);
+    ARC.checks = checks || [];
+    ARC.missing = new Map((miss || []).map(r => [r.code, r]));
+    ARC.loaded = true; ARC.setupMissing = false; setOnline(true);
+  } catch(e){
+    if (/HTTP 40[04]|PGRST|42P01/.test(String(e && e.message))) ARC.setupMissing = true;
+    else handleError(e, 'Δεν φόρτωσαν οι έλεγχοι αρχειοθέτησης.');
+  } finally { ARC.loading = false; if (view === 'arc') renderArchive(); }
+}
+async function openCheck(id){
+  const chk = ARC.checks.find(c => c.id === id);
+  if (!chk) return;
+  ARC.openId = id; ARC.filter = 'all'; ARC.openDocs = new Map();
+  renderArchive();
+  try {
+    for (let i = 0; i < chk.codes.length; i += 80){
+      const part = chk.codes.slice(i, i + 80);
+      const rows = await api(`archive_docs?select=code,doc_date,archived_at&code=in.${encodeURIComponent(inList(part))}`);
+      (rows || []).forEach(r => {
+        ARC.openDocs.set(r.code, r);
+        if (r.archived_at) ARC.missing.delete(r.code); else ARC.missing.set(r.code, { code:r.code, doc_date:r.doc_date });
+      });
+    }
+  } catch(e){ handleError(e, 'Δεν φόρτωσε ο έλεγχος.'); }
+  if (ARC.openId === id) renderArchive();
+  window.scrollTo({ top:0 });
+}
+async function arcMutate(apply, request, rollback, msg){
+  apply(); renderArchive();
+  try { await request(); setOnline(true); }
+  catch(e){ rollback(); renderArchive(); handleError(e, msg); }
+}
+function setArchived(codes, archived){
+  const prev = codes.map(c => [c, ARC.missing.get(c)]);
+  const stamp = archived ? new Date().toISOString() : null;
+  arcMutate(
+    () => codes.forEach(c => { if (archived) ARC.missing.delete(c); else ARC.missing.set(c, { code:c, doc_date:(ARC.openDocs.get(c) || {}).doc_date || null }); }),
+    async () => { for (let i = 0; i < codes.length; i += 80) await api(`archive_docs?code=in.${encodeURIComponent(inList(codes.slice(i, i + 80)))}`, { method:'PATCH', body:{ archived_at:stamp }, prefer:'return=minimal' }); },
+    () => prev.forEach(([c, v]) => { if (v) ARC.missing.set(c, v); else ARC.missing.delete(c); }),
+    'Η αλλαγή δεν αποθηκεύτηκε.'
+  );
+}
+async function saveReview(){
+  const bad = ARC.review.filter(r => !codeParts(r.code));
+  if (bad.length){ toast(`Διόρθωσε ${bad.length === 1 ? 'τον κωδικό' : 'τους κωδικούς'} με κόκκινο πριν την αποθήκευση.`); return; }
+  const rows = [...new Map(ARC.review.map(r => [r.code, r])).values()];
+  if (!rows.length) return;
+  const codes = rows.map(r => r.code).sort(byCode);
+  const ds = rows.map(r => r.date).filter(Boolean).sort();
+  const when = ds.length ? (ds[0] === ds[ds.length - 1] ? fmtDate(ds[0]) : `${fmtDate(ds[0])} – ${fmtDate(ds[ds.length - 1])}`) : 'Χωρίς ημερομηνία';
+  const label = `${when} · ${codes.length === 1 ? '1 παραστατικό' : codes.length + ' παραστατικά'}`;
+  const id = uuid();
+  ARC.busy = true; renderArchive();
+  try {
+    await api('archive_docs?on_conflict=code', { method:'POST', body: rows.map(r => ({ code:r.code, doc_date:r.date || null })), prefer:'resolution=ignore-duplicates,return=minimal' });
+    await api('archive_checks', { method:'POST', body:{ id, label, codes }, prefer:'return=minimal' });
+    ARC.checks.unshift({ id, label, codes, created_at:new Date().toISOString() });
+    ARC.review = []; ARC.reviewIssues = []; ARC.images = [];
+    ARC.busy = false;
+    toast(`Αποθηκεύτηκε ο έλεγχος: ${esc(label)}. Τσέκαρε όσα έχεις αρχειοθετήσει.`);
+    await openCheck(id);
+  } catch(e){ ARC.busy = false; handleError(e, 'Ο έλεγχος δεν αποθηκεύτηκε.'); renderArchive(); }
+}
+function deleteCheck(id, btn){
+  if (!btn.dataset.armed){ btn.dataset.armed = '1'; btn.textContent = 'Σίγουρα;'; btn.classList.add('armed'); setTimeout(() => { if (btn.isConnected){ delete btn.dataset.armed; btn.textContent = '×'; btn.classList.remove('armed'); } }, 3500); return; }
+  const chk = ARC.checks.find(c => c.id === id); if (!chk) return;
+  const idx = ARC.checks.indexOf(chk);
+  if (ARC.openId === id) ARC.openId = null;
+  arcMutate(
+    () => { ARC.checks = ARC.checks.filter(c => c !== chk); },
+    () => api(`archive_checks?id=eq.${id}`, { method:'DELETE', prefer:'return=minimal' }),
+    () => { ARC.checks.splice(idx, 0, chk); },
+    'Ο έλεγχος δεν διαγράφηκε.'
+  );
+  toast('Ο έλεγχος διαγράφηκε. Η κατάσταση των παραστατικών (αρχειοθετημένο ή όχι) μένει.');
+}
+
+/* ---------- Εμφάνιση ---------- */
+const arcDate = d => d ? fmtDate(d) : '';
+function chkRow(code, date){
+  const done = !ARC.missing.has(code);
+  return `<label class="chk-row${done ? ' done' : ''}">
+    <input type="checkbox" data-arc-code="${esc(code)}" ${done ? 'checked' : ''}>
+    <span class="chk-box" aria-hidden="true"></span>
+    <span class="chk-code">${esc(code)}</span>
+    <span class="chk-date">${esc(arcDate(date))}</span>
+    <span class="chk-st">${done ? 'Αρχειοθετήθηκε' : 'Λείπει'}</span>
+  </label>`;
+}
+function buildArchive(){
+  $('view-arc').innerHTML = `
+    <div class="page-h">
+      <h1>Έλεγχος αρχειοθέτησης παραστατικών</h1>
+      <p>Ανέβασε στιγμιότυπο με τη λίστα των παραστατικών. Η αναγνώριση γίνεται μέσα στον browser: η εικόνα δεν ανεβαίνει πουθενά, αποθηκεύονται μόνο οι αριθμοί των παραστατικών.</p>
+    </div>
+    <label class="drop" id="arcDrop">
+      <input type="file" id="arcFile" accept="image/*" multiple hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+      <b>Σύρε εδώ το στιγμιότυπο, ή πάτα για να το διαλέξεις</b>
+      <small>Μπορείς και να κάνεις επικόλληση με Ctrl + V. Αν η λίστα είναι μεγάλη, βάλε περισσότερα στιγμιότυπα, ενώνονται σε έναν έλεγχο.</small>
+      <div class="ocr-prog" id="arcProg" hidden><span></span><div><i></i></div></div>
+    </label>
+    <div id="arcBody"></div>`;
+  const drop = $('arcDrop');
+  $('arcFile').addEventListener('change', e => { handleImages(e.target.files); e.target.value = ''; });
+  ['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', e => handleImages(e.dataTransfer.files));
+}
+function renderArchive(){
+  if (!$('arcBody')) buildArchive();
+  const body = $('arcBody');
+  $('arcDrop').classList.toggle('busy', ARC.busy);
+  $('arcDrop').classList.toggle('compact', !ARC.busy && !!(ARC.openId || ARC.review.length || ARC.images.length));
+  if (!ARC.busy && $('arcProg')) $('arcProg').hidden = true;
+
+  if (ARC.setupMissing){
+    body.innerHTML = `<div class="card move-card"><b>Χρειάζεται μία ρύθμιση στη βάση</b><ol><li>Άνοιξε το Supabase → SQL Editor και τρέξε ξανά το <code>supabase-setup.sql</code>. Προσθέτει τους πίνακες για την αρχειοθέτηση.</li><li>Μετά ανανέωσε αυτή τη σελίδα.</li></ol></div>`;
+    return;
+  }
+  /* 1. Έλεγχος πριν την αποθήκευση (αποτέλεσμα αναγνώρισης) */
+  if (ARC.review.length || ARC.images.length){
+    const codes = ARC.review.map(r => r.code);
+    const gaps = sequenceGaps(codes.filter(c => codeParts(c))).filter(g => !codes.includes(g));
+    const known = code => ARC.checks.some(c => c.codes.includes(code));
+    body.innerHTML = `
+      <section class="card review">
+        <div class="review-h">
+          <div><h2>Βρέθηκαν ${ARC.review.length === 1 ? '1 παραστατικό' : ARC.review.length + ' παραστατικά'}</h2>
+          <p>Σύγκρινέ τα με την εικόνα. Αν κάποιος κωδικός διαβάστηκε λάθος, διόρθωσέ τον πάνω του.</p></div>
+          <div class="btns"><button class="btn ghost sm" data-arc="cancel-review">Ακύρωση</button><button class="btn primary sm" data-arc="save-review" ${ARC.busy || !ARC.review.length ? 'disabled' : ''}>Αποθήκευση ελέγχου</button></div>
+        </div>
+        ${gaps.length ? `<div class="notice">${ENV_SVG}<div><b>Η αρίθμηση πηδάει.</b> Ίσως δεν διαβάστηκε μία γραμμή από την εικόνα. Αν υπάρχει στη λίστα σου, πρόσθεσέ τη: ${gaps.map(g => `<button class="btn ghost sm" data-arc="add-gap" data-code="${esc(g)}">+ ${esc(g)}</button>`).join(' ')}</div></div>` : ''}
+        ${ARC.reviewIssues.length ? `<div class="notice">${ENV_SVG}<div><b>${ARC.reviewIssues.length === 1 ? 'Μία γραμμή' : ARC.reviewIssues.length + ' γραμμές'} με ημερομηνία δεν διαβάστηκαν σωστά.</b> Κοίτα την εικόνα και πρόσθεσέ ${ARC.reviewIssues.length === 1 ? 'την' : 'τες'} με το χέρι από κάτω.</div></div>` : ''}
+        <div class="review-grid">
+          <div class="review-imgs">${ARC.images.map(u => `<a href="${u}" target="_blank" rel="noopener"><img src="${u}" alt="Στιγμιότυπο που ανέβηκε"></a>`).join('')}</div>
+          <div>
+            <div class="rv-list">${ARC.review.map((r, i) => `
+              <div class="rv-row${codeParts(r.code) ? '' : ' bad'}">
+                <span class="rv-n">${i + 1}</span>
+                <input class="inp rv-code" value="${esc(r.code)}" data-rv="${i}" aria-label="Κωδικός παραστατικού ${i + 1}" spellcheck="false">
+                <span class="rv-date">${esc(arcDate(r.date))}</span>
+                ${r.fixedFrom ? `<span class="rv-tag" title="Διαβάστηκε ${esc(r.fixedFrom)}">διορθώθηκε</span>` : ''}
+                ${r.check ? `<span class="rv-tag warn">έλεγξέ το</span>` : ''}
+                ${r.alt ? `<button class="rv-alt" data-arc="rv-swap" data-i="${i}" title="Η δεύτερη ανάγνωση έβγαλε ${esc(r.alt)}. Πάτα για να το κρατήσεις.">ή ${esc(r.alt)};</button>` : ''}
+                ${known(r.code) ? `<span class="rv-tag">${ARC.missing.has(r.code) ? 'ήδη σε έλεγχο, λείπει' : 'ήδη αρχειοθετημένο'}</span>` : ''}
+                <button class="icon-btn" data-arc="rv-del" data-i="${i}" aria-label="Αφαίρεση">×</button>
+              </div>`).join('')}</div>
+            <div class="rv-add">
+              <input class="inp" id="rvNew" placeholder="Πρόσθεσε με το χέρι, π.χ. ΤΔΑ0001214" spellcheck="false" autocomplete="off">
+              <button class="btn ghost sm" data-arc="rv-add">Προσθήκη</button>
+            </div>
+          </div>
+        </div>
+      </section>`;
+    upperInput($('rvNew'));
+    $('rvNew').addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); reviewAdd(); } });
+    body.querySelectorAll('.rv-code').forEach(inp => { upperInput(inp); inp.addEventListener('change', () => {
+      const i = Number(inp.dataset.rv), v = normManualCode(inp.value);
+      ARC.review[i].code = v || upper(clean(inp.value)); ARC.review[i].fixedFrom = ''; ARC.review[i].check = false; ARC.review[i].alt = '';
+      renderArchive();
+    }); });
+    return;
+  }
+  /* 2. Ανοιχτός έλεγχος: λίστα με τσεκ */
+  const chk = ARC.openId && ARC.checks.find(c => c.id === ARC.openId);
+  if (chk){
+    const codes = [...chk.codes].sort(byCode);
+    const miss = codes.filter(c => ARC.missing.has(c));
+    const done = codes.length - miss.length;
+    const shown = ARC.filter === 'missing' ? miss : ARC.filter === 'done' ? codes.filter(c => !ARC.missing.has(c)) : codes;
+    const pct = codes.length ? Math.round(done / codes.length * 100) : 0;
+    body.innerHTML = `
+      <section class="card check">
+        <button class="btn ghost sm back" data-arc="back">← Όλοι οι έλεγχοι</button>
+        <h2>${esc(chk.label)}</h2>
+        <p class="check-sub">Ανέβηκε ${shortDate(iso(new Date(chk.created_at)))} στις ${hhmm(chk.created_at)}</p>
+        <div class="progress"><i style="width:${pct}%"></i></div>
+        <p class="check-sum">${miss.length ? `<b>${done} από ${codes.length}</b> αρχειοθετημένα. <span class="miss">Λείπουν ${miss.length}.</span>` : `<b>Όλα τα ${codes.length} είναι αρχειοθετημένα.</b>`}</p>
+        <div class="check-bar">
+          <div class="seg" role="radiogroup">${[['missing',`Λείπουν (${miss.length})`],['done',`Αρχειοθετημένα (${done})`],['all',`Όλα (${codes.length})`]].map(([k,l]) => `<button type="button" role="radio" aria-checked="${ARC.filter === k}" class="${ARC.filter === k ? 'on' : ''}" data-arc-filter="${k}">${l}</button>`).join('')}</div>
+          <div class="btns">
+            ${miss.length ? `<button class="btn ghost sm" data-arc="copy-missing">Αντιγραφή όσων λείπουν</button><button class="btn primary sm" data-arc="all-done">Όλα αρχειοθετημένα</button>` : ''}
+          </div>
+        </div>
+        <div class="chk-list">${shown.length ? shown.map(c => chkRow(c, (ARC.openDocs.get(c) || ARC.missing.get(c) || {}).doc_date)).join('') : `<p class="empty">${ARC.filter === 'missing' ? 'Δεν λείπει τίποτα από αυτόν τον έλεγχο.' : 'Κανένα ακόμα.'}</p>`}</div>
+      </section>`;
+    return;
+  }
+  /* 3. Αρχική: τι λείπει συνολικά + προηγούμενοι έλεγχοι */
+  if (!ARC.loaded){ body.innerHTML = `<p class="hint">${ARC.loading ? 'Φόρτωση…' : ''}</p>`; if (!ARC.loading) loadArchive(); return; }
+  const q = normManualCode(ARC.q) || upper(clean(ARC.q)).replace(/\s/g, '');
+  const allCodes = [...new Set([...ARC.checks.flatMap(c => c.codes), ...ARC.missing.keys()])];
+  const hits = q ? allCodes.filter(c => c.includes(q)).sort(byCode).slice(0, 30) : [];
+  const missAll = [...ARC.missing.values()].sort((a,b) => byCode(a.code, b.code));
+  body.innerHTML = `
+    <div class="search arc-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input class="inp" id="arcQ" type="search" value="${esc(ARC.q)}" placeholder="Αναζήτηση παραστατικού, π.χ. 1207 ή ΤΔΑ0001207" autocomplete="off" spellcheck="false" aria-label="Αναζήτηση παραστατικού">
+    </div>
+    ${q ? section('ΑΠΟΤΕΛΕΣΜΑΤΑ', hits.length ? `<div class="chk-list">${hits.map(c => chkRow(c, (ARC.missing.get(c) || {}).doc_date)).join('')}</div>` : `<p class="empty">Το ${esc(q)} δεν υπάρχει σε κανέναν έλεγχο.</p>`) : ''}
+    ${section(`ΛΕΙΠΟΥΝ ΑΠΟ ΟΛΟΥΣ ΤΟΥΣ ΕΛΕΓΧΟΥΣ${missAll.length ? ` (${missAll.length})` : ''}`, missAll.length
+      ? `<div class="chk-list">${missAll.map(r => chkRow(r.code, r.doc_date)).join('')}</div>`
+      : `<p class="empty">${ARC.checks.length ? 'Όλα αρχειοθετημένα.' : 'Δεν έχει γίνει ακόμα κανένας έλεγχος. Ανέβασε το πρώτο στιγμιότυπο από πάνω.'}</p>`, !!missAll.length)}
+    ${ARC.checks.length ? section('ΠΡΟΗΓΟΥΜΕΝΟΙ ΕΛΕΓΧΟΙ', `<div class="rows">${ARC.checks.map(c => {
+      const m = c.codes.filter(x => ARC.missing.has(x)).length;
+      return `<div class="row chk-hist"><button class="r-main" data-arc="open" data-id="${c.id}"><b>${esc(c.label)}</b><small>Ανέβηκε ${shortDate(iso(new Date(c.created_at)))} στις ${hhmm(c.created_at)}</small></button>
+        <span class="tag ${m ? 'none' : 'today'}">${m ? `Λείπουν ${m}` : 'Πλήρης'}</span>
+        <button class="icon-btn" data-arc="del" data-id="${c.id}" aria-label="Διαγραφή ελέγχου" title="Διαγραφή ελέγχου">×</button></div>`;
+    }).join('')}</div>`) : ''}`;
+  const qi = $('arcQ');
+  upperInput(qi);
+  qi.addEventListener('input', () => { ARC.q = qi.value; const pos = qi.selectionStart; renderArchive(); const n = $('arcQ'); n.focus(); try { n.setSelectionRange(pos, pos); } catch(_){} });
+}
+function reviewAdd(code){
+  const raw = code || $('rvNew').value;
+  const v = normManualCode(raw);
+  if (!v){ toast('Γράψε τον κωδικό όπως στη λίστα, π.χ. ΤΔΑ0001214.'); return; }
+  if (ARC.review.some(r => r.code === v)){ toast(`Το ${esc(v)} υπάρχει ήδη στη λίστα.`); return; }
+  const date = (ARC.review.find(r => r.date) || {}).date || '';
+  ARC.review.push({ code:v, date, fixedFrom:'', check:false, alt:'' });
+  ARC.review.sort((a,b) => byCode(a.code, b.code));
+  renderArchive();
+  const n = $('rvNew'); if (n && !code) n.focus();
+}
+document.addEventListener('click', e => {
+  const f = e.target.closest('[data-arc-filter]');
+  if (f){ ARC.filter = f.dataset.arcFilter; renderArchive(); return; }
+  const a = e.target.closest('[data-arc]');
+  if (!a) return;
+  switch (a.dataset.arc){
+    case 'save-review': saveReview(); break;
+    case 'cancel-review': ARC.review = []; ARC.reviewIssues = []; ARC.images.forEach(u => URL.revokeObjectURL(u)); ARC.images = []; renderArchive(); break;
+    case 'rv-del': ARC.review.splice(Number(a.dataset.i), 1); renderArchive(); break;
+    case 'rv-swap': { const r = ARC.review[Number(a.dataset.i)]; if (r && r.alt){ if (ARC.review.some(x => x.code === r.alt)){ toast(`Το ${esc(r.alt)} υπάρχει ήδη στη λίστα.`); break; } [r.code, r.alt] = [r.alt, r.code]; ARC.review.sort((x,y) => byCode(x.code, y.code)); renderArchive(); } break; }
+    case 'rv-add': reviewAdd(); break;
+    case 'add-gap': reviewAdd(a.dataset.code); break;
+    case 'open': openCheck(a.dataset.id); break;
+    case 'back': ARC.openId = null; renderArchive(); break;
+    case 'del': deleteCheck(a.dataset.id, a); break;
+    case 'all-done': { const chk = ARC.checks.find(c => c.id === ARC.openId); if (chk) setArchived(chk.codes.filter(c => ARC.missing.has(c)), true); break; }
+    case 'copy-missing': {
+      const chk = ARC.checks.find(c => c.id === ARC.openId); if (!chk) break;
+      const txt = chk.codes.filter(c => ARC.missing.has(c)).sort(byCode).join('\n');
+      (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => toast('Αντιγράφηκαν όσα λείπουν.')).catch(() => toast('Η αντιγραφή δεν επιτρέπεται εδώ.'));
+      break;
+    }
+  }
+});
+document.addEventListener('change', e => {
+  const cb = e.target.closest('[data-arc-code]');
+  if (cb) setArchived([cb.dataset.arcCode], cb.checked);
+});
+document.addEventListener('paste', e => {
+  if (view !== 'arc' || !canArchive()) return;
+  const items = [...((e.clipboardData && e.clipboardData.items) || [])].filter(i => i.type && i.type.startsWith('image/'));
+  if (!items.length) return;
+  e.preventDefault();
+  handleImages(items.map(i => i.getAsFile()));
+});
 
 /* ===================== ΡΥΘΜΙΣΕΙΣ ===================== */
 function buildSettings(){
