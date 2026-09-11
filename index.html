@@ -304,6 +304,10 @@ input{font:inherit;color:inherit}
 .move-card li{margin-bottom:3px}
 .p-label{flex-direction:column;gap:2pt}
 .p-label small{font-size:9pt;color:#555}
+
+.stand-slots{grid-template-columns:repeat(var(--n),minmax(0,1fr))}
+@media (max-width:760px){.stand-slots{grid-template-columns:1fr}}
+.slot-note{font-size:11.5px;color:var(--muted);padding:6px 14px 0}
 </style>
 </head>
 <body>
@@ -350,7 +354,7 @@ const LOGO_URLS = ['https://m-m-m.gr/wp-content/uploads/2024/04/logo-150.png', '
 const LOCAL_KEY = 'arkadi-fakeloi-local-v1';   // ρυθμίσεις συσκευής, σύνδεση, προσωρινό αντίγραφο για εκτός σύνδεσης
 const HISTORY_DAYS = 90;
 const REFRESH_SEC = 30;
-const DEFAULT_SETTINGS = { userName:'Ζωή', morningTime:'07:30', eveEnabled:true, eveTime:'14:00', sound:true, slots:24 };
+const DEFAULT_SETTINGS = { userName:'Ζωή', morningTime:'07:30', eveEnabled:true, eveTime:'14:00', sound:true, standSlots:3 };
 const DAYS_FULL = ['Κυριακή','Δευτέρα','Τρίτη','Τετάρτη','Πέμπτη','Παρασκευή','Σάββατο'];
 const MONTHS = ['Ιανουαρίου','Φεβρουαρίου','Μαρτίου','Απριλίου','Μαΐου','Ιουνίου','Ιουλίου','Αυγούστου','Σεπτεμβρίου','Οκτωβρίου','Νοεμβρίου','Δεκεμβρίου'];
 const REDUCE = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -444,7 +448,7 @@ function dayLabel(s, lower=false){
 }
 function sinceText(ts){
   const n = Math.max(0, Math.round((fromIso(todayIso()) - fromIso(iso(new Date(ts)))) / 86400000));
-  return `Στο ντοσιέ από ${shortDate(iso(new Date(ts)))}` + (n === 0 ? ' (σήμερα)' : n === 1 ? ' (1 μέρα)' : ` (${n} μέρες)`);
+  return `Στο stand από ${shortDate(iso(new Date(ts)))}` + (n === 0 ? ' (σήμερα)' : n === 1 ? ' (1 μέρα)' : ` (${n} μέρες)`);
 }
 const pending = () => DB.envelopes.filter(e => !e.givenAt);
 const pendingFor = name => pending().find(e => norm(e.name) === norm(name)) || null;
@@ -664,7 +668,7 @@ document.addEventListener('pointerdown', () => {
 }, { once:true });
 
 /* Κάθε φάκελος ειδοποιεί μία φορά τη μέρα, σε κάθε υπολογιστή που έχει ανοιχτή την εφαρμογή:
-   day = παράδοση σήμερα · eve = παράδοση αύριο · miss = πέρασε η μέρα και είναι ακόμα στο ντοσιέ */
+   day = παράδοση σήμερα · eve = παράδοση αύριο · miss = πέρασε η μέρα και είναι ακόμα στο stand */
 function checkReminders(){
   if (!LOCAL.session) return;
   const now = new Date(), t = iso(now), tm = tomorrowIso(), mins = now.getHours()*60 + now.getMinutes(), S = LOCAL.settings;
@@ -686,14 +690,14 @@ function checkReminders(){
     else { const [a,b] = many(list); remind(a, b, `${kind}-summary`); }
   };
   const inside = g => { const s = docSummary(g.items); return s ? ` (${s})` : ''; };
-  const locOf = g => ` από τη ${slotName(g.name)}`;
+  const locOf = g => ` ${slotFrom(g.name)}`;
   const notesOf = g => { const ns = g.items.map(e => e.note).filter(Boolean); return ns.length ? ` Σχόλιο: ${ns.join(' / ')}` : ''; };
   fire('day',  g => [`Φάκελος για ${g.name}${inside(g)}`, `Έχει παράδοση σήμερα. Πάρε τον φάκελο${locOf(g)} και δώσ' τον στον οδηγό.${notesOf(g)}`],
                l => [`${l.length} φάκελοι φεύγουν σήμερα`, l.map(g => g.name).join(', ')]);
   fire('eve',  g => [`Αύριο: φάκελος για ${g.name}${inside(g)}`, `Έχει παράδοση αύριο. Ετοίμασε τον φάκελο${locOf(g)}.${notesOf(g)}`],
                l => [`${l.length} φάκελοι για αύριο`, l.map(g => g.name).join(', ')]);
-  fire('miss', g => [`Ο φάκελος για ${g.name} είναι ακόμα στο ντοσιέ`, `Η παράδοση ήταν ${dayLabel(g.date, true)}. Είναι στη ${slotName(g.name)}. Αν δόθηκε, πάτα «Δόθηκε». Αλλιώς βάλε νέα ημέρα.`],
-               l => [`${l.length} φάκελοι έμειναν στο ντοσιέ`, l.map(g => g.name).join(', ')]);
+  fire('miss', g => [`Ο φάκελος για ${g.name} είναι ακόμα στο stand`, `Η παράδοση ήταν ${dayLabel(g.date, true)}. Είναι ${slotIn(g.name)}. Αν δόθηκε, πάτα «Δόθηκε». Αλλιώς βάλε νέα ημέρα.`],
+               l => [`${l.length} φάκελοι έμειναν στο stand`, l.map(g => g.name).join(', ')]);
   beep();
 }
 function pruneFired(){
@@ -711,7 +715,7 @@ function renderNav(){
   const n = groupsOf(pending()).filter(g => g.date && g.date <= todayIso()).length;
   $('nav').innerHTML = `
     <button class="nav-btn${view==='main'?' active':''}" data-go="main">ΦΑΚΕΛΟΙ${n ? `<span class="cnt">${n}</span>` : ''}</button>
-    <button class="nav-btn${view==='stand'?' active':''}" data-go="stand">ΝΤΟΣΙΕ</button>
+    <button class="nav-btn${view==='stand'?' active':''}" data-go="stand">STAND</button>
     <button class="nav-btn${view==='set'?' active':''}" data-go="set">ΡΥΘΜΙΣΕΙΣ</button>`;
 }
 function go(v){
@@ -783,7 +787,7 @@ function buildLogin(){
 }
 
 /* ===================== ΚΥΡΙΑ ΣΕΛΙΔΑ ===================== */
-/* Ένας πελάτης = ένας φάκελος στο ντοσιέ. Μέσα μπαίνουν όσα έγγραφα χρειάζεται
+/* Ένας πελάτης = ένας φάκελος στο stand. Μέσα μπαίνουν όσα έγγραφα χρειάζεται
    (αποδείξεις / τιμολόγια). Στη βάση κάθε γραμμή είναι ένα έγγραφο· ο φάκελος είναι
    όλα τα έγγραφα του πελάτη που δεν έχουν δοθεί ακόμα, με κοινή ημέρα παράδοσης. */
 const KINDS = { apodeixi:'Απόδειξη', timologio:'Τιμολόγιο' };
@@ -952,7 +956,7 @@ function addDocument(){
     `Δεν αποθηκεύτηκε ο φάκελος για ${name}.`
   ).then(() => checkReminders());
   rememberCustomer(name);
-  toast(`Νέος φάκελος για ${esc(name)} (${KINDS[kind].toLowerCase()})${doc.date ? `, παράδοση ${esc(dayLabel(doc.date, true))}` : ', χωρίς ημέρα ακόμα'}. Βάλ' τον στη <b>${esc(slotName(name))}</b>.`);
+  toast(`Νέος φάκελος για ${esc(name)} (${KINDS[kind].toLowerCase()})${doc.date ? `, παράδοση ${esc(dayLabel(doc.date, true))}` : ', χωρίς ημέρα ακόμα'}. Βάλ' τον <b>${esc(slotIn(name))}</b>.`);
 }
 function giveGroup(idsStr, btn){
   const docs = docsByIds(idsStr).filter(e => !e.givenAt);
@@ -1009,7 +1013,7 @@ function removeDoc(id){
     'Η αναίρεση δεν αποθηκεύτηκε.'
   ) } });
 }
-/* Επαναφορά στο ντοσιέ: αν ο πελάτης έχει ήδη φάκελο, τα έγγραφα μπαίνουν σε αυτόν */
+/* Επαναφορά στο stand: αν ο πελάτης έχει ήδη φάκελο, τα έγγραφα μπαίνουν σε αυτόν */
 function restoreGiven(idsStr){
   const docs = docsByIds(idsStr).filter(e => e.givenAt);
   if (!docs.length) return;
@@ -1023,7 +1027,7 @@ function restoreGiven(idsStr){
     () => { prev.forEach(([e,g,d]) => { e.givenAt = g; e.date = d; }); },
     'Η επαναφορά δεν αποθηκεύτηκε.'
   );
-  toast(existing.length ? `Μπήκε ξανά στον φάκελο του ${esc(docs[0].name)} που είναι στο ντοσιέ.` : `Ο φάκελος για ${esc(docs[0].name)} γύρισε στο ντοσιέ.`);
+  toast(existing.length ? `Μπήκε ξανά στον φάκελο του ${esc(docs[0].name)} που είναι στο stand.` : `Ο φάκελος για ${esc(docs[0].name)} γύρισε στο stand.`);
 }
 function setGroupDate(idsStr, value){
   const docs = docsByIds(idsStr);
@@ -1117,7 +1121,7 @@ function openRename(oldName){
   const check = () => {
     const v = cleanName(inp.value);
     const other = v && norm(v) !== norm(oldName) ? customerNames().find(n => norm(n) === norm(v)) : null;
-    hint.innerHTML = other ? `Υπάρχει ήδη πελάτης «${esc(other)}»${envelopeOf(other).length ? ' με φάκελο στο ντοσιέ' : ''}. Θα γίνουν ένας φάκελος.` : '';
+    hint.innerHTML = other ? `Υπάρχει ήδη πελάτης «${esc(other)}»${envelopeOf(other).length ? ' με φάκελο στο stand' : ''}. Θα γίνουν ένας φάκελος.` : '';
   };
   const close = () => { $('modal').hidden = true; box.innerHTML = ''; document.removeEventListener('keydown', onKey); };
   const save = () => {
@@ -1201,7 +1205,7 @@ function givenRows(groups){
   return `<div class="rows">${groups.map(g => {
     const notes = g.items.map(e => e.note).filter(Boolean);
     return `<div class="row"><div class="r-main"><b>${esc(g.name)}</b> <span class="given-kinds">${esc(docSummary(g.items))}</span>${notes.length ? `<small>${esc(notes.join(' / '))}</small>` : ''}<small>Δόθηκε ${iso(new Date(g.givenAt)) === todayIso() ? 'σήμερα' : shortDate(iso(new Date(g.givenAt)))} στις ${hhmm(g.givenAt)}</small></div>
-      <button class="btn ghost sm" data-act="restore" data-ids="${g.items.map(e => e.id).join(',')}">Επαναφορά στο ντοσιέ</button></div>`;
+      <button class="btn ghost sm" data-act="restore" data-ids="${g.items.map(e => e.id).join(',')}">Επαναφορά στο stand</button></div>`;
   }).join('')}</div>`;
 }
 function renderMain(){
@@ -1220,9 +1224,9 @@ function renderMain(){
 
   $('hello').textContent = `${now.getHours() < 12 ? 'Καλημέρα' : 'Καλησπέρα'}${S.userName ? ', ' + S.userName : ''}`;
   const todayAll = allG.filter(g => g.date === t).length;
-  const sub = !allG.length ? 'Το ντοσιέ είναι άδειο.'
+  const sub = !allG.length ? 'Το stand είναι άδειο.'
     : (todayAll ? `${todayAll === 1 ? 'Ένας φάκελος φεύγει' : todayAll + ' φάκελοι φεύγουν'} σήμερα.` : 'Κανένας φάκελος δεν φεύγει σήμερα.')
-      + ` Στο ντοσιέ: ${allG.length === 1 ? '1 φάκελος' : allG.length + ' φάκελοι'}.`;
+      + ` Στο stand: ${allG.length === 1 ? '1 φάκελος' : allG.length + ' φάκελοι'}.`;
   $('sub').innerHTML = `<span class="date">${longDate(t)}.</span> ${sub}`;
 
   const given = DB.envelopes.filter(e => e.givenAt);
@@ -1231,12 +1235,12 @@ function renderMain(){
     const gHits = givenGroups(given.filter(e => matchesQuery(e.name, query) && (!kindFilter || e.kind === kindFilter))).slice(0, 20);
     $('qInfo').hidden = false;
     $('qInfo').innerHTML = G.length
-      ? `<b>Ναι.</b> ${G.length === 1 ? 'Υπάρχει φάκελος' : `${G.length} φάκελοι`} στο ντοσιέ: ${G.map(g => `${esc(g.name)} (${esc(docSummary(g.items))}${g.date ? `, παράδοση ${esc(dayLabel(g.date, true))}` : ''}), ${esc(slotName(g.name))}`).join('· ')}.`
-      : `<b>Όχι.</b> Κανένας φάκελος στο ντοσιέ για «${esc($('q').value.trim())}».${gHits.length ? ' Από κάτω όσοι έχουν ήδη δοθεί.' : ''}`;
+      ? `<b>Ναι.</b> ${G.length === 1 ? 'Υπάρχει φάκελος' : `${G.length} φάκελοι`} στο stand: ${G.map(g => `${esc(g.name)} (${esc(docSummary(g.items))}${g.date ? `, παράδοση ${esc(dayLabel(g.date, true))}` : ''}), ${esc(slotName(g.name))}`).join('· ')}.`
+      : `<b>Όχι.</b> Κανένας φάκελος στο stand για «${esc($('q').value.trim())}».${gHits.length ? ' Από κάτω όσοι έχουν ήδη δοθεί.' : ''}`;
     if (today.length) html += section('ΦΕΥΓΟΥΝ ΣΗΜΕΡΑ', `<div class="env-grid">${today.map(envCard).join('')}</div>`);
-    if (missed.length) html += section('ΕΜΕΙΝΑΝ ΣΤΟ ΝΤΟΣΙΕ', `<div class="rows bad">${missed.map(g => row(g, `Η παράδοση ήταν ${esc(dayLabel(g.date, true))}.`, true)).join('')}</div>`, true);
+    if (missed.length) html += section('ΕΜΕΙΝΑΝ ΣΤΟ STAND', `<div class="rows bad">${missed.map(g => row(g, `Η παράδοση ήταν ${esc(dayLabel(g.date, true))}.`, true)).join('')}</div>`, true);
     const rest = [...tmr, ...later, ...nodate];
-    if (rest.length) html += section('ΣΤΟ ΝΤΟΣΙΕ', `<div class="rows">${rest.map(g => row(g, `${g.date ? esc(dayLabel(g.date)) + '. ' : 'Χωρίς ημέρα. '}${sinceText(g.addedAt)}`)).join('')}</div>`);
+    if (rest.length) html += section('ΣΤΟ STAND', `<div class="rows">${rest.map(g => row(g, `${g.date ? esc(dayLabel(g.date)) + '. ' : 'Χωρίς ημέρα. '}${sinceText(g.addedAt)}`)).join('')}</div>`);
     if (gHits.length) html += section('ΔΟΘΗΚΑΝ', givenRows(gHits));
     $('lists').innerHTML = html;
     return;
@@ -1245,8 +1249,8 @@ function renderMain(){
 
   html += section('ΦΕΥΓΟΥΝ ΣΗΜΕΡΑ', today.length
     ? `<div class="env-grid">${today.map(envCard).join('')}</div>`
-    : `<div class="empty">${kindFilter ? (kindFilter === 'timologio' ? 'Κανένας φάκελος με τιμολόγιο για σήμερα.' : 'Κανένας φάκελος με απόδειξη για σήμερα.') : allG.length ? 'Κανένας φάκελος για σήμερα.' : 'Όταν μπαίνει φάκελος στο ντοσιέ, γράψε τον πελάτη από πάνω.'}</div>`);
-  if (missed.length) html += section('ΕΜΕΙΝΑΝ ΣΤΟ ΝΤΟΣΙΕ', `<div class="rows bad">${missed.map(g => row(g, `Η παράδοση ήταν ${esc(dayLabel(g.date, true))}. Αν δόθηκε, πάτα «Δόθηκε». Αλλιώς βάλε νέα ημέρα.`, true)).join('')}</div>`, true);
+    : `<div class="empty">${kindFilter ? (kindFilter === 'timologio' ? 'Κανένας φάκελος με τιμολόγιο για σήμερα.' : 'Κανένας φάκελος με απόδειξη για σήμερα.') : allG.length ? 'Κανένας φάκελος για σήμερα.' : 'Όταν μπαίνει φάκελος στο stand, γράψε τον πελάτη από πάνω.'}</div>`);
+  if (missed.length) html += section('ΕΜΕΙΝΑΝ ΣΤΟ STAND', `<div class="rows bad">${missed.map(g => row(g, `Η παράδοση ήταν ${esc(dayLabel(g.date, true))}. Αν δόθηκε, πάτα «Δόθηκε». Αλλιώς βάλε νέα ημέρα.`, true)).join('')}</div>`, true);
   if (tmr.length) html += section('ΑΥΡΙΟ', `<div class="rows">${tmr.map(g => row(g, sinceText(g.addedAt))).join('')}</div>`);
   if (later.length) html += section('ΕΠΟΜΕΝΕΣ ΜΕΡΕΣ', `<div class="rows">${later.map(g => row(g, `${esc(dayLabel(g.date))}. ${sinceText(g.addedAt)}`)).join('')}</div>`);
   if (nodate.length) html += section('ΧΩΡΙΣ ΗΜΕΡΑ ΠΑΡΑΔΟΣΗΣ', `<div class="rows">${nodate.map(g => row(g, `${sinceText(g.addedAt)}. Βάλε ημέρα για να έρθει υπενθύμιση.`)).join('')}</div>`);
@@ -1259,29 +1263,40 @@ function renderMain(){
   if (wasOpen && document.querySelector('.given')) document.querySelector('.given').open = true;
 }
 
-/* ===================== ΝΤΟΣΙΕ Α4 ΜΕ ΔΙΑΦΑΝΕΙΕΣ ===================== */
-/* Κάθε διαφάνεια έχει σταθερό γράμμα (ή σταθερή ομάδα γραμμάτων) και σταθερό αριθμό,
-   για να γράψεις μία φορά τις ετικέτες. Ο φάκελος κάθε πελάτη μπαίνει στη διαφάνεια του
-   πρώτου γράμματος του ονόματος, και μέσα στη διαφάνεια με αλφαβητική σειρά. */
+/* ===================== STAND: ΘΗΚΕΣ ΜΕ ΑΛΦΑΒΗΤΙΚΗ ΣΕΙΡΑ ===================== */
+/* Το stand έχει λίγες θήκες (μπροστά → πίσω). Κάθε θήκη παίρνει σταθερό εύρος γραμμάτων.
+   Τα εύρη είναι μοιρασμένα με βάση τους πελάτες του 2026 από το αρχείο ΠΑΡΑΓΓΕΛΙΕΣ
+   (136 πελάτες, πολλοί στο Κ, Μ, Π), ώστε οι θήκες να γεμίζουν περίπου το ίδιο.
+   Μέσα σε κάθε θήκη οι φάκελοι μπαίνουν αλφαβητικά, από μπροστά προς τα πίσω.
+   Ονόματα με λατινικά ή αριθμούς (π.χ. FRESH SNACK) πάνε στην τελευταία θήκη. */
 const GREEK = 'ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ'.split('');
-const SLOT_OPTIONS = [[24,'Ένα γράμμα','25 διαφάνειες'],[12,'Δύο γράμματα','13 διαφάνειες'],[8,'Τρία γράμματα','9 διαφάνειες'],[6,'Τέσσερα γράμματα','7 διαφάνειες']];
+const STAND_PRESETS = {
+  2: [['Α','Λ'],['Μ','Ω']],
+  3: [['Α','Κ'],['Λ','Π'],['Ρ','Ω']],
+  4: [['Α','Ι'],['Κ','Λ'],['Μ','Π'],['Ρ','Ω']]
+};
+const STAND_POS = {
+  2: [['μπροστινή','Μπροστά','στην','από την'],['πίσω','Πίσω','στην','από την']],
+  3: [['μπροστινή','Μπροστά','στην','από την'],['μεσαία','Μέση','στη','από τη'],['πίσω','Πίσω','στην','από την']],
+  4: [['πρώτη','1η','στην','από την'],['δεύτερη','2η','στη','από τη'],['τρίτη','3η','στην','από την'],['τέταρτη','4η','στην','από την']]
+};
 function standLayout(){
-  const n = [24,12,8,6].includes(Number(LOCAL.settings.slots)) ? Number(LOCAL.settings.slots) : 24;
-  const size = 24 / n, slots = [];
-  for (let i = 0; i < 24; i += size){
-    const letters = GREEK.slice(i, i + size);
-    slots.push({ id:letters[0], num:slots.length + 1, letters, label: letters.length > 1 ? `${letters[0]}–${letters[letters.length-1]}` : letters[0] });
-  }
-  slots.push({ id:'LAT', num:slots.length + 1, letters:[], label:'A–Z · 0–9', latin:true });
-  return slots;
+  const n = [2,3,4].includes(Number(LOCAL.settings.standSlots)) ? Number(LOCAL.settings.standSlots) : 3;
+  return STAND_PRESETS[n].map(([from, to], i) => {
+    const letters = GREEK.slice(GREEK.indexOf(from), GREEK.indexOf(to) + 1);
+    const [pos, short, inArt, fromArt] = STAND_POS[n][i];
+    return { id:from, num:i + 1, letters, label:`${from}–${to}`, pos, short, inArt, fromArt, last: i === n - 1 };
+  });
 }
 function slotOf(name, layout=standLayout()){
   const s = upper(norm(name));
   const ch = [...s].find(c => /[Α-ΩA-Z0-9]/.test(c)) || '';
   return layout.find(sl => sl.letters.includes(ch)) || layout[layout.length - 1];
 }
-const slotName = name => { const sl = slotOf(name); return `διαφάνεια ${sl.num} (${sl.label})`; };
-const slotBadge = name => { const sl = slotOf(name); return `<span class="slot" title="Διαφάνεια ${sl.num} στο ντοσιέ">${sl.num} · ${esc(sl.label)}</span>`; };
+const slotName = name => { const sl = slotOf(name); return `${sl.pos} θήκη (${sl.label})`; };
+const slotIn   = name => { const sl = slotOf(name); return `${sl.inArt} ${sl.pos} θήκη (${sl.label})`; };
+const slotFrom = name => { const sl = slotOf(name); return `${sl.fromArt} ${sl.pos} θήκη (${sl.label})`; };
+const slotBadge = name => { const sl = slotOf(name); return `<span class="slot" title="Θήκη στο stand">${sl.short} · ${esc(sl.label)}</span>`; };
 function dayTag(g){
   const t = todayIso();
   if (!g.date) return '<span class="dt none">χωρίς ημέρα</span>';
@@ -1300,35 +1315,34 @@ function standData(){
 function renderStand(){
   const { layout, bySlot } = standData();
   const total = [...bySlot.values()].reduce((n, l) => n + l.length, 0);
-  const used = layout.filter(sl => bySlot.get(sl.id).length).length;
-  const needed = layout.filter(sl => !sl.latin || bySlot.get(sl.id).length).length;
-  const cur = Number(LOCAL.settings.slots) || 24;
+  const cur = Number(LOCAL.settings.standSlots) || 3;
   $('view-stand').innerHTML = `
     <div class="page-h">
-      <h1>Ντοσιέ Α4 σε αλφαβητική σειρά</h1>
-      <p>${total ? `${total === 1 ? '1 φάκελος' : total + ' φάκελοι'} σε ${used === 1 ? '1 διαφάνεια' : used + ' διαφάνειες'}. Ο φάκελος κάθε πελάτη μπαίνει στη διαφάνεια με το πρώτο γράμμα του ονόματος, και μέσα στη διαφάνεια με τη σειρά που φαίνεται εδώ.` : 'Το ντοσιέ είναι άδειο.'}</p>
+      <h1>Stand σε αλφαβητική σειρά</h1>
+      <p>${total ? `${total === 1 ? '1 φάκελος' : total + ' φάκελοι'} στο stand. Κάθε φάκελος πάει στη θήκη με το πρώτο γράμμα του ονόματος, και μέσα στη θήκη αλφαβητικά, από μπροστά προς τα πίσω.` : 'Το stand είναι άδειο.'}</p>
     </div>
     <div class="card move-card">
-      <b>Μεταφορά από το stand, μία φορά</b>
+      <b>Τακτοποίηση, μία φορά</b>
       <ol>
-        <li>Διάλεξε πόσα γράμματα μπαίνουν σε κάθε διαφάνεια, ανάλογα με το ντοσιέ σας (θέλει ${needed} διαφάνειες).</li>
-        <li>Τύπωσε τις ετικέτες και βάλε από μία στο μπροστινό μέρος κάθε διαφάνειας, με τη σειρά των αριθμών.</li>
-        <li>Τύπωσε τη λίστα. Πάρε τους φακέλους από το stand έναν έναν, βάλε τον καθένα στη διαφάνειά του και τσέκαρε το κουτάκι.</li>
+        <li>Κόλλησε ετικέτα στο πάνω μέρος κάθε θήκης: ${layout.map(sl => `<b>${sl.short.toLowerCase()} ${esc(sl.label)}</b>`).join(', ')}.</li>
+        <li>Όλα τα χαρτιά κάθε πελάτη σε ένα φάκελο ή με ένα συνδετήρα, με το όνομα γραμμένο με κεφαλαία στην πάνω άκρη, για να φαίνεται από πάνω χωρίς να τα βγάζεις.</li>
+        <li>Τύπωσε τη λίστα, βάλε κάθε φάκελο στη θήκη του με τη σειρά που γράφει, και τσέκαρε το κουτάκι.</li>
       </ol>
     </div>
     <div class="stand-bar">
-      <div class="f"><span>Γράμματα σε κάθε διαφάνεια</span>
-        <div class="seg" role="radiogroup">${SLOT_OPTIONS.map(([n,l,h]) => `<button type="button" role="radio" aria-checked="${cur === n}" class="${cur === n ? 'on' : ''}" data-slots="${n}" title="${h}">${l}</button>`).join('')}</div>
+      <div class="f"><span>Θήκες στο stand</span>
+        <div class="seg" role="radiogroup">${[2,3,4].map(n => `<button type="button" role="radio" aria-checked="${cur === n}" class="${cur === n ? 'on' : ''}" data-slots="${n}">${n} θήκες</button>`).join('')}</div>
       </div>
       <div class="btns">
-        <button class="btn ghost sm" data-act="print-labels">Εκτύπωση ετικετών διαφανειών</button>
+        <button class="btn ghost sm" data-act="print-labels">Εκτύπωση ετικετών</button>
         <button class="btn primary sm" data-act="print-list" ${total ? '' : 'disabled'}>Εκτύπωση λίστας</button>
       </div>
     </div>
-    <div class="slots">${layout.filter(sl => !sl.latin || bySlot.get(sl.id).length).map(sl => {
+    <div class="slots stand-slots" style="--n:${layout.length}">${layout.map(sl => {
       const list = bySlot.get(sl.id);
       return `<section class="slot-card${list.length ? '' : ' empty'}">
-        <header><span class="slot-num">${sl.num}</span><span class="slot-l">${esc(sl.label)}</span><span class="slot-n">${list.length ? (list.length === 1 ? '1 φάκελος' : list.length + ' φάκελοι') : 'άδεια'}</span></header>
+        <header><span class="slot-num">${esc(sl.short)}</span><span class="slot-l">${esc(sl.label)}</span><span class="slot-n">${list.length ? (list.length === 1 ? '1 φάκελος' : list.length + ' φάκελοι') : 'άδεια'}</span></header>
+        ${sl.last ? '<p class="slot-note">+ ονόματα με λατινικά ή αριθμούς</p>' : ''}
         ${list.length ? `<ol>${list.map(g => `<li><b>${esc(g.name)}</b><small>${esc(docSummary(g.items))} ${dayTag(g)}</small></li>`).join('')}</ol>` : ''}
       </section>`;
     }).join('')}</div>`;
@@ -1337,11 +1351,11 @@ function printStand(kind){
   const { layout, bySlot } = standData();
   const area = $('printArea');
   if (kind === 'labels'){
-    area.innerHTML = `<div class="p-labels">${layout.map(sl => `<div class="p-label"><small>Διαφάνεια ${sl.num}</small><span>${esc(sl.label)}</span></div>`).join('')}</div>`;
+    area.innerHTML = `<div class="p-labels">${layout.map(sl => `<div class="p-label"><small>${esc(sl.short)}</small><span>${esc(sl.label)}</span></div>`).join('')}</div>`;
   } else {
     const now = new Date();
-    area.innerHTML = `<h1>Ντοσιέ φακέλων · Μύλοι Αρκαδίου</h1><p class="p-sub">${longDate(todayIso())}, ${hhmm(now.toISOString())}</p>
-      ${layout.filter(sl => bySlot.get(sl.id).length).map(sl => `<h2>Διαφάνεια ${sl.num} · ${esc(sl.label)}</h2><table>${bySlot.get(sl.id).map((g,i) =>
+    area.innerHTML = `<h1>Stand φακέλων · Μύλοι Αρκαδίου</h1><p class="p-sub">${longDate(todayIso())}, ${hhmm(now.toISOString())}</p>
+      ${layout.filter(sl => bySlot.get(sl.id).length).map(sl => `<h2>${esc(sl.short)} · ${esc(sl.label)}</h2><table>${bySlot.get(sl.id).map((g,i) =>
         `<tr><td class="p-n">${i+1}.</td><td class="p-name">${esc(g.name)}</td><td>${esc(docSummary(g.items))}</td><td class="p-d">${g.date ? esc(dayLabel(g.date)) : 'χωρίς ημέρα'}</td><td class="p-chk">☐</td></tr>`).join('')}</table>`).join('')}`;
   }
   document.body.classList.add('print-mode');
@@ -1358,7 +1372,7 @@ function buildSettings(){
     <div class="card set">
       <h3>Υπενθυμίσεις σε αυτόν τον υπολογιστή</h3>
       <div class="set-row first">
-        <div class="sr-t"><b>Την ημέρα της παράδοσης</b><small>Και για όσους φακέλους έμειναν στο ντοσιέ.</small></div>
+        <div class="sr-t"><b>Την ημέρα της παράδοσης</b><small>Και για όσους φακέλους έμειναν στο stand.</small></div>
         <input class="inp" type="time" id="sMorning" value="${esc(S.morningTime)}" aria-label="Ώρα πρωινής υπενθύμισης">
       </div>
       <div class="set-row">
@@ -1449,7 +1463,7 @@ document.addEventListener('click', e => {
   const kb = e.target.closest('[data-kind]');
   if (kb){ addKind = kb.dataset.kind; $('aKind').innerHTML = kindSeg(addKind, 'kind'); updateHint(); return; }
   const sb = e.target.closest('[data-slots]');
-  if (sb){ LOCAL.settings.slots = Number(sb.dataset.slots); saveLocal(); renderAll(); return; }
+  if (sb){ LOCAL.settings.standSlots = Number(sb.dataset.slots); saveLocal(); renderAll(); return; }
   const kf = e.target.closest('[data-kfilter]');
   if (kf){ kindFilter = kf.dataset.kfilter; $('kFilter').innerHTML = kindSeg(kindFilter, 'kfilter', true); renderMain(); return; }
   const a = e.target.closest('[data-act]');
