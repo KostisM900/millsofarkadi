@@ -174,6 +174,19 @@ input{font:inherit;color:inherit}
 @keyframes tin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @media (max-width:600px){.toasts{right:12px;left:12px;bottom:12px;width:auto}}
 @media (prefers-reduced-motion:reduce){.toast{animation:none}.env,.row{transition:none}}
+
+/* ===== ΣΥΝΔΕΣΗ ===== */
+.login{max-width:380px;margin:6vh auto 0;padding:28px 26px;text-align:center}
+.login img{height:64px;width:auto;margin-bottom:10px}
+.login h1{font-size:22px;font-weight:700;margin-bottom:4px}
+.login > p{color:var(--muted);font-size:13.5px;margin-bottom:20px}
+.login .f{text-align:left;margin-bottom:12px}
+.login .btn{margin-top:6px}
+.login .hint{text-align:left}
+.net{font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.net::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--red)}
+.net{color:var(--red)}
+@media (max-width:600px){.net span{display:none}}
 </style>
 </head>
 <body>
@@ -185,7 +198,7 @@ input{font:inherit;color:inherit}
       <span class="brand-fallback" id="logoFb" hidden>ΜΑ</span>
       <span class="bt"><b>Μύλοι Αρκαδίου</b><span>ΦΑΚΕΛΟΙ ΠΕΛΑΤΩΝ</span></span>
     </a>
-    <span class="save-err" id="saveErr" hidden>Σφάλμα αποθήκευσης</span>
+    <span class="net" id="net" hidden title="Οι αλλαγές δεν φτάνουν στη βάση"><span>Εκτός σύνδεσης</span></span>
     <nav class="nav" id="nav" aria-label="Πλοήγηση"></nav>
   </div>
 </header>
@@ -193,32 +206,40 @@ input{font:inherit;color:inherit}
 <div class="notif-bar" id="notifBar" hidden></div>
 
 <main class="main">
+  <section class="view" id="view-login"></section>
   <section class="view" id="view-main"></section>
   <section class="view" id="view-set"></section>
 </main>
 
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <datalist id="custList"></datalist>
-<input type="file" id="importFile" accept="application/json,.json" hidden>
 
 <script>
 'use strict';
 /* =====================================================================
-   Φάκελοι πελατών · Μύλοι Αρκαδίου
-   Κρατάει ΜΟΝΟ: όνομα πελάτη, ημέρα παράδοσης, πότε μπήκε / πότε δόθηκε ο φάκελος.
-   Κανένα ποσό, αριθμός απόδειξης ή στοιχείο πληρωμής.
+   Φάκελοι πελατών · Μύλοι Αρκαδίου · με βάση Supabase
+   Στη βάση: ΜΟΝΟ όνομα πελάτη, ημέρα παράδοσης, πότε μπήκε / πότε δόθηκε.
+   Το δημόσιο κλειδί (publishable) είναι φτιαγμένο για να μπαίνει σε σελίδες.
+   Την προστασία την κάνει η σύνδεση με email/κωδικό + οι κανόνες RLS της βάσης.
+   ΠΟΤΕ δεν μπαίνει εδώ το secret key (sb_secret_…).
    ===================================================================== */
+const SB_URL = 'https://vfbznhwkuxidvvcjgpaj.supabase.co';
+const SB_KEY = 'sb_publishable_DEt0kj1lYRxlglhOpUE2gw_amhEcWDA';
+
 const LOGO_URLS = ['https://m-m-m.gr/wp-content/uploads/2024/04/logo-150.png', 'https://i.imgur.com/oDCFSVE.png'];
-const KEY = 'arkadi-fakeloi-v3';
+const LOCAL_KEY = 'arkadi-fakeloi-local-v1';   // ρυθμίσεις συσκευής, σύνδεση, προσωρινό αντίγραφο για εκτός σύνδεσης
 const HISTORY_DAYS = 90;
+const REFRESH_SEC = 30;
 const DEFAULT_SETTINGS = { userName:'Ζωή', morningTime:'07:30', eveEnabled:true, eveTime:'14:00', sound:true };
 const DAYS_FULL = ['Κυριακή','Δευτέρα','Τρίτη','Τετάρτη','Πέμπτη','Παρασκευή','Σάββατο'];
 const MONTHS = ['Ιανουαρίου','Φεβρουαρίου','Μαρτίου','Απριλίου','Μαΐου','Ιουνίου','Ιουλίου','Αυγούστου','Σεπτεμβρίου','Οκτωβρίου','Νοεμβρίου','Δεκεμβρίου'];
 const REDUCE = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const ENV_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>';
 
-let DB = { envelopes:[], customers:[], settings:{...DEFAULT_SETTINGS}, fired:{} };
-let view = 'main', lastDay = '', notifBarClosed = false;
+/* DB = ό,τι έρχεται από τη βάση · LOCAL = μόνο σε αυτή τη συσκευή */
+let DB = { envelopes:[], customers:[] };
+let LOCAL = { settings:{...DEFAULT_SETTINGS}, fired:{}, session:null, cache:null, cleanedOn:'' };
+let view = 'main', lastDay = '', notifBarClosed = false, online = true, pendingOps = 0;
 
 /* ===================== HELPERS ===================== */
 const $ = id => document.getElementById(id);
@@ -228,7 +249,6 @@ const fromIso = s => { const [y,m,d] = s.split('-').map(Number); return new Date
 const addDays = (d,n) => { const x = new Date(d); x.setDate(x.getDate()+n); return x; };
 const todayIso = () => iso(new Date());
 const tomorrowIso = () => iso(addDays(new Date(),1));
-const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,8);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ς/g,'σ').replace(/\s+/g,' ').trim();
 const clean = s => String(s || '').replace(/\s+/g,' ').trim().slice(0,80);
@@ -236,6 +256,13 @@ const toMin = t => { const [h,m] = String(t || '00:00').split(':').map(Number); 
 const shortDate = s => { const d = fromIso(s); return `${d.getDate()}/${d.getMonth()+1}`; };
 const longDate = s => { const d = fromIso(s); return `${DAYS_FULL[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`; };
 const hhmm = ts => { const d = new Date(ts); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+function uuid(){
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  const b = new Uint8Array(16); crypto.getRandomValues(b);
+  b[6] = (b[6] & 15) | 64; b[8] = (b[8] & 63) | 128;
+  const h = [...b].map(x => x.toString(16).padStart(2,'0')).join('');
+  return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20)}`;
+}
 function dayLabel(s, lower=false){
   if (s === todayIso()) return lower ? 'σήμερα' : 'Σήμερα';
   if (s === tomorrowIso()) return lower ? 'αύριο' : 'Αύριο';
@@ -247,49 +274,140 @@ function sinceText(ts){
 }
 const pending = () => DB.envelopes.filter(e => !e.givenAt);
 const pendingFor = name => pending().find(e => norm(e.name) === norm(name)) || null;
-function rememberCustomer(name){
-  if (!DB.customers.some(n => norm(n) === norm(name))){ DB.customers.push(name); DB.customers.sort((a,b) => a.localeCompare(b,'el')); }
-}
-function tidy(){
-  const cutoff = addDays(new Date(), -HISTORY_DAYS).toISOString();
-  DB.envelopes = DB.envelopes.filter(e => !e.givenAt || e.givenAt >= cutoff);
-  const fcut = iso(addDays(new Date(), -7));
-  Object.keys(DB.fired).forEach(k => { if (k.slice(0,10) < fcut) delete DB.fired[k]; });
-}
+const customerNames = () => DB.customers.map(c => c.name);
 
-/* ===================== STORAGE =====================
-   Μέσα στο Claude: window.storage (προσωπικά δεδομένα).
-   Από δικό σας link: αποθήκευση στον browser αυτού του υπολογιστή. */
+/* ===================== ΤΟΠΙΚΗ ΑΠΟΘΗΚΕΥΣΗ (μόνο συσκευή) ===================== */
 const HAS_CLAUDE_STORAGE = !!(window.storage && typeof window.storage.get === 'function');
-async function loadDB(){
+async function loadLocal(){
   let raw = null;
   try {
-    if (HAS_CLAUDE_STORAGE){ const r = await window.storage.get(KEY, false); raw = r ? r.value : null; }
-    else raw = window.localStorage.getItem(KEY);
+    if (HAS_CLAUDE_STORAGE){ const r = await window.storage.get(LOCAL_KEY, false); raw = r ? r.value : null; }
+    else raw = window.localStorage.getItem(LOCAL_KEY);
   } catch(e){ raw = null; }
   if (!raw) return;
   try {
     const d = JSON.parse(raw);
-    DB = {
-      envelopes: Array.isArray(d.envelopes) ? d.envelopes : [],
-      customers: Array.isArray(d.customers) ? d.customers : [],
-      settings: {...DEFAULT_SETTINGS, ...(d.settings || {})},
-      fired: d.fired && typeof d.fired === 'object' ? d.fired : {}
-    };
-  } catch(e){ toast('Τα αποθηκευμένα δεδομένα δεν διαβάστηκαν.', {sticky:true}); }
+    LOCAL = { settings:{...DEFAULT_SETTINGS, ...(d.settings || {})}, fired:d.fired || {}, session:d.session || null, cache:d.cache || null, cleanedOn:d.cleanedOn || '' };
+  } catch(e){}
 }
-let saveTimer = null;
-function save(){ clearTimeout(saveTimer); saveTimer = setTimeout(persist, 250); }
-async function persist(){
+let localTimer = null;
+function saveLocal(){ clearTimeout(localTimer); localTimer = setTimeout(async () => {
   try {
-    const data = JSON.stringify(DB);
-    if (HAS_CLAUDE_STORAGE){ const r = await window.storage.set(KEY, data, false); if (!r) throw new Error('no result'); }
-    else window.localStorage.setItem(KEY, data);
-    $('saveErr').hidden = true;
-  } catch(e){
-    $('saveErr').hidden = false;
-    toast('Η αποθήκευση απέτυχε. Κατέβασε αντίγραφο από τις Ρυθμίσεις.', {sticky:true});
+    const data = JSON.stringify(LOCAL);
+    if (HAS_CLAUDE_STORAGE) await window.storage.set(LOCAL_KEY, data, false);
+    else window.localStorage.setItem(LOCAL_KEY, data);
+  } catch(e){}
+}, 200); }
+function cacheData(){ LOCAL.cache = { envelopes:DB.envelopes, customers:DB.customers, at:new Date().toISOString() }; saveLocal(); }
+
+/* ===================== SUPABASE (χωρίς βιβλιοθήκη, απευθείας REST) ===================== */
+class AuthError extends Error {}
+class NetError extends Error {}
+async function authRequest(grant, body){
+  let r;
+  try {
+    r = await fetch(`${SB_URL}/auth/v1/token?grant_type=${grant}`, { method:'POST', headers:{ apikey:SB_KEY, 'Content-Type':'application/json' }, body:JSON.stringify(body) });
+  } catch(e){ throw new NetError('net'); }
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new AuthError(j.error_description || j.msg || j.error || 'auth');
+  return j;
+}
+function setSession(j){
+  LOCAL.session = {
+    access_token: j.access_token,
+    refresh_token: j.refresh_token,
+    expires_at: Date.now() + (Number(j.expires_in) || 3600) * 1000,
+    email: (j.user && j.user.email) || (LOCAL.session && LOCAL.session.email) || ''
+  };
+  saveLocal();
+}
+let refreshPromise = null;
+async function accessToken(){
+  const s = LOCAL.session;
+  if (!s) throw new AuthError('no session');
+  if (Date.now() < s.expires_at - 60000) return s.access_token;
+  if (!refreshPromise){
+    refreshPromise = authRequest('refresh_token', { refresh_token:s.refresh_token })
+      .then(j => { setSession(j); return j.access_token; })
+      .finally(() => { refreshPromise = null; });
   }
+  return refreshPromise;
+}
+async function api(path, { method='GET', body, prefer } = {}, retried=false){
+  const token = await accessToken();
+  const headers = { apikey:SB_KEY, Authorization:`Bearer ${token}` };
+  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  if (prefer) headers.Prefer = prefer;
+  let r;
+  try { r = await fetch(`${SB_URL}/rest/v1/${path}`, { method, headers, body: body !== undefined ? JSON.stringify(body) : undefined }); }
+  catch(e){ throw new NetError('net'); }
+  if (r.status === 401){
+    if (retried || !LOCAL.session) throw new AuthError('expired');
+    LOCAL.session.expires_at = 0;                        // δοκίμασε μία φορά με ανανεωμένο token
+    return api(path, { method, body, prefer }, true);
+  }
+  if (!r.ok){ const t = await r.text().catch(() => ''); throw new Error(`HTTP ${r.status} ${t.slice(0,200)}`); }
+  if (r.status === 204) return null;
+  const t = await r.text();
+  return t ? JSON.parse(t) : null;
+}
+const fromRow = r => ({
+  id: r.id, name: r.name, date: r.date || '',
+  addedAt: new Date(r.added_at).toISOString(),
+  givenAt: r.given_at ? new Date(r.given_at).toISOString() : null
+});
+function setOnline(v){ online = v; $('net').hidden = v || !LOCAL.session; }
+
+async function login(email, password){
+  const j = await authRequest('password', { email, password });
+  setSession(j);
+}
+function logout(msg){
+  LOCAL.session = null; LOCAL.cache = null; saveLocal();
+  DB = { envelopes:[], customers:[] };
+  go('login');
+  if (msg) toast(esc(msg));
+}
+function handleError(err, msg, silent=false){
+  if (err instanceof AuthError){ logout('Η σύνδεση έληξε. Συνδέσου ξανά.'); return; }
+  setOnline(false);
+  if (!silent) toast(`${esc(msg)} Έλεγξε τη σύνδεση στο internet και ξαναδοκίμασε.`, { sticky:true });
+  else if (!(err instanceof NetError)) console.warn(err);
+}
+
+let refreshing = false;
+async function refresh(){
+  if (!LOCAL.session || refreshing || pendingOps) return;
+  refreshing = true;
+  try {
+    const [envs, custs] = await Promise.all([
+      api('envelopes?select=id,name,date,added_at,given_at&order=added_at.asc'),
+      api('customers?select=id,name,name_key&order=name.asc')
+    ]);
+    if (pendingOps) return;   // μην πατήσεις πάνω σε αλλαγή που μόλις έγινε
+    DB.envelopes = (envs || []).map(fromRow);
+    DB.customers = (custs || []).map(c => ({ id:c.id, name:c.name, key:c.name_key }));
+    setOnline(true); cacheData();
+    renderAll(); checkReminders();
+    cleanupHistory();
+  } catch(e){ handleError(e, 'Δεν ενημερώθηκαν οι φάκελοι.', true); }
+  finally { refreshing = false; }
+}
+/* Άμεση αλλαγή στην οθόνη, αποστολή στη βάση, επιστροφή αν αποτύχει */
+async function mutate(apply, request, rollback, errMsg){
+  apply(); renderAll();
+  pendingOps++;
+  try { await request(); setOnline(true); cacheData(); }
+  catch(e){ rollback(); renderAll(); handleError(e, errMsg); }
+  finally { pendingOps--; }
+}
+async function cleanupHistory(){
+  if (LOCAL.cleanedOn === todayIso()) return;
+  const cutoff = addDays(new Date(), -HISTORY_DAYS).toISOString();
+  try {
+    await api(`envelopes?given_at=lt.${encodeURIComponent(cutoff)}`, { method:'DELETE' });
+    LOCAL.cleanedOn = todayIso(); saveLocal();
+  } catch(e){}
 }
 
 /* ===================== TOASTS ===================== */
@@ -334,7 +452,7 @@ function remind(title, body, tag){
 }
 let actx = null;
 function beep(){
-  if (!DB.settings.sound) return;
+  if (!LOCAL.settings.sound) return;
   try {
     actx = actx || new (window.AudioContext || window.webkitAudioContext)();
     if (actx.state === 'suspended') actx.resume();
@@ -354,14 +472,13 @@ document.addEventListener('pointerdown', () => {
   try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); } catch(e){}
 }, { once:true });
 
-/* Κάθε φάκελος ειδοποιεί μία φορά τη μέρα για κάθε περίπτωση:
-   day  = παράδοση σήμερα (από την πρωινή ώρα)
-   eve  = παράδοση αύριο (από την απογευματινή ώρα)
-   miss = η μέρα πέρασε και ο φάκελος είναι ακόμα στο stand (από την πρωινή ώρα) */
+/* Κάθε φάκελος ειδοποιεί μία φορά τη μέρα, σε κάθε υπολογιστή που έχει ανοιχτή την εφαρμογή:
+   day = παράδοση σήμερα · eve = παράδοση αύριο · miss = πέρασε η μέρα και είναι ακόμα στο stand */
 function checkReminders(){
-  const now = new Date(), t = iso(now), tm = tomorrowIso(), mins = now.getHours()*60 + now.getMinutes(), S = DB.settings;
+  if (!LOCAL.session) return;
+  const now = new Date(), t = iso(now), tm = tomorrowIso(), mins = now.getHours()*60 + now.getMinutes(), S = LOCAL.settings;
   const due = [];
-  const mark = (kind, env) => { const k = `${t}|${kind}|${env.id}`; if (!DB.fired[k]){ DB.fired[k] = 1; due.push({ kind, env }); } };
+  const mark = (kind, env) => { const k = `${t}|${kind}|${env.id}`; if (!LOCAL.fired[k]){ LOCAL.fired[k] = 1; due.push({ kind, env }); } };
   pending().forEach(env => {
     if (!env.date) return;
     if (mins >= toMin(S.morningTime)){ if (env.date === t) mark('day', env); else if (env.date < t) mark('miss', env); }
@@ -369,7 +486,7 @@ function checkReminders(){
   });
   updateTitle();
   if (!due.length) return;
-  save();
+  saveLocal();
   const fire = (kind, one, many) => {
     const list = due.filter(d => d.kind === kind);
     if (!list.length) return;
@@ -383,36 +500,42 @@ function checkReminders(){
   fire('miss', e => [`Ο φάκελος για ${e.name} είναι ακόμα στο stand`, `Η παράδοση ήταν ${dayLabel(e.date, true)}. Αν δόθηκε, πάτα «Δόθηκε». Αλλιώς βάλε νέα ημέρα.`],
                l => [`${l.length} φάκελοι έμειναν στο stand`, l.map(d => d.env.name).join(', ')]);
   beep();
-  renderAll();
+}
+function pruneFired(){
+  const fcut = iso(addDays(new Date(), -7));
+  Object.keys(LOCAL.fired).forEach(k => { if (k.slice(0,10) < fcut) delete LOCAL.fired[k]; });
 }
 function updateTitle(){
-  const n = pending().filter(e => e.date === todayIso()).length;
+  const n = LOCAL.session ? pending().filter(e => e.date === todayIso()).length : 0;
   document.title = n ? `(${n}) Φάκελοι σήμερα | Μύλοι Αρκαδίου` : 'Φάκελοι | Μύλοι Αρκαδίου';
 }
 
 /* ===================== NAV ===================== */
 function renderNav(){
+  if (!LOCAL.session){ $('nav').innerHTML = ''; return; }
   const n = pending().filter(e => e.date && e.date <= todayIso()).length;
   $('nav').innerHTML = `
     <button class="nav-btn${view==='main'?' active':''}" data-go="main">ΦΑΚΕΛΟΙ${n ? `<span class="cnt">${n}</span>` : ''}</button>
     <button class="nav-btn${view==='set'?' active':''}" data-go="set">ΡΥΘΜΙΣΕΙΣ</button>`;
 }
 function go(v){
+  if (!LOCAL.session) v = 'login';
   view = v;
   document.querySelectorAll('.view').forEach(el => el.classList.toggle('active', el.id === 'view-' + v));
   if (v === 'set') buildSettings();
+  if (v === 'login') buildLogin();
   renderAll();
   window.scrollTo({ top:0 });
 }
 function renderAll(){
   renderNav(); renderNotifBar(); updateTitle();
-  $('custList').innerHTML = DB.customers.map(n => `<option value="${esc(n)}"></option>`).join('');
+  $('custList').innerHTML = customerNames().map(n => `<option value="${esc(n)}"></option>`).join('');
   if (view === 'main') renderMain();
   if (view === 'set') renderSettingsState();
 }
 function renderNotifBar(){
   const bar = $('notifBar'), st = notifState();
-  if (st === 'granted' || notifBarClosed || !pending().length){ bar.hidden = true; return; }
+  if (!LOCAL.session || st === 'granted' || notifBarClosed || !pending().length){ bar.hidden = true; return; }
   let html, cls = '';
   if (st === 'default'){
     html = `<p>Ενεργοποίησε τις ειδοποιήσεις υπολογιστή, για να βγαίνει η υπενθύμιση ακόμα κι όταν δουλεύεις σε άλλο παράθυρο.</p>
@@ -426,6 +549,40 @@ function renderNotifBar(){
   bar.className = 'notif-bar ' + cls;
   bar.innerHTML = `<div class="notif-in">${html}<button class="icon-btn" data-act="notif-close" aria-label="Κλείσιμο">×</button></div>`;
   bar.hidden = false;
+}
+
+/* ===================== ΣΥΝΔΕΣΗ ===================== */
+function buildLogin(){
+  $('view-login').innerHTML = `
+    <div class="card login">
+      <img src="${LOGO_URLS[0]}" alt="Μύλοι Αρκαδίου" onerror="this.onerror=null;this.src='${LOGO_URLS[1]}'">
+      <h1>Φάκελοι πελατών</h1>
+      <p>Συνδέσου με το email και τον κωδικό της εφαρμογής.</p>
+      <label class="f"><span>Email</span><input class="inp" id="lEmail" type="email" autocomplete="username" spellcheck="false"></label>
+      <label class="f"><span>Κωδικός</span><input class="inp" id="lPass" type="password" autocomplete="current-password"></label>
+      <button class="btn primary block" id="lBtn">Σύνδεση</button>
+      <p class="hint" id="lErr"></p>
+    </div>`;
+  const submit = async () => {
+    const email = $('lEmail').value.trim(), pass = $('lPass').value;
+    if (!email || !pass){ $('lErr').innerHTML = '<span class="bad">Συμπλήρωσε email και κωδικό.</span>'; return; }
+    $('lBtn').disabled = true; $('lBtn').textContent = 'Σύνδεση…'; $('lErr').innerHTML = '';
+    try {
+      await login(email, pass);
+      setOnline(true);
+      go('main');
+      await refresh();
+    } catch(e){
+      $('lErr').innerHTML = `<span class="bad">${e instanceof NetError
+        ? (IN_FRAME ? 'Δεν έγινε σύνδεση με τη βάση. Μέσα στο Claude οι εξωτερικές συνδέσεις μπλοκάρονται, άνοιξε την εφαρμογή από το δικό σας link.' : 'Δεν έγινε σύνδεση με τη βάση. Έλεγξε το internet.')
+        : 'Λάθος email ή κωδικός.'}</span>`;
+    } finally {
+      if ($('lBtn')){ $('lBtn').disabled = false; $('lBtn').textContent = 'Σύνδεση'; }
+    }
+  };
+  $('lBtn').onclick = submit;
+  ['lEmail','lPass'].forEach(id => $(id).addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); submit(); } }));
+  setTimeout(() => $('lEmail') && $('lEmail').focus(), 30);
 }
 
 /* ===================== ΚΥΡΙΑ ΣΕΛΙΔΑ ===================== */
@@ -459,55 +616,99 @@ function updateHint(){
     ? `Υπάρχει ήδη φάκελος για <b>${esc(ex.name)}</b>${ex.date ? `, παράδοση ${esc(dayLabel(ex.date, true))}` : ', χωρίς ημέρα'}. Αν διαλέξεις ημέρα, θα αλλάξει.`
     : 'Αν δεν ξέρεις ακόμα την ημέρα, άφησέ την κενή και βάλ\' την αργότερα.';
 }
+function rememberCustomer(name){
+  const key = norm(name);
+  if (DB.customers.some(c => c.key === key || norm(c.name) === key)) return;
+  const c = { id:uuid(), name, key };
+  mutate(
+    () => { DB.customers.push(c); DB.customers.sort((a,b) => a.name.localeCompare(b.name,'el')); },
+    () => api('customers?on_conflict=name_key', { method:'POST', body:{ id:c.id, name, name_key:key }, prefer:'resolution=ignore-duplicates,return=minimal' }),
+    () => { DB.customers = DB.customers.filter(x => x !== c); },
+    'Δεν αποθηκεύτηκε ο πελάτης στη λίστα.'
+  );
+}
 function addEnvelope(){
   const typed = clean($('aCust').value), date = $('aDate').value || '';
   if (!typed){ $('aCust').focus(); return; }
   if (date && date < todayIso()){ $('aHint').innerHTML = '<span class="bad">Η ημέρα έχει περάσει. Διάλεξε σήμερα ή επόμενη μέρα.</span>'; return; }
-  const name = DB.customers.find(n => norm(n) === norm(typed)) || typed;
+  const name = customerNames().find(n => norm(n) === norm(typed)) || typed;
   const ex = pendingFor(name);
-  if (ex){
-    if (date && date !== ex.date){ ex.date = date; toast(`Νέα ημέρα παράδοσης για ${esc(ex.name)}: ${esc(dayLabel(date, true))}.`); }
-    else toast(`Υπάρχει ήδη φάκελος για ${esc(ex.name)}.`);
-  } else {
-    DB.envelopes.push({ id:uid(), name, date, addedAt:new Date().toISOString(), givenAt:null });
-    rememberCustomer(name);
-    toast(`Φάκελος για ${esc(name)}${date ? `, παράδοση ${esc(dayLabel(date, true))}` : ', χωρίς ημέρα ακόμα'}.`);
-  }
-  save();
   $('aCust').value = ''; $('aDate').value = ''; updateHint(); $('aCust').focus();
-  renderAll(); checkReminders();
+  if (ex){
+    if (date && date !== ex.date) setDate(ex.id, date);
+    else toast(`Υπάρχει ήδη φάκελος για ${esc(ex.name)}.`);
+    return;
+  }
+  const env = { id:uuid(), name, date, addedAt:new Date().toISOString(), givenAt:null };
+  mutate(
+    () => { DB.envelopes.push(env); },
+    () => api('envelopes', { method:'POST', body:{ id:env.id, name, date: date || null, added_at:env.addedAt }, prefer:'return=minimal' }),
+    () => { DB.envelopes = DB.envelopes.filter(e => e.id !== env.id); },
+    `Δεν αποθηκεύτηκε ο φάκελος για ${name}.`
+  ).then(() => checkReminders());
+  rememberCustomer(name);
+  toast(`Φάκελος για ${esc(name)}${date ? `, παράδοση ${esc(dayLabel(date, true))}` : ', χωρίς ημέρα ακόμα'}.`);
 }
 function giveEnvelope(id, btn){
   const env = DB.envelopes.find(e => e.id === id);
   if (!env || env.givenAt) return;
-  env.givenAt = new Date().toISOString();
-  save();
+  const stamp = new Date().toISOString();
   const card = btn && btn.closest('.env,.row');
-  if (card && !REDUCE){ card.classList.add('leaving'); setTimeout(renderAll, 210); } else renderAll();
-  toast(`Δόθηκε ο φάκελος: ${esc(env.name)}.`, { action:{ label:'Αναίρεση', fn:() => { env.givenAt = null; save(); renderAll(); } } });
+  const run = () => mutate(
+    () => { env.givenAt = stamp; },
+    () => api(`envelopes?id=eq.${env.id}`, { method:'PATCH', body:{ given_at:stamp }, prefer:'return=minimal' }),
+    () => { env.givenAt = null; },
+    `Δεν σημειώθηκε ο φάκελος για ${env.name}.`
+  );
+  if (card && !REDUCE){ card.classList.add('leaving'); setTimeout(run, 200); } else run();
+  toast(`Δόθηκε ο φάκελος: ${esc(env.name)}.`, { action:{ label:'Αναίρεση', fn:() => mutate(
+    () => { env.givenAt = null; },
+    () => api(`envelopes?id=eq.${env.id}`, { method:'PATCH', body:{ given_at:null }, prefer:'return=minimal' }),
+    () => { env.givenAt = stamp; },
+    'Η αναίρεση δεν αποθηκεύτηκε.'
+  ) } });
 }
 function removeEnvelope(id){
-  const i = DB.envelopes.findIndex(e => e.id === id);
-  if (i < 0) return;
-  const [env] = DB.envelopes.splice(i, 1);
-  save(); renderAll();
-  toast(`Αφαιρέθηκε ο φάκελος: ${esc(env.name)}.`, { action:{ label:'Αναίρεση', fn:() => { DB.envelopes.push(env); save(); renderAll(); } } });
+  const env = DB.envelopes.find(e => e.id === id);
+  if (!env) return;
+  mutate(
+    () => { DB.envelopes = DB.envelopes.filter(e => e.id !== id); },
+    () => api(`envelopes?id=eq.${id}`, { method:'DELETE', prefer:'return=minimal' }),
+    () => { DB.envelopes.push(env); },
+    `Δεν αφαιρέθηκε ο φάκελος για ${env.name}.`
+  );
+  toast(`Αφαιρέθηκε ο φάκελος: ${esc(env.name)}.`, { action:{ label:'Αναίρεση', fn:() => mutate(
+    () => { DB.envelopes.push(env); },
+    () => api('envelopes', { method:'POST', body:{ id:env.id, name:env.name, date:env.date || null, added_at:env.addedAt, given_at:env.givenAt }, prefer:'return=minimal' }),
+    () => { DB.envelopes = DB.envelopes.filter(e => e.id !== env.id); },
+    'Η αναίρεση δεν αποθηκεύτηκε.'
+  ) } });
 }
 function restoreEnvelope(id){
   const env = DB.envelopes.find(e => e.id === id);
   if (!env) return;
   if (pendingFor(env.name)){ toast(`Υπάρχει ήδη φάκελος στο stand για ${esc(env.name)}.`); return; }
-  env.givenAt = null;
-  if (env.date && env.date < todayIso()) env.date = '';
-  save(); renderAll();
+  const prev = { givenAt:env.givenAt, date:env.date };
+  const newDate = env.date && env.date < todayIso() ? '' : env.date;
+  mutate(
+    () => { env.givenAt = null; env.date = newDate; },
+    () => api(`envelopes?id=eq.${id}`, { method:'PATCH', body:{ given_at:null, date:newDate || null }, prefer:'return=minimal' }),
+    () => { env.givenAt = prev.givenAt; env.date = prev.date; },
+    'Η επαναφορά δεν αποθηκεύτηκε.'
+  );
   toast(`Ο φάκελος για ${esc(env.name)} γύρισε στο stand.`);
 }
 function setDate(id, value){
   const env = DB.envelopes.find(e => e.id === id);
   if (!env) return;
   if (value && value < todayIso()){ toast('Η ημέρα έχει περάσει. Διάλεξε σήμερα ή επόμενη μέρα.'); renderAll(); return; }
-  env.date = value || '';
-  save(); renderAll(); checkReminders();
+  const prev = env.date;
+  mutate(
+    () => { env.date = value || ''; },
+    () => api(`envelopes?id=eq.${id}`, { method:'PATCH', body:{ date:value || null }, prefer:'return=minimal' }),
+    () => { env.date = prev; },
+    'Η νέα ημέρα δεν αποθηκεύτηκε.'
+  ).then(() => checkReminders());
   toast(value ? `${esc(env.name)}: παράδοση ${esc(dayLabel(value, true))}.` : `${esc(env.name)}: χωρίς ημέρα.`);
 }
 
@@ -531,7 +732,10 @@ function section(title, body, bad=false){
   return `<div class="sec"><div class="sec-h${bad ? ' bad' : ''}"><h2>${title}</h2><span class="rule"></span></div>${body}</div>`;
 }
 function renderMain(){
-  const t = todayIso(), tm = tomorrowIso(), now = new Date(), S = DB.settings;
+  if (!$('lists')) return;
+  const active = document.activeElement;
+  if (active && active.matches && active.matches('[data-date]')) return;   // μην κλείνεις το ημερολόγιο ενώ διαλέγει μέρα
+  const t = todayIso(), tm = tomorrowIso(), now = new Date(), S = LOCAL.settings;
   const byName = (a,b) => a.name.localeCompare(b.name,'el');
   const pend = pending();
   const today = pend.filter(e => e.date === t).sort(byName);
@@ -560,7 +764,6 @@ function renderMain(){
     <div class="rows">${recent.map(e => `<div class="row"><div class="r-main"><b>${esc(e.name)}</b><small>Δόθηκε ${iso(new Date(e.givenAt)) === t ? 'σήμερα' : shortDate(iso(new Date(e.givenAt)))} στις ${hhmm(e.givenAt)}</small></div>
       <button class="btn ghost sm" data-act="restore" data-id="${e.id}">Επαναφορά στο stand</button></div>`).join('')}</div></details>`;
 
-  if (!DB.envelopes.length) html += `<p class="hint">Θέλεις να δεις πώς δουλεύει; <button class="btn ghost sm" data-act="sample">Δοκιμή με δείγμα</button></p>`;
   const wasOpen = document.querySelector('.given') && document.querySelector('.given').open;
   $('lists').innerHTML = html;
   if (wasOpen && document.querySelector('.given')) document.querySelector('.given').open = true;
@@ -568,11 +771,11 @@ function renderMain(){
 
 /* ===================== ΡΥΘΜΙΣΕΙΣ ===================== */
 function buildSettings(){
-  const S = DB.settings;
+  const S = LOCAL.settings;
   $('view-set').innerHTML = `
     <div class="page-h"><h1>Ρυθμίσεις</h1></div>
     <div class="card set">
-      <h3>Υπενθυμίσεις</h3>
+      <h3>Υπενθυμίσεις σε αυτόν τον υπολογιστή</h3>
       <div class="set-row first">
         <div class="sr-t"><b>Την ημέρα της παράδοσης</b><small>Και για όσους φακέλους έμειναν στο stand.</small></div>
         <input class="inp" type="time" id="sMorning" value="${esc(S.morningTime)}" aria-label="Ώρα πρωινής υπενθύμισης">
@@ -601,27 +804,23 @@ function buildSettings(){
     </div>
     <div class="card set">
       <h3>Πελάτες που θυμάται</h3>
-      <p>Εμφανίζονται ως προτάσεις όταν γράφεις όνομα. Σβήσε όποιο γράφτηκε λάθος.</p>
+      <p>Εμφανίζονται ως προτάσεις όταν γράφεις όνομα, σε όλους τους υπολογιστές. Σβήσε όποιο γράφτηκε λάθος.</p>
       <div class="chips" id="sCust"></div>
     </div>
     <div class="card set">
-      <h3>Αντίγραφο ασφαλείας</h3>
-      <p>Αποθηκεύονται μόνο ονόματα πελατών, ημέρες παράδοσης και πότε δόθηκε κάθε φάκελος. ${HAS_CLAUDE_STORAGE ? 'Τα δεδομένα μένουν στον λογαριασμό σου στο Claude.' : 'Τα δεδομένα μένουν σε αυτόν τον browser, σε αυτόν τον υπολογιστή.'} Το ιστορικό σβήνεται μόνο του μετά από ${HISTORY_DAYS} μέρες.</p>
+      <h3>Λογαριασμός</h3>
+      <p id="sAcc"></p>
       <div class="btns">
         <button class="btn ghost sm" data-act="export">Λήψη αντιγράφου</button>
-        <button class="btn ghost sm" data-act="import">Επαναφορά από αντίγραφο</button>
+        <button class="btn danger-ghost sm" data-act="logout">Αποσύνδεση</button>
       </div>
-    </div>
-    <div class="card set">
-      <h3>Διαγραφή δεδομένων</h3>
-      <p>Σβήνει όλους τους φακέλους και τη λίστα πελατών.</p>
-      <button class="btn danger-ghost sm" data-act="wipe">Διαγραφή όλων</button>
     </div>`;
-  $('sName').addEventListener('input', e => { DB.settings.userName = e.target.value.trim(); save(); });
-  $('sMorning').addEventListener('change', e => { if (e.target.value){ DB.settings.morningTime = e.target.value; save(); checkReminders(); } });
-  $('sEve').addEventListener('change', e => { DB.settings.eveEnabled = e.target.checked; $('sEveTime').disabled = !e.target.checked; save(); checkReminders(); });
-  $('sEveTime').addEventListener('change', e => { if (e.target.value){ DB.settings.eveTime = e.target.value; save(); checkReminders(); } });
-  $('sSound').addEventListener('change', e => { DB.settings.sound = e.target.checked; save(); if (e.target.checked) beep(); });
+  const S2 = LOCAL.settings;
+  $('sName').addEventListener('input', e => { S2.userName = e.target.value.trim(); saveLocal(); });
+  $('sMorning').addEventListener('change', e => { if (e.target.value){ S2.morningTime = e.target.value; saveLocal(); checkReminders(); } });
+  $('sEve').addEventListener('change', e => { S2.eveEnabled = e.target.checked; $('sEveTime').disabled = !e.target.checked; saveLocal(); checkReminders(); });
+  $('sEveTime').addEventListener('change', e => { if (e.target.value){ S2.eveTime = e.target.value; saveLocal(); checkReminders(); } });
+  $('sSound').addEventListener('change', e => { S2.sound = e.target.checked; saveLocal(); if (e.target.checked) beep(); });
 }
 function renderSettingsState(){
   if (!$('sNotif')) return;
@@ -636,62 +835,30 @@ function renderSettingsState(){
   $('sNotif').innerHTML = `<span class="state ${cls}">${txt}</span>`;
   $('sNotifBtn').hidden = st === 'granted' || st === 'unsupported';
   $('sCust').innerHTML = DB.customers.length
-    ? DB.customers.map((n,i) => `<span class="chip">${esc(n)}<button data-act="forget" data-i="${i}" aria-label="Διαγραφή ${esc(n)}">×</button></span>`).join('')
+    ? DB.customers.map(c => `<span class="chip">${esc(c.name)}<button data-act="forget" data-key="${esc(c.key || norm(c.name))}" aria-label="Διαγραφή ${esc(c.name)}">×</button></span>`).join('')
     : '<p style="margin:0">Κανένας ακόμα.</p>';
+  $('sAcc').innerHTML = `Συνδεδεμένη ως <b>${esc(LOCAL.session ? LOCAL.session.email : '')}</b>. Τα δεδομένα είναι στη βάση Supabase και φαίνονται από κάθε υπολογιστή που συνδέεται. Το ιστορικό σβήνεται μόνο του μετά από ${HISTORY_DAYS} μέρες.`;
+}
+function forgetCustomer(key){
+  const c = DB.customers.find(x => (x.key || norm(x.name)) === key);
+  if (!c) return;
+  mutate(
+    () => { DB.customers = DB.customers.filter(x => x !== c); },
+    () => api(`customers?name_key=eq.${encodeURIComponent(key)}`, { method:'DELETE', prefer:'return=minimal' }),
+    () => { DB.customers.push(c); DB.customers.sort((a,b) => a.name.localeCompare(b.name,'el')); },
+    'Ο πελάτης δεν αφαιρέθηκε από τη λίστα.'
+  );
+  toast(`Αφαιρέθηκε από τη λίστα: ${esc(c.name)}.`);
 }
 function exportData(){
   try {
-    const blob = new Blob([JSON.stringify({ app:'fakeloi', version:3, envelopes:DB.envelopes, customers:DB.customers, settings:DB.settings }, null, 2)], { type:'application/json' });
+    const blob = new Blob([JSON.stringify({ app:'fakeloi', exported:new Date().toISOString(), envelopes:DB.envelopes, customers:customerNames() }, null, 2)], { type:'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `fakeloi-myloi-arkadiou-${todayIso()}.json`;
     document.body.appendChild(a); a.click();
     setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 800);
   } catch(e){ toast('Η λήψη αρχείου δεν επιτρέπεται εδώ.'); }
-}
-$('importFile').addEventListener('change', e => {
-  const file = e.target.files[0]; if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    try {
-      const d = JSON.parse(reader.result);
-      if (d.app !== 'fakeloi' || !Array.isArray(d.envelopes)) throw new Error('bad');
-      DB.envelopes = d.envelopes.filter(x => x && typeof x.name === 'string' && x.addedAt)
-        .map(x => ({ id:String(x.id || uid()), name:clean(x.name), date:/^\d{4}-\d{2}-\d{2}$/.test(x.date || '') ? x.date : '', addedAt:x.addedAt, givenAt:x.givenAt || null }));
-      DB.customers = (Array.isArray(d.customers) ? d.customers : []).map(clean).filter(Boolean);
-      DB.envelopes.forEach(x => rememberCustomer(x.name));
-      DB.settings = { ...DEFAULT_SETTINGS, ...(d.settings || {}) };
-      tidy(); save(); buildSettings(); renderAll();
-      toast(`Επαναφέρθηκαν ${DB.envelopes.length} φάκελοι.`);
-    } catch(err){ toast('Το αρχείο δεν είναι αντίγραφο αυτής της εφαρμογής.'); }
-    e.target.value = '';
-  };
-  reader.readAsText(file);
-});
-let wipeTimer = null;
-function wipeAll(btn){
-  if (!btn.dataset.armed){
-    btn.dataset.armed = '1'; btn.textContent = 'Πάτα ξανά για οριστική διαγραφή'; btn.className = 'btn danger sm';
-    clearTimeout(wipeTimer);
-    wipeTimer = setTimeout(() => { if (btn.isConnected){ delete btn.dataset.armed; btn.textContent = 'Διαγραφή όλων'; btn.className = 'btn danger-ghost sm'; } }, 4000);
-    return;
-  }
-  clearTimeout(wipeTimer);
-  DB.envelopes = []; DB.customers = []; DB.fired = {};
-  save(); buildSettings(); renderAll();
-  toast('Όλα τα δεδομένα διαγράφηκαν.');
-}
-
-/* ===================== ΔΕΙΓΜΑ ===================== */
-function loadSample(){
-  const d = n => iso(addDays(new Date(), n));
-  const mk = (name, date, daysAgo) => ({ id:uid(), name, date, addedAt:addDays(new Date(), -daysAgo).toISOString(), givenAt:null });
-  [mk('ΒΕΡΥΚΑΚΗΣ', d(0), 6), mk('ΣΦΑΚΙΑΝΑΚΗΣ', d(0), 3), mk('ΜΑΝΩΛΑΚΗΣ', d(-1), 5),
-   mk('ΔΑΜΙΑΝΑΚΗΣ', d(1), 1), mk('ΛΙΝΟΞΙΛΑΚΗΣ', d(4), 2), mk('ΑΡΧΟΝΤΑΚΗΣ', '', 9)]
-    .forEach(e => { DB.envelopes.push(e); rememberCustomer(e.name); });
-  save(); renderAll();
-  toast('Φορτώθηκε δείγμα. Το σβήνεις από τις Ρυθμίσεις.');
-  setTimeout(checkReminders, 700);
 }
 
 /* ===================== EVENTS ===================== */
@@ -707,26 +874,26 @@ document.addEventListener('click', e => {
     case 'restore': restoreEnvelope(id); break;
     case 'set-today': $('aDate').value = todayIso(); $('aCust').focus(); break;
     case 'set-tmr': $('aDate').value = tomorrowIso(); $('aCust').focus(); break;
-    case 'forget': { const n = DB.customers[Number(a.dataset.i)]; DB.customers.splice(Number(a.dataset.i), 1); save(); renderAll(); if (n) toast(`Αφαιρέθηκε από τη λίστα: ${esc(n)}.`); break; }
+    case 'forget': forgetCustomer(a.dataset.key); break;
     case 'notif-on': enableNotifs(); break;
     case 'notif-test': remind('Δοκιμαστική υπενθύμιση', 'Έτσι θα εμφανίζεται η υπενθύμιση για τους φακέλους.', 'test-' + Date.now()); beep(); break;
     case 'notif-close': notifBarClosed = true; renderNotifBar(); break;
-    case 'sample': loadSample(); break;
     case 'export': exportData(); break;
-    case 'import': $('importFile').click(); break;
-    case 'wipe': wipeAll(a); break;
+    case 'logout': logout('Αποσυνδέθηκες.'); break;
   }
 });
 document.addEventListener('change', e => {
   const el = e.target.closest('[data-date]');
-  if (el) setDate(el.dataset.date, el.value);
+  if (el){ el.blur(); setDate(el.dataset.date, el.value); }
 });
+let lastRefresh = 0;
 function tick(){
   const t = todayIso();
-  if (t !== lastDay){ lastDay = t; tidy(); save(); renderAll(); }
+  if (t !== lastDay){ lastDay = t; pruneFired(); saveLocal(); renderAll(); }
+  if (LOCAL.session && Date.now() - lastRefresh > REFRESH_SEC*1000){ lastRefresh = Date.now(); refresh(); }
   checkReminders();
 }
-document.addEventListener('visibilitychange', () => { if (!document.hidden){ tick(); renderAll(); } });
+document.addEventListener('visibilitychange', () => { if (!document.hidden){ lastRefresh = 0; tick(); } });
 
 /* ===================== INIT ===================== */
 (function initLogo(){
@@ -735,13 +902,14 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden){ tic
   img.src = LOGO_URLS[0];
 })();
 (async function init(){
-  await loadDB();
+  await loadLocal();
   lastDay = todayIso();
-  tidy();
+  pruneFired();
+  if (LOCAL.cache){ DB.envelopes = LOCAL.cache.envelopes || []; DB.customers = LOCAL.cache.customers || []; }
   buildMain();
-  go('main');
-  setTimeout(tick, 600);
-  setInterval(tick, 30000);
+  go(LOCAL.session ? 'main' : 'login');
+  setTimeout(tick, 300);
+  setInterval(tick, 10000);
 })();
 </script>
 </body>
