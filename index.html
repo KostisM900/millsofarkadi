@@ -238,6 +238,14 @@ input{font:inherit;color:inherit}
 .item .note.add{color:#ADAB9F}
 .item svg{width:12px;height:12px;color:#B8B6AA;flex-shrink:0}
 .modal textarea.inp{width:100%;resize:vertical;font:inherit;font-size:14px}
+
+/* ===== ΗΜΕΡΟΜΗΝΙΑ (τύπου SoftOne) ===== */
+.dinp{font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.when .dinp{width:130px}
+.row .dinp{width:112px;padding:6px 9px;font-size:13px}
+.dprev{display:block;font-size:12px;color:var(--olive-deep);font-weight:600;min-height:17px;margin-top:3px}
+.dprev.bad{color:var(--red)}
+
 </style>
 </head>
 <body>
@@ -304,6 +312,60 @@ const tomorrowIso = () => iso(addDays(new Date(),1));
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ς/g,'σ').replace(/\s+/g,' ').trim();
 const clean = s => String(s || '').replace(/\s+/g,' ').trim().slice(0,80);
+/* Ονόματα πάντα με κεφαλαία, χωρίς τόνους (όπως στα ελληνικά κεφαλαία): «κουκλινός» → «ΚΟΥΚΛΙΝΟΣ» */
+const upper = s => String(s || '').normalize('NFD').replace(/[\u0301\u0341]/g,'').normalize('NFC').toUpperCase();
+const cleanName = s => upper(clean(s));
+function upperInput(el){
+  el.addEventListener('input', e => {
+    if (e.isComposing) return;
+    const v = el.value, u = upper(v);
+    if (u !== v){ const a = el.selectionStart, b = el.selectionEnd; el.value = u; try { el.setSelectionRange(a, b); } catch(_){} }
+  });
+}
+/* Ημερομηνία όπως στο SoftOne:
+   25        → 25 του τρέχοντος μήνα (αν πέρασε, 25 του επόμενου)
+   2509      → 25/09 του τρέχοντος έτους
+   250926 / 25092026 → πλήρης ημερομηνία
+   25/9, 25.9, 25-9, 25/9/26 → επίσης
+   +3        → σε 3 μέρες                                                      */
+function parseDateInput(raw){
+  const s = String(raw || '').trim();
+  if (!s) return { ok:true, value:'' };
+  const today = fromIso(todayIso());
+  const plus = s.match(/^\+\s*(\d{1,3})$/);
+  if (plus) return { ok:true, value: iso(addDays(today, Number(plus[1]))) };
+  let d, mo, y;
+  if (/^\d+$/.test(s)){
+    if (s.length <= 2) d = +s;
+    else if (s.length === 3){ const a = +s.slice(0,2), b = +s.slice(2); if (a >= 1 && a <= 31 && b >= 1) { d = a; mo = b; } else { d = +s.slice(0,1); mo = +s.slice(1); } }
+    else if (s.length === 4){ d = +s.slice(0,2); mo = +s.slice(2); }
+    else if (s.length === 6 || s.length === 8){ d = +s.slice(0,2); mo = +s.slice(2,4); y = +s.slice(4); }
+    else return { ok:false };
+  } else {
+    const parts = s.split(/[\/.\-\s]+/).filter(Boolean);
+    if (!parts.length || parts.length > 3 || !parts.every(p => /^\d{1,4}$/.test(p))) return { ok:false };
+    [d, mo, y] = parts.map(Number);
+  }
+  const mGiven = mo !== undefined, yGiven = y !== undefined;
+  if (yGiven && y < 100) y += 2000;
+  if (!mGiven) mo = today.getMonth() + 1;
+  if (!yGiven) y = today.getFullYear();
+  const mk = (yy, mm, dd) => { const t = new Date(yy, mm - 1, dd, 12); return (t.getFullYear() === yy && t.getMonth() === mm - 1 && t.getDate() === dd) ? t : null; };
+  const nextWithDay = (from, dd) => { for (let k = 1; k <= 3; k++){ const b = new Date(from.getFullYear(), from.getMonth() + k, 1, 12); const t = mk(b.getFullYear(), b.getMonth() + 1, dd); if (t) return t; } return null; };
+  let dt = mk(y, mo, d);
+  if (!dt && !mGiven && d >= 1 && d <= 31) dt = nextWithDay(new Date(y, mo - 1, 1, 12), d);   // π.χ. 31 σε μήνα με 30 μέρες
+  if (!dt) return { ok:false };
+  if (dt < today){
+    if (!mGiven) dt = nextWithDay(dt, d);                                                     // μόνο μέρα που πέρασε → επόμενος μήνας
+    else if (!yGiven && (today - dt) > 60 * 86400000) dt = mk(y + 1, mo, d);                  // π.χ. Δεκέμβριο γράφεις 0501
+  }
+  if (!dt) return { ok:false };
+  const v = iso(dt);
+  return v < todayIso() ? { ok:false, past:true } : { ok:true, value:v };
+}
+const fmtDate = v => v ? `${v.slice(8,10)}/${v.slice(5,7)}/${v.slice(0,4)}` : '';
+const DATE_HELP = 'Γράψε 25 για τις 25 του μήνα, 2509 για 25/09, ή +3 για σε 3 μέρες.';
+const dateError = r => r.past ? 'Η ημέρα έχει περάσει. Διάλεξε σήμερα ή επόμενη μέρα.' : `Δεν κατάλαβα την ημερομηνία. ${DATE_HELP}`;
 const toMin = t => { const [h,m] = String(t || '00:00').split(':').map(Number); return (h||0)*60 + (m||0); };
 const shortDate = s => { const d = fromIso(s); return `${d.getDate()}/${d.getMonth()+1}`; };
 const longDate = s => { const d = fromIso(s); return `${DAYS_FULL[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`; };
@@ -443,6 +505,7 @@ async function refresh(){
     setOnline(true); cacheData();
     renderAll(); checkReminders();
     cleanupHistory();
+    uppercaseLegacy();
   } catch(e){ handleError(e, 'Δεν ενημερώθηκαν οι φάκελοι.', true); }
   finally { refreshing = false; }
 }
@@ -453,6 +516,21 @@ async function mutate(apply, request, rollback, errMsg){
   try { await request(); setOnline(true); cacheData(); }
   catch(e){ rollback(); renderAll(); handleError(e, errMsg); }
   finally { pendingOps--; }
+}
+/* Ονόματα που γράφτηκαν με μικρά πριν από αυτή την έκδοση: περνάνε μία φορά σε κεφαλαία */
+let upperRunning = false;
+async function uppercaseLegacy(){
+  const envNames = [...new Set(DB.envelopes.map(e => e.name).filter(n => n !== upper(n)))];
+  const custs = DB.customers.filter(c => c.name !== upper(c.name));
+  if ((!envNames.length && !custs.length) || upperRunning) return;
+  upperRunning = true;
+  try {
+    for (const n of envNames) await api(`envelopes?name=eq.${encodeURIComponent(n)}`, { method:'PATCH', body:{ name:upper(n) }, prefer:'return=minimal' });
+    for (const c of custs) await api(`customers?name_key=eq.${encodeURIComponent(c.key || norm(c.name))}`, { method:'PATCH', body:{ name:upper(c.name) }, prefer:'return=minimal' });
+    DB.envelopes.forEach(e => e.name = upper(e.name));
+    DB.customers.forEach(c => c.name = upper(c.name));
+    cacheData(); renderAll();
+  } catch(e){} finally { upperRunning = false; }
 }
 async function cleanupHistory(){
   if (LOCAL.cleanedOn === todayIso()) return;
@@ -684,10 +762,11 @@ function buildMain(){
         <div class="f"><span>Είδος</span><div id="aKind">${kindSeg(addKind, 'kind')}</div></div>
         <div class="f"><span>Ημέρα παράδοσης</span>
           <div class="when">
-            <input class="inp" id="aDate" type="date" aria-label="Ημέρα παράδοσης">
+            <input class="inp dinp" id="aDate" type="text" inputmode="numeric" autocomplete="off" placeholder="ηη/μμ" aria-label="Ημέρα παράδοσης" aria-describedby="aDatePrev">
             <button class="btn ghost sm" data-act="set-today">Σήμερα</button>
             <button class="btn ghost sm" data-act="set-tmr">Αύριο</button>
           </div>
+          <small class="dprev" id="aDatePrev"></small>
         </div>
         <label class="f f-note"><span>Σχόλιο (προαιρετικό)</span><input class="inp" id="aNote" maxlength="${NOTE_MAX}" autocomplete="off" placeholder="π.χ. στα χέρια του ιδιοκτήτη"></label>
         <button class="btn primary" id="aAdd">Προσθήκη φακέλου</button>
@@ -704,7 +783,10 @@ function buildMain(){
     <p class="q-info" id="qInfo" hidden></p>
     <div id="lists"></div>`;
   const inp = $('aCust');
+  upperInput(inp);
   inp.addEventListener('input', updateHint);
+  $('aDate').addEventListener('input', previewAddDate);
+  $('aDate').addEventListener('blur', () => { const r = parseDateInput($('aDate').value); if (r.ok && r.value) $('aDate').value = fmtDate(r.value); });
   inp.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing){ e.preventDefault(); addEnvelope(); } });
   $('aDate').addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); addEnvelope(); } });
   $('aNote').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing){ e.preventDefault(); addEnvelope(); } });
@@ -718,15 +800,23 @@ function existingDateFor(name){
   const ds = pending().filter(e => norm(e.name) === norm(name) && e.date && e.date >= todayIso()).map(e => e.date).sort();
   return ds[0] || '';
 }
+function previewAddDate(){
+  const raw = $('aDate').value.trim(), el = $('aDatePrev');
+  if (!raw){ el.textContent = ''; el.className = 'dprev'; return; }
+  const r = parseDateInput(raw);
+  el.className = 'dprev' + (r.ok ? '' : ' bad');
+  el.textContent = r.ok ? `${DAYS_FULL[fromIso(r.value).getDay()]} ${fmtDate(r.value)}` : (r.past ? 'Έχει περάσει' : 'Δεν την κατάλαβα');
+}
 function updateHint(){
-  const name = clean($('aCust').value);
+  const name = cleanName($('aCust').value);
   const mine = name ? pending().filter(e => norm(e.name) === norm(name)) : [];
-  if (!mine.length){ $('aHint').innerHTML = 'Αν δεν ξέρεις ακόμα την ημέρα, άφησέ την κενή και βάλ\' την αργότερα.'; return; }
+  if (!mine.length){ $('aHint').innerHTML = `Ημερομηνία: ${DATE_HELP} Αν δεν την ξέρεις, άφησέ την κενή.`; return; }
   const d = existingDateFor(name);
   $('aHint').innerHTML = `Υπάρχει ήδη ${mine.length === 1 ? '1 φάκελος' : mine.length + ' φάκελοι'} για <b>${esc(mine[0].name)}</b>. `
     + (d ? `Ο νέος θα μπει μαζί, με παράδοση ${esc(dayLabel(d, true))}, αν δεν διαλέξεις άλλη ημέρα.` : 'Θα προστεθεί ακόμα ένας.');
 }
 function rememberCustomer(name){
+  name = upper(name);
   const key = norm(name);
   if (DB.customers.some(c => (c.key || norm(c.name)) === key)) return;
   const c = { id:uuid(), name, key };
@@ -739,17 +829,18 @@ function rememberCustomer(name){
 }
 const sortCustomers = () => DB.customers.sort((a,b) => a.name.localeCompare(b.name,'el'));
 function addEnvelope(){
-  const typed = clean($('aCust').value);
-  let date = $('aDate').value || '';
+  const typed = cleanName($('aCust').value);
   if (!typed){ $('aCust').focus(); return; }
-  if (date && date < todayIso()){ $('aHint').innerHTML = '<span class="bad">Η ημέρα έχει περάσει. Διάλεξε σήμερα ή επόμενη μέρα.</span>'; return; }
+  const pd = parseDateInput($('aDate').value);
+  if (!pd.ok){ $('aHint').innerHTML = `<span class="bad">${esc(dateError(pd))}</span>`; $('aDate').focus(); return; }
+  let date = pd.value;
   const existing = pending().find(e => norm(e.name) === norm(typed));
-  const name = existing ? existing.name : (customerNames().find(n => norm(n) === norm(typed)) || typed);
+  const name = upper(existing ? existing.name : (customerNames().find(n => norm(n) === norm(typed)) || typed));
   const inherited = !date && existingDateFor(name);
   if (inherited) date = inherited;
   const note = clean($('aNote').value).slice(0, NOTE_MAX), kind = addKind;
   const env = { id:uuid(), name, date, kind, note, addedAt:new Date().toISOString(), givenAt:null };
-  $('aCust').value = ''; $('aDate').value = ''; $('aNote').value = ''; updateHint(); $('aCust').focus();
+  $('aCust').value = ''; $('aDate').value = ''; $('aNote').value = ''; previewAddDate(); updateHint(); $('aCust').focus();
   mutate(
     () => { DB.envelopes.push(env); },
     () => api('envelopes', { method:'POST', body:{ id:env.id, name, date: date || null, kind, note: note || null, added_at:env.addedAt }, prefer:'return=minimal' }),
@@ -878,14 +969,15 @@ function openRename(oldName){
     <p class="hint" id="rHint"></p>
     <div class="m-f"><button class="btn ghost" data-m="cancel">Ακύρωση</button><button class="btn primary" data-m="save">Αποθήκευση</button></div>`;
   const inp = $('rName'), hint = $('rHint');
+  upperInput(inp);
   const check = () => {
-    const v = clean(inp.value);
+    const v = cleanName(inp.value);
     const other = v && norm(v) !== norm(oldName) ? customerNames().find(n => norm(n) === norm(v)) : null;
     hint.innerHTML = other ? `Υπάρχει ήδη πελάτης «${esc(other)}». Οι φάκελοι θα ενωθούν κάτω από αυτό το όνομα.` : '';
   };
   const close = () => { $('modal').hidden = true; box.innerHTML = ''; document.removeEventListener('keydown', onKey); };
   const save = () => {
-    const v = clean(inp.value);
+    const v = cleanName(inp.value);
     if (!v){ hint.innerHTML = '<span class="bad">Γράψε το σωστό όνομα.</span>'; return; }
     const target = customerNames().find(n => norm(n) === norm(v) && norm(n) !== norm(oldName)) || v;
     close();
@@ -946,7 +1038,7 @@ function row(g, small, primaryGive=false){
   const n = g.items.length;
   return `<div class="row">
     <div class="r-main"><b>${nameBtn(g)}</b>${n > 1 ? `<span class="pill">${countText(n)}</span>` : ''}<small>${small}</small>${itemsHTML(g)}</div>
-    <input class="inp" type="date" value="${esc(g.date)}" min="${todayIso()}" data-date="${g.ids}" aria-label="Ημέρα παράδοσης για ${esc(g.name)}">
+    <input class="inp dinp" type="text" inputmode="numeric" autocomplete="off" placeholder="ηη/μμ" value="${esc(fmtDate(g.date))}" data-date="${g.ids}" data-orig="${esc(g.date)}" title="${esc(DATE_HELP)}" aria-label="Ημέρα παράδοσης για ${esc(g.name)}">
     <button class="btn ${primaryGive ? 'primary' : 'ghost'} sm" data-act="give" data-ids="${g.ids}">${n > 1 ? 'Δόθηκαν' : 'Δόθηκε'}</button>
     <button class="icon-btn" data-act="rm" data-ids="${g.ids}" aria-label="Αφαίρεση ${n > 1 ? 'ενός φακέλου' : 'φακέλου'}" title="Αφαίρεση ${n > 1 ? 'ενός φακέλου' : 'φακέλου'} (λάθος καταχώρηση)">×</button>
   </div>`;
@@ -961,7 +1053,7 @@ function givenRows(list){
 function renderMain(){
   if (!$('lists')) return;
   const active = document.activeElement;
-  if (active && active.matches && active.matches('[data-date]')) return;   // μην κλείνεις το ημερολόγιο ενώ διαλέγει μέρα
+  if (active && active.matches && active.matches('[data-date]')) return;   // μη σβήνεις ό,τι γράφει εκείνη τη στιγμή
   const t = todayIso(), tm = tomorrowIso(), now = new Date(), S = LOCAL.settings;
   const byName = (a,b) => a.name.localeCompare(b.name,'el');
   const allPend = pending();
@@ -1124,8 +1216,8 @@ document.addEventListener('click', e => {
     case 'rename': openRename(a.dataset.name); break;
     case 'edit': openEdit(id); break;
     case 'restore': restoreEnvelope(id); break;
-    case 'set-today': $('aDate').value = todayIso(); $('aCust').focus(); break;
-    case 'set-tmr': $('aDate').value = tomorrowIso(); $('aCust').focus(); break;
+    case 'set-today': $('aDate').value = fmtDate(todayIso()); previewAddDate(); $('aCust').focus(); break;
+    case 'set-tmr': $('aDate').value = fmtDate(tomorrowIso()); previewAddDate(); $('aCust').focus(); break;
     case 'forget': forgetCustomer(a.dataset.key); break;
     case 'notif-on': enableNotifs(); break;
     case 'notif-test': remind('Δοκιμαστική υπενθύμιση', 'Έτσι θα εμφανίζεται η υπενθύμιση για τους φακέλους.', 'test-' + Date.now()); beep(); break;
@@ -1136,7 +1228,17 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('change', e => {
   const el = e.target.closest('[data-date]');
-  if (el){ el.blur(); setGroupDate(el.dataset.date, el.value); }
+  if (!el) return;
+  const r = parseDateInput(el.value);
+  if (!r.ok){ toast(esc(dateError(r))); el.value = fmtDate(el.dataset.orig); return; }
+  if (r.value === el.dataset.orig){ el.value = fmtDate(r.value); return; }
+  el.blur();
+  setGroupDate(el.dataset.date, r.value);
+});
+document.addEventListener('keydown', e => {
+  const el = e.target.closest && e.target.closest('[data-date]');
+  if (el && e.key === 'Enter'){ e.preventDefault(); el.blur(); }
+  if (el && e.key === 'Escape'){ el.value = fmtDate(el.dataset.orig); el.blur(); }
 });
 let lastRefresh = 0;
 function tick(){
