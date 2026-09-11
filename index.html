@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Φάκελοι | Μύλοι Αρκαδίου</title>
+<link rel="icon" id="favicon" type="image/png" href="https://m-m-m.gr/wp-content/uploads/2024/04/logo-150.png">
+<link rel="apple-touch-icon" id="touchIcon" href="https://m-m-m.gr/wp-content/uploads/2024/04/logo-150.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -207,11 +209,29 @@ input{font:inherit;color:inherit}
 .chip-name{font:inherit;font-weight:600}
 .chip-name:hover{color:var(--olive-deep);text-decoration:underline}
 /* ===== MODAL ===== */
-.modal-back{position:fixed;inset:0;background:rgba(40,40,34,.38);z-index:80;display:flex;align-items:flex-start;justify-content:center;padding:12vh 16px}
-.modal{background:var(--white);border-radius:14px;width:100%;max-width:440px;padding:22px;box-shadow:0 30px 60px -20px rgba(40,40,34,.4)}
-.modal h2{font-size:18px;font-weight:700;margin-bottom:4px}
-.modal > p{color:var(--muted);font-size:13.5px;margin-bottom:14px}
-.m-f{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
+.modal-back{position:fixed;inset:0;background:rgba(40,40,34,.38);z-index:95;display:flex;align-items:flex-start;justify-content:center;padding:min(10vh,72px) 16px 24px;overflow-y:auto}
+.modal{position:relative;background:var(--white);border-radius:14px;width:100%;max-width:480px;padding:22px 24px 18px;box-shadow:0 30px 60px -20px rgba(40,40,34,.4)}
+.m-x{position:absolute;top:12px;right:12px}
+.m-x:hover{background:var(--line-2);color:var(--ink)}
+.m-eyebrow{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:2px}
+.modal h2{font-size:19px;font-weight:800;line-height:1.25;letter-spacing:-.005em;padding-right:36px;overflow-wrap:anywhere}
+.m-meta{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;color:var(--muted);font-size:12.5px;margin:8px 0 18px;padding-bottom:16px;border-bottom:1px solid var(--line-2)}
+.m-field{margin-bottom:14px}
+.m-meta .slot{margin-left:0}
+.m-field .seg{display:flex;width:100%}
+.m-field .seg button{flex:1;padding:10px 12px;font-size:13.5px}
+.m-hint{margin-top:-6px}
+.m-f{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid var(--line-2)}
+.m-sp{flex:1}
+.btn.link-danger{color:var(--red);padding:8px 2px;background:none;font-weight:700}
+.btn.link-danger:hover{text-decoration:underline;text-underline-offset:3px}
+@media (max-width:460px){
+  .modal{padding:20px 18px 16px}
+  .m-f{flex-direction:column-reverse;align-items:stretch}
+  .m-f .btn{width:100%}
+  .m-sp{display:none}
+  .btn.link-danger{padding:10px 0}
+}
 
 /* ===== ΕΙΔΟΣ & ΣΧΟΛΙΟ ===== */
 .add-grid{grid-template-columns:minmax(200px,1.4fr) auto auto}
@@ -237,7 +257,7 @@ input{font:inherit;color:inherit}
 .item .note{color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:320px}
 .item .note.add{color:#ADAB9F}
 .item svg{width:12px;height:12px;color:#B8B6AA;flex-shrink:0}
-.modal textarea.inp{width:100%;resize:vertical;font:inherit;font-size:14px}
+.modal textarea.inp{width:100%;resize:vertical;font:inherit;font-size:14px;min-height:78px}
 
 /* ===== ΗΜΕΡΟΜΗΝΙΑ (τύπου SoftOne) ===== */
 .dinp{font-variant-numeric:tabular-nums;letter-spacing:.02em}
@@ -308,6 +328,35 @@ input{font:inherit;color:inherit}
 .stand-slots{grid-template-columns:repeat(var(--n),minmax(0,1fr))}
 @media (max-width:760px){.stand-slots{grid-template-columns:1fr}}
 .slot-note{font-size:11.5px;color:var(--muted);padding:6px 14px 0}
+
+/* ===== ΕΥΡΕΤΗΡΙΟ ===== */
+.idx-bar{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 16px}
+.idx-bar button{min-width:30px;height:30px;padding:0 6px;border-radius:7px;font-weight:800;font-size:13px;background:var(--white);border:1px solid var(--line);color:var(--ink)}
+.idx-bar button:hover:not(:disabled){border-color:var(--olive);color:var(--olive-deep)}
+.idx-bar button.off,.idx-bar button:disabled{color:#CFCDC2;background:transparent;border-color:transparent;cursor:default}
+.idx-bar button.on,.idx-bar button.on:hover:not(:disabled){background:var(--olive-dark);border-color:var(--olive-dark);color:#fff}
+.idx-bar button.clear{font-weight:700;font-size:12px;color:var(--muted);padding:0 10px;margin-left:4px}
+.idx-h{display:flex;align-items:center;gap:10px;padding:10px 14px 4px;border-top:1px solid var(--line-2)}
+.rows > .idx-h:first-child{border-top:0}
+.idx-h span{display:inline-grid;place-items:center;min-width:26px;height:26px;padding:0 5px;border-radius:7px;background:var(--olive-tint);color:var(--olive-deep);font-weight:800;font-size:14px}
+.idx-h::after{content:"";flex:1;height:1px;background:var(--line-2)}
+.idx-h + .row{border-top:0}
+.rows.bad .idx-h span{background:var(--red-tint);color:var(--red)}
+.idx-h.grid{grid-column:1 / -1;padding:4px 0 0;border-top:0;margin-bottom:-4px}
+.idx-h.grid::after{background:var(--line)}
+.slot-card li.idx-li{display:flex;align-items:center;gap:8px;padding:8px 14px 2px;counter-increment:none}
+.slot-card li.idx-li::before{content:none}
+.slot-card li.idx-li span{font-size:12px;font-weight:800;color:var(--olive-deep);background:var(--olive-tint);border-radius:5px;padding:1px 7px}
+.slot-card li.idx-li::after{content:"";flex:1;height:1px;background:var(--line-2)}
+@media print{ #printArea .p-letter td{font-weight:800;font-size:11pt;padding-top:6pt;border-bottom:1pt solid #000} }
+
+.env-idx{position:absolute;top:8px;left:10px;z-index:1;min-width:24px;height:24px;padding:0 5px;border-radius:6px;background:var(--white);border:1px solid var(--line);display:grid;place-items:center;font-weight:800;font-size:13px;color:var(--olive-deep)}
+.add-grid{align-items:start}
+.add-grid > .btn{align-self:end}
+@media (max-width:600px){
+  .idx-bar{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;margin-right:-14px;scrollbar-width:thin}
+  .idx-bar button{flex-shrink:0}
+}
 </style>
 </head>
 <body>
@@ -688,11 +737,12 @@ function checkReminders(){
   updateTitle();
   if (!due.length) return;
   saveLocal();
-  // ένα μήνυμα ανά φάκελο (πελάτη), με ό,τι έχει μέσα
+  // ένα μήνυμα ανά φάκελο (πελάτη)· αν είναι πάνω από 3 συνολικά, ένα συγκεντρωτικό ανά είδος
+  const totalMsgs = ['day','eve','miss'].reduce((n, k) => n + groupsOf(due.filter(d => d.kind === k).map(d => d.env)).length, 0);
   const fire = (kind, one, many) => {
-    const list = groupsOf(due.filter(d => d.kind === kind).map(d => d.env)).map(g => groupsOf(envelopeOf(g.name))[0] || g);
+    const list = groupsOf(due.filter(d => d.kind === kind).map(d => d.env)).map(g => groupsOf(envelopeOf(g.name))[0] || g).sort((a,b) => a.name.localeCompare(b.name,'el'));
     if (!list.length) return;
-    if (list.length <= 3) list.forEach(g => { const [a,b] = one(g); remind(a, b, `${kind}-${norm(g.name)}`); });
+    if (list.length <= 3 && totalMsgs <= 3) list.forEach(g => { const [a,b] = one(g); remind(a, b, `${kind}-${norm(g.name)}`); });
     else { const [a,b] = many(list); remind(a, b, `${kind}-summary`); }
   };
   const inside = g => { const s = docSummary(g.items); return s ? ` (${s})` : ''; };
@@ -862,6 +912,7 @@ function buildMain(){
       </div>
       <div id="kFilter" aria-label="Φίλτρο είδους">${kindSeg(kindFilter, 'kfilter', true)}</div>
     </div>
+    <nav class="idx-bar" id="idxBar" aria-label="Ευρετήριο γραμμάτων"></nav>
     <p class="q-info" id="qInfo" hidden></p>
     <div id="lists"></div>`;
   const inp = $('aCust');
@@ -942,7 +993,7 @@ function addDocument(){
         if (dateChanged) await api(`envelopes?${idsFilter(existing.map(e => e.id))}`, { method:'PATCH', body:{ date:newDate || null }, prefer:'return=minimal' });
       },
       () => { DB.envelopes = DB.envelopes.filter(e => e.id !== doc.id); prev.forEach(([e,d]) => e.date = d); },
-      `Δεν μπήκε στον φάκελο του ${name}.`
+      `Δεν μπήκε στον φάκελο για ${name}.`
     ).then(() => checkReminders());
     /* ίδιος φάκελος → όχι δεύτερη υπενθύμιση για σήμερα, εκτός αν άλλαξε η ημέρα */
     if (!dateChanged){
@@ -950,7 +1001,7 @@ function addDocument(){
       ['day','eve','miss'].forEach(k => { if (existing.some(e => LOCAL.fired[`${t}|${k}|${e.id}`])) LOCAL.fired[`${t}|${k}|${doc.id}`] = 1; });
       saveLocal();
     }
-    toast(`Μπήκε στον υπάρχοντα φάκελο του ${esc(name)}, ${esc(slotName(name))}. Μέσα τώρα: ${esc(docSummary([...existing, doc]))}.${pd.value && dateChanged ? ` Νέα ημέρα παράδοσης: ${esc(dayLabel(newDate, true))}.` : ''}`);
+    toast(`Μπήκε στον υπάρχοντα φάκελο για ${esc(name)}, ${esc(slotName(name))}. Μέσα τώρα: ${esc(docSummary([...existing, doc]))}.${pd.value && dateChanged ? ` Νέα ημέρα παράδοσης: ${esc(dayLabel(newDate, true))}.` : ''}`);
     return;
   }
   /* Νέος φάκελος */
@@ -1012,7 +1063,7 @@ function removeDoc(id){
     () => { DB.envelopes.push(doc); },
     'Δεν αφαιρέθηκε από τον φάκελο.'
   );
-  toast(left > 0 ? `${KINDS[doc.kind] || 'Το έγγραφο'} βγήκε από τον φάκελο του ${esc(doc.name)}.` : `Αφαιρέθηκε ο φάκελος: ${esc(doc.name)}.`, { action:{ label:'Αναίρεση', fn:() => mutate(
+  toast(left > 0 ? `${KINDS[doc.kind] || 'Το έγγραφο'} βγήκε από τον φάκελο για ${esc(doc.name)}.` : `Αφαιρέθηκε ο φάκελος: ${esc(doc.name)}.`, { action:{ label:'Αναίρεση', fn:() => mutate(
     () => { DB.envelopes.push(doc); },
     () => api('envelopes', { method:'POST', body:docBody(doc), prefer:'return=minimal' }),
     () => { DB.envelopes = DB.envelopes.filter(e => e.id !== doc.id); },
@@ -1033,7 +1084,7 @@ function restoreGiven(idsStr){
     () => { prev.forEach(([e,g,d]) => { e.givenAt = g; e.date = d; }); },
     'Η επαναφορά δεν αποθηκεύτηκε.'
   );
-  toast(existing.length ? `Μπήκε ξανά στον φάκελο του ${esc(docs[0].name)} που είναι στο stand.` : `Ο φάκελος για ${esc(docs[0].name)} γύρισε στο stand.`);
+  toast(existing.length ? `Μπήκε ξανά στον φάκελο για ${esc(docs[0].name)} που είναι στο stand.` : `Ο φάκελος για ${esc(docs[0].name)} γύρισε στο stand.`);
 }
 function setGroupDate(idsStr, value){
   const docs = docsByIds(idsStr);
@@ -1073,14 +1124,18 @@ function openEdit(id){
   const box = $('modalBox');
   const draw = () => {
     box.innerHTML = `
-      <h2>${doc.kind ? KINDS[doc.kind] : 'Έγγραφο'} στον φάκελο του ${esc(doc.name)}</h2>
-      <p>Μπήκε ${shortDate(iso(new Date(doc.addedAt)))}${doc.date ? `. Παράδοση ${esc(dayLabel(doc.date, true))}.` : '.'}</p>
-      <div class="f" style="margin-bottom:12px"><span>Είδος</span>${kindSeg(kind, 'ekind')}</div>
-      <label class="f"><span>Σχόλιο</span><textarea class="inp" id="eNote" rows="3" maxlength="${NOTE_MAX}" placeholder="π.χ. στα χέρια του ιδιοκτήτη">${esc(doc.note)}</textarea></label>
-      <p class="hint">Μόνο οδηγίες για τον φάκελο. Όχι ποσά ή στοιχεία πληρωμής.</p>
+      <button class="icon-btn m-x" data-m="cancel" aria-label="Κλείσιμο">×</button>
+      <p class="m-eyebrow">Έγγραφο στον φάκελο</p>
+      <h2>${esc(doc.name)}</h2>
+      <p class="m-meta">${kindTag({ kind })}<span>Μπήκε ${shortDate(iso(new Date(doc.addedAt)))}</span><span>${doc.date ? `Παράδοση ${esc(dayLabel(doc.date))}` : 'Χωρίς ημέρα παράδοσης'}</span>${slotBadge(doc.name)}</p>
+      <div class="f m-field"><span>Είδος</span>${kindSeg(kind, 'ekind')}</div>
+      <label class="f m-field"><span>Σχόλιο</span><textarea class="inp" id="eNote" rows="3" maxlength="${NOTE_MAX}" placeholder="π.χ. στα χέρια του ιδιοκτήτη">${esc(doc.note)}</textarea></label>
+      <p class="hint m-hint">Μόνο οδηγίες για τον φάκελο. Όχι ποσά ή στοιχεία πληρωμής.</p>
       <div class="m-f">
-        ${doc.givenAt ? '' : '<button class="btn danger-ghost" data-m="remove" style="margin-right:auto">Αφαίρεση από τον φάκελο</button>'}
-        <button class="btn ghost" data-m="cancel">Ακύρωση</button><button class="btn primary" data-m="save">Αποθήκευση</button>
+        ${doc.givenAt ? '' : '<button class="btn link-danger" data-m="remove" title="Αφαίρεση από τον φάκελο (λάθος καταχώρηση)">Αφαίρεση</button>'}
+        <span class="m-sp"></span>
+        <button class="btn ghost" data-m="cancel">Ακύρωση</button>
+        <button class="btn primary" data-m="save">Αποθήκευση</button>
       </div>`;
   };
   const close = () => { $('modal').hidden = true; box.innerHTML = ''; document.removeEventListener('keydown', onKey); };
@@ -1095,7 +1150,7 @@ function openEdit(id){
       () => { doc.kind = prev.kind; doc.note = prev.note; },
       'Οι αλλαγές δεν αποθηκεύτηκαν.'
     );
-    toast(`Αποθηκεύτηκε στον φάκελο του ${esc(doc.name)}.`);
+    toast(`Αποθηκεύτηκε στον φάκελο για ${esc(doc.name)}.`);
   };
   const onKey = e => { if (e.key === 'Escape') close(); };
   box.onclick = e => {
@@ -1117,11 +1172,13 @@ function openEdit(id){
 function openRename(oldName){
   const box = $('modalBox');
   box.innerHTML = `
-    <h2>Διόρθωση ονόματος</h2>
-    <p>Αλλάζει στον φάκελο του πελάτη και στο ιστορικό του.</p>
-    <label class="f"><span>Σωστό όνομα</span><input class="inp" id="rName" list="custList" value="${esc(oldName)}" autocomplete="off"></label>
+    <button class="icon-btn m-x" data-m="cancel" aria-label="Κλείσιμο">×</button>
+    <p class="m-eyebrow">Διόρθωση ονόματος</p>
+    <h2>${esc(oldName)}</h2>
+    <p class="m-meta"><span>Αλλάζει στον φάκελο και στο ιστορικό του πελάτη.</span></p>
+    <label class="f m-field"><span>Σωστό όνομα</span><input class="inp" id="rName" list="custList" value="${esc(oldName)}" autocomplete="off"></label>
     <p class="hint" id="rHint"></p>
-    <div class="m-f"><button class="btn ghost" data-m="cancel">Ακύρωση</button><button class="btn primary" data-m="save">Αποθήκευση</button></div>`;
+    <div class="m-f"><span class="m-sp"></span><button class="btn ghost" data-m="cancel">Ακύρωση</button><button class="btn primary" data-m="save">Αποθήκευση</button></div>`;
   const inp = $('rName'), hint = $('rHint');
   upperInput(inp);
   const check = () => {
@@ -1180,6 +1237,7 @@ const nameBtn = g => `<button class="name-btn" data-act="rename" data-name="${es
 function envCard(g){
   const n = g.items.length;
   return `<article class="env">
+    <span class="env-idx" title="Γράμμα ${letterOf(g.name)}">${letterOf(g.name)}</span>
     <span class="seal">${ENV_SVG}</span>
     <h3>${nameBtn(g)}</h3>
     ${slotBadge(g.name)}
@@ -1214,6 +1272,35 @@ function givenRows(groups){
       <button class="btn ghost sm" data-act="restore" data-ids="${g.items.map(e => e.id).join(',')}">Επαναφορά στο stand</button></div>`;
   }).join('')}</div>`;
 }
+/* ---------- Ευρετήριο: κεφαλίδα γράμματος πριν από κάθε ομάδα ονομάτων ---------- */
+const INDEX_LETTERS = 'ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ'.split('');
+let letterFilter = '';
+function letterOf(name){
+  const ch = [...upper(norm(name))].find(c => /[Α-ΩA-Z0-9]/.test(c)) || '';
+  return INDEX_LETTERS.includes(ch) ? ch : 'A–Z';
+}
+/* list: ταξινομημένη αλφαβητικά · fn: πώς ζωγραφίζεται κάθε στοιχείο */
+function indexed(list, fn, grid=false){
+  let last = null, out = '';
+  list.forEach(g => {
+    const L = letterOf(g.name);
+    if (L !== last){ out += `<div class="idx-h${grid ? ' grid' : ''}" aria-hidden="true"><span>${L}</span></div>`; last = L; }
+    out += fn(g);
+  });
+  return out;
+}
+function renderIndexBar(allG){
+  const bar = $('idxBar'); if (!bar) return;
+  const counts = {};
+  allG.forEach(g => { const L = letterOf(g.name); counts[L] = (counts[L] || 0) + 1; });
+  if (!allG.length){ bar.innerHTML = ''; return; }
+  const letters = [...INDEX_LETTERS, ...(counts['A–Z'] ? ['A–Z'] : [])];
+  bar.innerHTML = letters.map(L => {
+    const n = counts[L] || 0;
+    return `<button type="button" class="${letterFilter === L ? 'on' : n ? '' : 'off'}" ${n ? `data-letter="${L}" title="${L}: ${n === 1 ? '1 φάκελος' : n + ' φάκελοι'}"` : 'disabled aria-disabled="true"'}>${L}</button>`;
+  }).join('') + (letterFilter ? `<button type="button" class="clear" data-letter="">Όλα</button>` : '');
+}
+
 function renderMain(){
   if (!$('lists')) return;
   const active = document.activeElement;
@@ -1221,7 +1308,8 @@ function renderMain(){
   const t = todayIso(), tm = tomorrowIso(), now = new Date(), S = LOCAL.settings;
   const byName = (a,b) => a.name.localeCompare(b.name,'el');
   const allG = groupsOf(pending());
-  const G = allG.filter(g => matchesQuery(g.name, query) && (!kindFilter || g.items.some(e => e.kind === kindFilter)));
+  const G = allG.filter(g => matchesQuery(g.name, query) && (!kindFilter || g.items.some(e => e.kind === kindFilter)) && (!letterFilter || letterOf(g.name) === letterFilter));
+  renderIndexBar(allG);
   const today = G.filter(g => g.date === t).sort(byName);
   const missed = G.filter(g => g.date && g.date < t).sort(byName);
   const nw = nextWorkDay(t);                                   // επόμενη εργάσιμη (την Παρασκευή: η Δευτέρα)
@@ -1246,22 +1334,25 @@ function renderMain(){
       ? `<b>Ναι.</b> ${G.length === 1 ? 'Υπάρχει φάκελος' : `${G.length} φάκελοι`} στο stand: ${G.map(g => `${esc(g.name)} (${esc(docSummary(g.items))}${g.date ? `, παράδοση ${esc(dayLabel(g.date, true))}` : ''}), ${esc(slotName(g.name))}`).join('· ')}.`
       : `<b>Όχι.</b> Κανένας φάκελος στο stand για «${esc($('q').value.trim())}».${gHits.length ? ' Από κάτω όσοι έχουν ήδη δοθεί.' : ''}`;
     if (today.length) html += section('ΦΕΥΓΟΥΝ ΣΗΜΕΡΑ', `<div class="env-grid">${today.map(envCard).join('')}</div>`);
-    if (missed.length) html += section('ΕΜΕΙΝΑΝ ΣΤΟ STAND', `<div class="rows bad">${missed.map(g => row(g, `Η παράδοση ήταν ${esc(dayLabel(g.date, true))}.`, true)).join('')}</div>`, true);
+    if (missed.length) html += section('ΕΜΕΙΝΑΝ ΣΤΟ STAND', `<div class="rows bad">${indexed(missed, g => row(g, `Η παράδοση ήταν ${esc(dayLabel(g.date, true))}.`, true))}</div>`, true);
     const rest = [...tmr, ...later, ...nodate].sort(byName);
-    if (rest.length) html += section('ΣΤΟ STAND', `<div class="rows">${rest.map(g => row(g, `${g.date ? esc(dayLabel(g.date)) + '. ' : 'Χωρίς ημέρα. '}${sinceText(g.addedAt)}`)).join('')}</div>`);
+    if (rest.length) html += section('ΣΤΟ STAND', `<div class="rows">${indexed(rest, g => row(g, `${g.date ? esc(dayLabel(g.date)) + '. ' : 'Χωρίς ημέρα. '}${sinceText(g.addedAt)}`))}</div>`);
     if (gHits.length) html += section('ΔΟΘΗΚΑΝ', givenRows(gHits));
     $('lists').innerHTML = html;
     return;
   }
-  $('qInfo').hidden = true;
+  $('qInfo').hidden = !letterFilter;
+  if (letterFilter) $('qInfo').innerHTML = G.length
+    ? `Γράμμα <b>${letterFilter}</b>: ${G.length === 1 ? '1 φάκελος' : G.length + ' φάκελοι'} στο stand, ${esc(slotName(G[0].name))}.`
+    : `Γράμμα <b>${letterFilter}</b>: κανένας φάκελος.`;
 
   html += section('ΦΕΥΓΟΥΝ ΣΗΜΕΡΑ', today.length
     ? `<div class="env-grid">${today.map(envCard).join('')}</div>`
-    : `<div class="empty">${kindFilter ? (kindFilter === 'timologio' ? 'Κανένας φάκελος με τιμολόγιο για σήμερα.' : 'Κανένας φάκελος με απόδειξη για σήμερα.') : allG.length ? 'Κανένας φάκελος για σήμερα.' : 'Όταν μπαίνει φάκελος στο stand, γράψε τον πελάτη από πάνω.'}</div>`);
-  if (missed.length) html += section('ΕΜΕΙΝΑΝ ΣΤΟ STAND', `<div class="rows bad">${missed.map(g => row(g, `Η παράδοση ήταν ${esc(dayLabel(g.date, true))}. Αν δόθηκε, πάτα «Δόθηκε». Αλλιώς βάλε νέα ημέρα.`, true)).join('')}</div>`, true);
-  if (tmr.length) html += section(nwTitle, `<div class="rows">${tmr.map(g => row(g, `${g.date !== nw || nw !== tm ? esc(dayLabel(g.date)) + '. ' : ''}${sinceText(g.addedAt)}`)).join('')}</div>`);
-  if (later.length) html += section('ΕΠΟΜΕΝΕΣ ΜΕΡΕΣ', `<div class="rows">${later.map(g => row(g, `${esc(dayLabel(g.date))}. ${sinceText(g.addedAt)}`)).join('')}</div>`);
-  if (nodate.length) html += section('ΧΩΡΙΣ ΗΜΕΡΑ ΠΑΡΑΔΟΣΗΣ', `<div class="rows">${nodate.map(g => row(g, `${sinceText(g.addedAt)}. Βάλε ημέρα για να έρθει υπενθύμιση.`)).join('')}</div>`);
+    : `<div class="empty">${letterFilter ? `Κανένας φάκελος στο ${letterFilter} για σήμερα.` : kindFilter ? (kindFilter === 'timologio' ? 'Κανένας φάκελος με τιμολόγιο για σήμερα.' : 'Κανένας φάκελος με απόδειξη για σήμερα.') : allG.length ? 'Κανένας φάκελος για σήμερα.' : 'Όταν μπαίνει φάκελος στο stand, γράψε τον πελάτη από πάνω.'}</div>`);
+  if (missed.length) html += section('ΕΜΕΙΝΑΝ ΣΤΟ STAND', `<div class="rows bad">${indexed(missed, g => row(g, `Η παράδοση ήταν ${esc(dayLabel(g.date, true))}. Αν δόθηκε, πάτα «Δόθηκε». Αλλιώς βάλε νέα ημέρα.`, true))}</div>`, true);
+  if (tmr.length) html += section(nwTitle, `<div class="rows">${indexed(tmr, g => row(g, `${g.date !== nw || nw !== tm ? esc(dayLabel(g.date)) + '. ' : ''}${sinceText(g.addedAt)}`))}</div>`);
+  if (later.length) html += section('ΕΠΟΜΕΝΕΣ ΜΕΡΕΣ', `<div class="rows">${indexed(later, g => row(g, `${esc(dayLabel(g.date))}. ${sinceText(g.addedAt)}`))}</div>`);
+  if (nodate.length) html += section('ΧΩΡΙΣ ΗΜΕΡΑ ΠΑΡΑΔΟΣΗΣ', `<div class="rows">${indexed(nodate, g => row(g, `${sinceText(g.addedAt)}. Βάλε ημέρα για να έρθει υπενθύμιση.`))}</div>`);
 
   const recent = givenGroups(given.filter(e => e.givenAt >= addDays(now, -14).toISOString()));
   if (recent.length) html += `<details class="given"><summary>Δόθηκαν τις τελευταίες 14 μέρες (${recent.length})</summary>${givenRows(recent)}</details>`;
@@ -1351,7 +1442,7 @@ function renderStand(){
       return `<section class="slot-card${list.length ? '' : ' empty'}">
         <header><span class="slot-num">${esc(sl.short)}</span><span class="slot-l">${esc(sl.label)}</span><span class="slot-n">${list.length ? (list.length === 1 ? '1 φάκελος' : list.length + ' φάκελοι') : 'άδεια'}</span></header>
         ${sl.last ? '<p class="slot-note">+ ονόματα με λατινικά ή αριθμούς</p>' : ''}
-        ${list.length ? `<ol>${list.map(g => `<li><b>${esc(g.name)}</b><small>${esc(docSummary(g.items))} ${dayTag(g)}</small></li>`).join('')}</ol>` : ''}
+        ${list.length ? `<ol>${indexed(list, g => `<li><b>${esc(g.name)}</b><small>${esc(docSummary(g.items))} ${dayTag(g)}</small></li>`).replace(/<div class="idx-h" aria-hidden="true"><span>(.*?)<\/span><\/div>/g, '<li class="idx-li" aria-hidden="true"><span>$1</span></li>')}</ol>` : ''}
       </section>`;
     }).join('')}</div>`;
 }
@@ -1363,7 +1454,8 @@ function printStand(kind){
   } else {
     const now = new Date();
     area.innerHTML = `<h1>Stand φακέλων · Μύλοι Αρκαδίου</h1><p class="p-sub">${longDate(todayIso())}, ${hhmm(now.toISOString())}</p>
-      ${layout.filter(sl => bySlot.get(sl.id).length).map(sl => `<h2>${esc(sl.short)} · ${esc(sl.label)}</h2><table>${bySlot.get(sl.id).map((g,i) =>
+      ${layout.filter(sl => bySlot.get(sl.id).length).map(sl => `<h2>${esc(sl.short)} · ${esc(sl.label)}</h2><table>${bySlot.get(sl.id).map((g,i,arr) =>
+        (i === 0 || letterOf(arr[i-1].name) !== letterOf(g.name) ? `<tr class="p-letter"><td colspan="5">${letterOf(g.name)}</td></tr>` : '') +
         `<tr><td class="p-n">${i+1}.</td><td class="p-name">${esc(g.name)}</td><td>${esc(docSummary(g.items))}</td><td class="p-d">${g.date ? esc(dayLabel(g.date)) : 'χωρίς ημέρα'}</td><td class="p-chk">☐</td></tr>`).join('')}</table>`).join('')}`;
   }
   document.body.classList.add('print-mode');
@@ -1474,6 +1566,8 @@ document.addEventListener('click', e => {
   if (g){ e.preventDefault(); go(g.dataset.go); return; }
   const kb = e.target.closest('[data-kind]');
   if (kb){ addKind = kb.dataset.kind; $('aKind').innerHTML = kindSeg(addKind, 'kind'); updateHint(); return; }
+  const lb = e.target.closest('[data-letter]');
+  if (lb){ const L = lb.dataset.letter; letterFilter = (L && letterFilter !== L) ? L : ''; renderMain(); return; }
   const wd = e.target.closest('[data-wd]');
   if (wd){
     const d = Number(wd.dataset.wd), cur = LOCAL.settings.workDays || [];
@@ -1533,7 +1627,11 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden){ las
 
 /* ===================== INIT ===================== */
 (function initLogo(){
+  /* Το ίδιο λογότυπο στην κεφαλίδα και ως εικονίδιο της καρτέλας.
+     Αν δεν φορτώσει το πρώτο link, δοκιμάζει το επόμενο και για τα δύο. */
   const img = $('logo'); let i = 0;
+  const setIcons = url => { $('favicon').href = url; $('touchIcon').href = url; };
+  img.onload = () => setIcons(img.src);
   img.onerror = () => { i++; if (i < LOGO_URLS.length) img.src = LOGO_URLS[i]; else { img.hidden = true; $('logoFb').hidden = false; } };
   img.src = LOGO_URLS[0];
 })();
