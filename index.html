@@ -453,6 +453,29 @@ input{font:inherit;color:inherit}
 .cg-item .icon-btn{width:26px;height:26px;font-size:15px}
 .cg-item .icon-btn.edit:hover{background:var(--olive-tint);color:var(--olive-deep)}
 .cust-grid .empty{grid-column:1 / -1;border:0}
+
+/* ===== ΑΝΑΜΟΝΗ / ΚΑΘΥΣΤΕΡΗΣΗ ===== */
+.chk-row.wait .chk-st{color:var(--wheat-dark)}
+.chk-row.late .chk-st{color:var(--red)}
+.chk-row.late .chk-code{color:var(--red)}
+.chk-day{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px 8px;background:var(--bg);border-top:1px solid var(--line)}
+.chk-list > .chk-day:first-child{border-top:0}
+.chk-day + .chk-row{border-top:0}
+.cd-t{display:flex;align-items:baseline;gap:8px;flex:1;min-width:180px}
+.cd-t b{font-size:13.5px;font-weight:800}
+.cd-t small{color:var(--muted);font-size:12px}
+.cd-sum{font-size:12px;font-weight:700;color:var(--muted)}
+.chk-day.late .cd-t small,.chk-day.late .cd-sum{color:var(--red)}
+.chk-day .btn{padding:4px 10px;font-size:11.5px}
+.check-sum .wait{color:var(--wheat-dark);font-weight:700}
+.late-set{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap}
+.late-set .inp{width:58px;padding:4px 6px;font-size:13px;text-align:center}
+.wait-sub{margin:-6px 0 10px}
+.late-notice{background:var(--red-tint);border-color:#EBCFCC;margin:0 0 18px}
+.late-notice svg,.late-notice b{color:var(--red)}
+.chk-hist .tag.wait{background:var(--wheat-tint);color:var(--wheat-dark)}
+.rv-sum{font-size:12.5px;font-weight:700;color:var(--olive-deep);margin-top:4px}
+@media (max-width:600px){.sec-h .late-set{width:100%;order:3}.sec-h{flex-wrap:wrap}}
 </style>
 </head>
 <body>
@@ -729,6 +752,7 @@ async function refresh(){
     renderAll(); checkReminders();
     cleanupHistory();
     uppercaseLegacy().then(unifyDates);
+    if (canArchive() && !ARC.loaded && !ARC.loading) loadArchive();
   } catch(e){ handleError(e, 'Δεν ενημερώθηκαν οι φάκελοι.', true); }
   finally { refreshing = false; }
 }
@@ -903,7 +927,7 @@ function renderNav(){
   $('nav').innerHTML = `
     <button class="nav-btn${view==='main'?' active':''}" data-go="main">ΦΑΚΕΛΟΙ${n ? `<span class="cnt">${n}</span>` : ''}</button>
     <button class="nav-btn${view==='stand'?' active':''}" data-go="stand">STAND</button>
-    ${canArchive() ? `<button class="nav-btn${view==='arc'?' active':''}" data-go="arc"><span class="nl-long">ΑΡΧΕΙΟΘΕΤΗΣΗ</span><span class="nl-short">ΑΡΧΕΙΟ</span></button>` : ''}
+    ${canArchive() ? `<button class="nav-btn${view==='arc'?' active':''}" data-go="arc"><span class="nl-long">ΑΡΧΕΙΟΘΕΤΗΣΗ</span><span class="nl-short">ΑΡΧΕΙΟ</span>${ARC.loaded && lateCount() ? `<span class="cnt" title="Παραστατικά που καθυστερούν">${lateCount()}</span>` : ''}</button>` : ''}
     <button class="nav-btn${view==='set'?' active':''}" data-go="set" aria-label="Ρυθμίσεις"><span class="nl-long">ΡΥΘΜΙΣΕΙΣ</span><svg class="nl-short" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>`;
 }
 let pendingRoute = null;
@@ -922,7 +946,7 @@ function go(v, opts = {}){
     if (sub){ if (ARC.loaded) openCheck(sub); else ARC.pendingOpen = sub; }
     else if (opts.fromHash) ARC.openId = null;
     renderArchive();
-    if (!ARC.loaded) loadArchive();
+    loadArchive();                                   // πάντα φρέσκα, μπορεί να τσεκάρει κι άλλος υπολογιστής
   }
   setHash(v, v === 'arc' ? (opts.sub || ARC.openId || '') : '');
   renderAll();
@@ -1700,7 +1724,7 @@ const ARCHIVE_EMAILS = ['social@m-m-m.gr'];
 const account = () => ACCOUNTS[String((LOCAL.session && LOCAL.session.email) || '').toLowerCase()] || null;
 const canArchive = () => !!(LOCAL.session && ARCHIVE_EMAILS.includes(String(LOCAL.session.email || '').toLowerCase()));
 const TESSERACT_URL = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
-const ARC = { loaded:false, loading:false, setupMissing:false, checks:[], missing:new Map(), openId:null, openDocs:new Map(),
+const ARC = { loaded:false, loading:false, setupMissing:false, checks:[], missing:new Map(), docs:new Map(), openId:null, openDocs:new Map(),
               review:[], reviewIssues:[], images:[], busy:false, filter:'missing', q:'' };
 
 /* ---------- Ανάγνωση κωδικών από το κείμενο της εικόνας ---------- */
@@ -1876,18 +1900,22 @@ async function loadArchive(){
   if (ARC.loading || !canArchive()) return;
   ARC.loading = true;
   try {
-    const [checks, miss] = await Promise.all([
+    const [checks, miss, recent] = await Promise.all([
       api('archive_checks?select=id,label,codes,created_at&order=created_at.desc&limit=100'),
-      api('archive_docs?select=code,doc_date&archived_at=is.null&order=code.asc')
+      api('archive_docs?select=code,doc_date&archived_at=is.null&order=code.asc'),
+      api('archive_docs?select=code,doc_date,archived_at&order=doc_date.desc.nullslast&limit=1000')
     ]);
     ARC.checks = checks || [];
     ARC.missing = new Map((miss || []).map(r => [r.code, r]));
+    ARC.docs = new Map((recent || []).map(r => [r.code, r]));
+    (miss || []).forEach(r => { if (!ARC.docs.has(r.code)) ARC.docs.set(r.code, r); });
     ARC.loaded = true; ARC.setupMissing = false; setOnline(true);
   } catch(e){
     if (/HTTP 40[04]|PGRST|42P01/.test(String(e && e.message))) ARC.setupMissing = true;
     else handleError(e, 'Δεν φόρτωσαν οι έλεγχοι αρχειοθέτησης.');
   } finally {
     ARC.loading = false;
+    renderNav();
     if (ARC.pendingOpen){ const id = ARC.pendingOpen; ARC.pendingOpen = null; if (ARC.checks.some(c => c.id === id)) { openCheck(id); return; } else if (view === 'arc') setHash('arc'); }
     if (view === 'arc') renderArchive();
   }
@@ -1903,7 +1931,7 @@ async function openCheck(id){
       const part = chk.codes.slice(i, i + 80);
       const rows = await api(`archive_docs?select=code,doc_date,archived_at&code=in.${encodeURIComponent(inList(part))}`);
       (rows || []).forEach(r => {
-        ARC.openDocs.set(r.code, r);
+        ARC.openDocs.set(r.code, r); ARC.docs.set(r.code, r);
         if (r.archived_at) ARC.missing.delete(r.code); else ARC.missing.set(r.code, { code:r.code, doc_date:r.doc_date });
       });
     }
@@ -1920,7 +1948,7 @@ function setArchived(codes, archived){
   const prev = codes.map(c => [c, ARC.missing.get(c)]);
   const stamp = archived ? new Date().toISOString() : null;
   arcMutate(
-    () => codes.forEach(c => { if (archived) ARC.missing.delete(c); else ARC.missing.set(c, { code:c, doc_date:(ARC.openDocs.get(c) || {}).doc_date || null }); }),
+    () => { codes.forEach(c => { if (archived) ARC.missing.delete(c); else ARC.missing.set(c, { code:c, doc_date:docDate(c) || null }); const d = ARC.docs.get(c); if (d) d.archived_at = stamp; }); renderNav(); },
     async () => { for (let i = 0; i < codes.length; i += 80) await api(`archive_docs?code=in.${encodeURIComponent(inList(codes.slice(i, i + 80)))}`, { method:'PATCH', body:{ archived_at:stamp }, prefer:'return=minimal' }); },
     () => prev.forEach(([c, v]) => { if (v) ARC.missing.set(c, v); else ARC.missing.delete(c); }),
     'Η αλλαγή δεν αποθηκεύτηκε.'
@@ -1962,16 +1990,45 @@ function deleteCheck(id, btn){
 }
 
 /* ---------- Εμφάνιση ---------- */
+/* Κάθε παραστατικό: αρχειοθετημένο, σε αναμονή (το περιμένεις ακόμα), ή καθυστερεί
+   (το περιμένεις πάνω από τις μέρες που ορίζεις, προεπιλογή 7). */
 const arcDate = d => d ? fmtDate(d) : '';
-function chkRow(code, date){
-  const done = !ARC.missing.has(code);
-  return `<label class="chk-row${done ? ' done' : ''}">
-    <input type="checkbox" data-arc-code="${esc(code)}" ${done ? 'checked' : ''}>
+const lateDays = () => Math.min(90, Math.max(1, Number(LOCAL.settings.arcLateDays) || 7));
+const docInfo = code => ARC.openDocs.get(code) || ARC.docs.get(code) || ARC.missing.get(code) || {};
+const docDate = code => docInfo(code).doc_date || '';
+const ageDays = d => d ? Math.max(0, Math.round((fromIso(todayIso()) - fromIso(d)) / 86400000)) : null;
+const ageText = a => a == null ? '' : a === 0 ? 'σήμερα' : a === 1 ? '1 μέρα' : `${a} μέρες`;
+function docState(code){
+  if (!ARC.missing.has(code)) return 'done';
+  const a = ageDays(docDate(code));
+  return a != null && a > lateDays() ? 'late' : 'wait';
+}
+const lateCount = () => [...ARC.missing.keys()].filter(c => docState(c) === 'late').length;
+function chkRow(code, withDate=false){
+  const st = docState(code), d = docDate(code), a = ageDays(d);
+  const label = st === 'done' ? 'Αρχειοθετήθηκε' : st === 'late' ? `Καθυστερεί · ${ageText(a)}` : `Σε αναμονή${a != null ? ' · ' + ageText(a) : ''}`;
+  return `<label class="chk-row ${st}">
+    <input type="checkbox" data-arc-code="${esc(code)}" ${st === 'done' ? 'checked' : ''}>
     <span class="chk-box" aria-hidden="true"></span>
     <span class="chk-code">${esc(code)}</span>
-    <span class="chk-date">${esc(arcDate(date))}</span>
-    <span class="chk-st">${done ? 'Αρχειοθετήθηκε' : 'Λείπει'}</span>
+    ${withDate ? `<span class="chk-date">${esc(arcDate(d))}</span>` : ''}
+    <span class="chk-st">${label}</span>
   </label>`;
+}
+/* Λίστα ομαδοποιημένη ανά ημέρα παραστατικού (οι παλιότερες πρώτες) */
+function dayListHTML(codes){
+  const groups = new Map();
+  codes.forEach(c => { const d = docDate(c); if (!groups.has(d)) groups.set(d, []); groups.get(d).push(c); });
+  return [...groups.keys()].sort((x, y) => (x || '9999').localeCompare(y || '9999')).map(d => {
+    const cs = groups.get(d).sort(byCode);
+    const waiting = cs.filter(c => ARC.missing.has(c)), late = waiting.filter(c => docState(c) === 'late');
+    const a = ageDays(d);
+    return `<div class="chk-day${late.length ? ' late' : ''}">
+        <div class="cd-t"><b>${d ? esc(longDate(d)) : 'Χωρίς ημερομηνία'}</b>${d ? `<small>${a === 0 ? 'σήμερα' : 'πριν από ' + ageText(a)}</small>` : ''}</div>
+        <span class="cd-sum">${waiting.length ? `${waiting.length} σε αναμονή` : 'όλα αρχειοθετημένα'}</span>
+        ${waiting.length > 1 ? `<button class="btn ghost sm" data-arc="day-done" data-codes="${esc(waiting.join(','))}">Όλη η μέρα αρχειοθετήθηκε</button>` : ''}
+      </div>${cs.map(c => chkRow(c)).join('')}`;
+  }).join('');
 }
 function buildArchive(){
   $('view-arc').innerHTML = `
@@ -2013,7 +2070,9 @@ function renderArchive(){
       <section class="card review">
         <div class="review-h">
           <div><h2>Βρέθηκαν ${ARC.review.length === 1 ? '1 παραστατικό' : ARC.review.length + ' παραστατικά'}</h2>
-          <p>Σύγκρινέ τα με την εικόνα. Αν κάποιος κωδικός διαβάστηκε λάθος, διόρθωσέ τον πάνω του.</p></div>
+          <p>Σύγκρινέ τα με την εικόνα. Αν κάποιος κωδικός διαβάστηκε λάθος, διόρθωσέ τον πάνω του.</p>
+          ${(() => { const ex = ARC.review.filter(r => ARC.docs.has(r.code) || known(r.code)); const arch = ex.filter(r => !ARC.missing.has(r.code)).length; const ds = new Set(ARC.review.map(r => r.date).filter(Boolean));
+            return `<p class="rv-sum">${ds.size > 1 ? `Από ${ds.size} διαφορετικές μέρες. ` : ''}${ex.length ? `${ARC.review.length - ex.length} νέα, ${ex.length} υπάρχουν ήδη${arch ? ` (${arch} αρχειοθετημένα)` : ''}.` : 'Όλα νέα.'}</p>`; })()}</div>
           <div class="btns"><button class="btn ghost sm" data-arc="cancel-review">Ακύρωση</button><button class="btn primary sm" data-arc="save-review" ${ARC.busy || !ARC.review.length ? 'disabled' : ''}>Αποθήκευση ελέγχου</button></div>
         </div>
         ${gaps.length ? `<div class="notice">${ENV_SVG}<div><b>Η αρίθμηση πηδάει.</b> Ίσως δεν διαβάστηκε μία γραμμή από την εικόνα. Αν υπάρχει στη λίστα σου, πρόσθεσέ τη: ${gaps.map(g => `<button class="btn ghost sm" data-arc="add-gap" data-code="${esc(g)}">+ ${esc(g)}</button>`).join(' ')}</div></div>` : ''}
@@ -2029,7 +2088,7 @@ function renderArchive(){
                 ${r.fixedFrom ? `<span class="rv-tag" title="Διαβάστηκε ${esc(r.fixedFrom)}">διορθώθηκε</span>` : ''}
                 ${r.check ? `<span class="rv-tag warn">έλεγξέ το</span>` : ''}
                 ${r.alt ? `<button class="rv-alt" data-arc="rv-swap" data-i="${i}" title="Η δεύτερη ανάγνωση έβγαλε ${esc(r.alt)}. Πάτα για να το κρατήσεις.">ή ${esc(r.alt)};</button>` : ''}
-                ${known(r.code) ? `<span class="rv-tag">${ARC.missing.has(r.code) ? 'ήδη σε έλεγχο, λείπει' : 'ήδη αρχειοθετημένο'}</span>` : ''}
+                ${(ARC.docs.has(r.code) || known(r.code)) ? `<span class="rv-tag">${ARC.missing.has(r.code) ? 'ήδη σε αναμονή' : 'ήδη αρχειοθετημένο'}</span>` : ''}
                 <button class="icon-btn" data-arc="rv-del" data-i="${i}" aria-label="Αφαίρεση">×</button>
               </div>`).join('')}</div>
             <div class="rv-add">
@@ -2048,52 +2107,64 @@ function renderArchive(){
     }); });
     return;
   }
-  /* 2. Ανοιχτός έλεγχος: λίστα με τσεκ */
+  /* 2. Ανοιχτός έλεγχος: λίστα με τσεκ, ανά ημέρα */
   const chk = ARC.openId && ARC.checks.find(c => c.id === ARC.openId);
   if (chk){
     const codes = [...chk.codes].sort(byCode);
-    const miss = codes.filter(c => ARC.missing.has(c));
-    const done = codes.length - miss.length;
-    const shown = ARC.filter === 'missing' ? miss : ARC.filter === 'done' ? codes.filter(c => !ARC.missing.has(c)) : codes;
+    const waiting = codes.filter(c => ARC.missing.has(c));
+    const late = waiting.filter(c => docState(c) === 'late');
+    const done = codes.length - waiting.length;
+    const shown = ARC.filter === 'missing' ? waiting : ARC.filter === 'done' ? codes.filter(c => !ARC.missing.has(c)) : codes;
+    const days = new Set(codes.map(docDate));
     const pct = codes.length ? Math.round(done / codes.length * 100) : 0;
     body.innerHTML = `
       <section class="card check">
         <button class="btn ghost sm back" data-arc="back">← Όλοι οι έλεγχοι</button>
         <h2>${esc(chk.label)}</h2>
-        <p class="check-sub">Ανέβηκε ${shortDate(iso(new Date(chk.created_at)))} στις ${hhmm(chk.created_at)}</p>
+        <p class="check-sub">Ανέβηκε ${shortDate(iso(new Date(chk.created_at)))} στις ${hhmm(chk.created_at)}${days.size > 1 ? `, παραστατικά από ${days.size} διαφορετικές μέρες` : ''}</p>
         <div class="progress"><i style="width:${pct}%"></i></div>
-        <p class="check-sum">${miss.length ? `<b>${done} από ${codes.length}</b> αρχειοθετημένα. <span class="miss">Λείπουν ${miss.length}.</span>` : `<b>Όλα τα ${codes.length} είναι αρχειοθετημένα.</b>`}</p>
+        <p class="check-sum">${waiting.length
+          ? `<b>${done} από ${codes.length}</b> αρχειοθετημένα. <span class="wait">${waiting.length} σε αναμονή</span>${late.length ? `, <span class="miss">από αυτά ${late.length} καθυστερούν</span>` : ''}.`
+          : `<b>Όλα τα ${codes.length} είναι αρχειοθετημένα.</b>`}</p>
         <div class="check-bar">
-          <div class="seg" role="radiogroup">${[['missing',`Λείπουν (${miss.length})`],['done',`Αρχειοθετημένα (${done})`],['all',`Όλα (${codes.length})`]].map(([k,l]) => `<button type="button" role="radio" aria-checked="${ARC.filter === k}" class="${ARC.filter === k ? 'on' : ''}" data-arc-filter="${k}">${l}</button>`).join('')}</div>
+          <div class="seg" role="radiogroup">${[['missing',`Σε αναμονή (${waiting.length})`],['done',`Αρχειοθετημένα (${done})`],['all',`Όλα (${codes.length})`]].map(([k,l]) => `<button type="button" role="radio" aria-checked="${ARC.filter === k}" class="${ARC.filter === k ? 'on' : ''}" data-arc-filter="${k}">${l}</button>`).join('')}</div>
           <div class="btns">
-            ${miss.length ? `<button class="btn ghost sm" data-arc="copy-missing">Αντιγραφή όσων λείπουν</button><button class="btn primary sm" data-arc="all-done">Όλα αρχειοθετημένα</button>` : ''}
+            ${waiting.length ? `<button class="btn ghost sm" data-arc="copy-missing">Αντιγραφή όσων περιμένω</button><button class="btn primary sm" data-arc="all-done">Όλα αρχειοθετημένα</button>` : ''}
           </div>
         </div>
-        <div class="chk-list">${shown.length ? shown.map(c => chkRow(c, (ARC.openDocs.get(c) || ARC.missing.get(c) || {}).doc_date)).join('') : `<p class="empty">${ARC.filter === 'missing' ? 'Δεν λείπει τίποτα από αυτόν τον έλεγχο.' : 'Κανένα ακόμα.'}</p>`}</div>
+        <div class="chk-list">${shown.length ? dayListHTML(shown) : `<p class="empty">${ARC.filter === 'missing' ? 'Δεν περιμένεις τίποτα από αυτόν τον έλεγχο.' : 'Κανένα ακόμα.'}</p>`}</div>
       </section>`;
     return;
   }
-  /* 3. Αρχική: τι λείπει συνολικά + προηγούμενοι έλεγχοι */
+  /* 3. Αρχική: ό,τι περιμένεις ακόμα (από όλες τις μέρες) + προηγούμενοι έλεγχοι */
   if (!ARC.loaded){ body.innerHTML = `<p class="hint">${ARC.loading ? 'Φόρτωση…' : ''}</p>`; if (!ARC.loading) loadArchive(); return; }
   const q = normManualCode(ARC.q) || upper(clean(ARC.q)).replace(/\s/g, '');
-  const allCodes = [...new Set([...ARC.checks.flatMap(c => c.codes), ...ARC.missing.keys()])];
+  const allCodes = [...new Set([...ARC.checks.flatMap(c => c.codes), ...ARC.docs.keys(), ...ARC.missing.keys()])];
   const hits = q ? allCodes.filter(c => c.includes(q)).sort(byCode).slice(0, 30) : [];
-  const missAll = [...ARC.missing.values()].sort((a,b) => byCode(a.code, b.code));
+  const waitAll = [...ARC.missing.keys()];
+  const lateN = lateCount();
+  const oldest = waitAll.map(docDate).filter(Boolean).sort()[0];
   body.innerHTML = `
     <div class="search arc-search">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
       <input class="inp" id="arcQ" type="search" value="${esc(ARC.q)}" placeholder="Αναζήτηση παραστατικού, π.χ. 1207 ή ΤΔΑ0001207" autocomplete="off" spellcheck="false" aria-label="Αναζήτηση παραστατικού">
     </div>
-    ${q ? section('ΑΠΟΤΕΛΕΣΜΑΤΑ', hits.length ? `<div class="chk-list">${hits.map(c => chkRow(c, (ARC.missing.get(c) || {}).doc_date)).join('')}</div>` : `<p class="empty">Το ${esc(q)} δεν υπάρχει σε κανέναν έλεγχο.</p>`) : ''}
-    ${section(`ΛΕΙΠΟΥΝ ΑΠΟ ΟΛΟΥΣ ΤΟΥΣ ΕΛΕΓΧΟΥΣ${missAll.length ? ` (${missAll.length})` : ''}`, missAll.length
-      ? `<div class="chk-list">${missAll.map(r => chkRow(r.code, r.doc_date)).join('')}</div>`
-      : `<p class="empty">${ARC.checks.length ? 'Όλα αρχειοθετημένα.' : 'Δεν έχει γίνει ακόμα κανένας έλεγχος. Ανέβασε το πρώτο στιγμιότυπο από πάνω.'}</p>`, !!missAll.length)}
+    ${q ? section('ΑΠΟΤΕΛΕΣΜΑΤΑ', hits.length ? `<div class="chk-list">${hits.map(c => chkRow(c, true)).join('')}</div>` : `<p class="empty">Το ${esc(q)} δεν υπάρχει σε κανέναν έλεγχο.</p>`) : ''}
+    ${lateN ? `<div class="notice late-notice">${ENV_SVG}<div><b>${lateN === 1 ? '1 παραστατικό καθυστερεί' : lateN + ' παραστατικά καθυστερούν'}:</b> τα περιμένεις πάνω από ${lateDays()} μέρες. Είναι με κόκκινο στη λίστα από κάτω.</div></div>` : ''}
+    <div class="sec">
+      <div class="sec-h"><h2>ΣΕ ΑΝΑΜΟΝΗ${waitAll.length ? ` (${waitAll.length})` : ''}</h2><span class="rule"></span>
+        <label class="late-set">Καθυστερεί μετά από <input class="inp" type="number" id="arcLate" min="1" max="90" value="${lateDays()}"> μέρες</label></div>
+      ${waitAll.length
+        ? `<p class="hint wait-sub">Όσα δεν έχεις αρχειοθετήσει ακόμα, από όλους τους ελέγχους, ανά ημέρα παραστατικού${oldest ? `. Το παλιότερο είναι από ${esc(longDate(oldest))}` : ''}.</p><div class="chk-list">${dayListHTML(waitAll)}</div>`
+        : `<p class="empty">${ARC.checks.length ? 'Δεν περιμένεις τίποτα, όλα αρχειοθετημένα.' : 'Δεν έχει γίνει ακόμα κανένας έλεγχος. Ανέβασε το πρώτο στιγμιότυπο από πάνω.'}</p>`}
+    </div>
     ${ARC.checks.length ? section('ΠΡΟΗΓΟΥΜΕΝΟΙ ΕΛΕΓΧΟΙ', `<div class="rows">${ARC.checks.map(c => {
-      const m = c.codes.filter(x => ARC.missing.has(x)).length;
+      const w = c.codes.filter(x => ARC.missing.has(x)), l = w.filter(x => docState(x) === 'late').length;
       return `<div class="row chk-hist"><button class="r-main" data-arc="open" data-id="${c.id}"><b>${esc(c.label)}</b><small>Ανέβηκε ${shortDate(iso(new Date(c.created_at)))} στις ${hhmm(c.created_at)}</small></button>
-        <span class="tag ${m ? 'none' : 'today'}">${m ? `Λείπουν ${m}` : 'Πλήρης'}</span>
+        <span class="tag ${l ? 'none' : w.length ? 'wait' : 'today'}">${l ? `Καθυστερούν ${l}` : w.length ? `Σε αναμονή ${w.length}` : 'Πλήρης'}</span>
         <button class="icon-btn" data-arc="del" data-id="${c.id}" aria-label="Διαγραφή ελέγχου" title="Διαγραφή ελέγχου">×</button></div>`;
     }).join('')}</div>`) : ''}`;
+  $('arcLate').addEventListener('change', e => { LOCAL.settings.arcLateDays = Math.min(90, Math.max(1, Number(e.target.value) || 7)); saveLocal(); renderArchive(); renderNav(); });
   const qi = $('arcQ');
   upperInput(qi);
   qi.addEventListener('input', () => { ARC.q = qi.value; const pos = qi.selectionStart; renderArchive(); const n = $('arcQ'); n.focus(); try { n.setSelectionRange(pos, pos); } catch(_){} });
@@ -2122,13 +2193,15 @@ document.addEventListener('click', e => {
     case 'rv-add': reviewAdd(); break;
     case 'add-gap': reviewAdd(a.dataset.code); break;
     case 'open': openCheck(a.dataset.id); break;
+    case 'day-done': setArchived(String(a.dataset.codes || '').split(',').filter(Boolean), true); break;
     case 'back': ARC.openId = null; setHash('arc'); renderArchive(); break;
     case 'del': deleteCheck(a.dataset.id, a); break;
     case 'all-done': { const chk = ARC.checks.find(c => c.id === ARC.openId); if (chk) setArchived(chk.codes.filter(c => ARC.missing.has(c)), true); break; }
     case 'copy-missing': {
       const chk = ARC.checks.find(c => c.id === ARC.openId); if (!chk) break;
-      const txt = chk.codes.filter(c => ARC.missing.has(c)).sort(byCode).join('\n');
-      (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => toast('Αντιγράφηκαν όσα λείπουν.')).catch(() => toast('Η αντιγραφή δεν επιτρέπεται εδώ.'));
+      const txt = chk.codes.filter(c => ARC.missing.has(c)).sort((a, b) => (docDate(a) || '9').localeCompare(docDate(b) || '9') || byCode(a, b))
+        .map(c => `${c}\t${arcDate(docDate(c))}\t${docState(c) === 'late' ? 'καθυστερεί ' : ''}${ageText(ageDays(docDate(c)))}`).join('\n');
+      (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => toast('Αντιγράφηκαν όσα περιμένεις, με ημερομηνίες.')).catch(() => toast('Η αντιγραφή δεν επιτρέπεται εδώ.'));
       break;
     }
   }
