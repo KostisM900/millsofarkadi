@@ -489,6 +489,11 @@ input{font:inherit;color:inherit}
 .del-opt b{font-size:14px}
 .del-opt small{color:var(--muted);font-size:12.5px}
 .del-opt:first-child b{color:var(--red)}
+
+.net::before{background:var(--red)}
+.net.live{color:var(--olive-deep)}
+.net.live::before{background:var(--olive);box-shadow:0 0 0 3px var(--olive-tint)}
+.net.off{color:var(--red)}
 </style>
 </head>
 <body>
@@ -500,7 +505,7 @@ input{font:inherit;color:inherit}
       <span class="brand-fallback" id="logoFb" hidden>ΜΑ</span>
       <span class="bt"><b>Μύλοι Αρκαδίου</b><span id="brandSub">ΦΑΚΕΛΟΙ ΠΕΛΑΤΩΝ</span></span>
     </a>
-    <span class="net" id="net" hidden title="Οι αλλαγές δεν φτάνουν στη βάση"><span>Εκτός σύνδεσης</span></span>
+    <span class="net" id="net" hidden></span>
     <nav class="nav" id="nav" aria-label="Πλοήγηση"></nav>
   </div>
 </header>
@@ -540,7 +545,8 @@ const ACCOUNTS = {
 const LOGO_URLS = ['https://m-m-m.gr/wp-content/uploads/2024/04/logo-150.png', 'https://i.imgur.com/oDCFSVE.png'];
 const LOCAL_KEY = 'arkadi-fakeloi-local-v1';   // ρυθμίσεις συσκευής, σύνδεση, προσωρινό αντίγραφο για εκτός σύνδεσης
 const HISTORY_DAYS = 90;
-const REFRESH_SEC = 30;
+const REFRESH_SEC = 30;          // εφεδρικός έλεγχος, αν πέσει η ζωντανή σύνδεση
+const LIVE_SEC = 6;              // όταν η ζωντανή σύνδεση είναι κάτω: γρήγορος έλεγχος
 const DEFAULT_SETTINGS = { userName:'Ζωή', morningTime:'07:30', eveEnabled:true, eveTime:'14:00', sound:true, standSlots:3, workDays:[1,2,3,4,5] };
 const DAYS_FULL = ['Κυριακή','Δευτέρα','Τρίτη','Τετάρτη','Πέμπτη','Παρασκευή','Σάββατο'];
 const MONTHS = ['Ιανουαρίου','Φεβρουαρίου','Μαρτίου','Απριλίου','Μαΐου','Ιουνίου','Ιουλίου','Αυγούστου','Σεπτεμβρίου','Οκτωβρίου','Νοεμβρίου','Δεκεμβρίου'];
@@ -550,7 +556,7 @@ const ENV_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
 /* DB = ό,τι έρχεται από τη βάση · LOCAL = μόνο σε αυτή τη συσκευή */
 let DB = { envelopes:[], customers:[] };
 let LOCAL = { settings:{...DEFAULT_SETTINGS}, fired:{}, session:null, cache:null, cleanedOn:'' };
-let view = 'main', lastDay = '', notifBarClosed = false, online = true, pendingOps = 0;
+let view = 'main', lastDay = '', notifBarClosed = false, online = true, pendingOps = 0, live = false;
 
 /* ===================== HELPERS ===================== */
 const $ = id => document.getElementById(id);
@@ -727,13 +733,22 @@ const fromRow = r => ({
   addedAt: new Date(r.added_at).toISOString(),
   givenAt: r.given_at ? new Date(r.given_at).toISOString() : null
 });
-function setOnline(v){ online = v; $('net').hidden = v || !LOCAL.session; }
+function setOnline(v){ online = v; renderNetBadge(); }
+function renderNetBadge(){
+  const el = $('net'); if (!el) return;
+  if (!LOCAL.session){ el.hidden = true; return; }
+  if (!online){ el.hidden = false; el.className = 'net off'; el.title = 'Οι αλλαγές δεν φτάνουν στη βάση'; el.innerHTML = '<span>Εκτός σύνδεσης</span>'; return; }
+  el.hidden = false; el.className = 'net live';
+  el.title = live ? 'Ζωντανή σύνδεση: οι αλλαγές από άλλους υπολογιστές έρχονται αμέσως' : `Χωρίς ζωντανή σύνδεση: έλεγχος κάθε ${LIVE_SEC} δευτερόλεπτα`;
+  el.innerHTML = `<span>${live ? 'Ζωντανά' : 'Συγχρονισμός'}</span>`;
+}
 
 async function login(email, password){
   const j = await authRequest('password', { email, password });
   setSession(j);
 }
 function logout(msg){
+  wsClose();
   LOCAL.session = null; LOCAL.cache = null; saveLocal();
   DB = { envelopes:[], customers:[] };
   Object.assign(ARC, { loaded:false, checks:[], missing:new Map(), openId:null, openDocs:new Map(), review:[], reviewIssues:[], images:[], q:'' });
@@ -749,6 +764,66 @@ function handleError(err, msg, silent=false){
   else if (!(err instanceof NetError)) console.warn(err);
 }
 
+/* ===== Ζωντανή σύνδεση (Supabase Realtime) =====
+   Όταν κάποιος άλλος υπολογιστής αλλάξει κάτι, η βάση το στέλνει αμέσως εδώ και η
+   σελίδα ενημερώνεται μόνη της. Αν η σύνδεση πέσει, γυρνάει σε έλεγχο κάθε λίγα δευτερόλεπτα. */
+let ws = null, wsTimer = null, wsTries = 0, hbTimer = null, liveRef = 1;
+function setLive(v){ if (live === v) return; live = v; renderNetBadge(); }
+function wsClose(){
+  clearTimeout(wsTimer); clearInterval(hbTimer); wsTimer = hbTimer = null;
+  if (ws){ try { ws.onclose = null; ws.close(); } catch(e){} ws = null; }
+  setLive(false);
+}
+async function wsConnect(){
+  if (!LOCAL.session || ws) return;
+  let token;
+  try { token = await accessToken(); } catch(e){ return; }
+  const url = SB_URL.replace(/^http/, 'ws') + `/realtime/v1/websocket?apikey=${encodeURIComponent(SB_KEY)}&vsn=1.0.0`;
+  let sock;
+  try { sock = new WebSocket(url); } catch(e){ return; }
+  ws = sock;
+  const send = msg => { try { sock.send(JSON.stringify(msg)); } catch(e){} };
+  sock.onopen = () => {
+    wsTries = 0;
+    send({ topic:'realtime:fakeloi', event:'phx_join', ref:String(liveRef++), payload:{
+      config:{ broadcast:{ self:false }, presence:{ key:'' },
+        postgres_changes:[
+          { event:'*', schema:'public', table:'envelopes' },
+          { event:'*', schema:'public', table:'customers' },
+          { event:'*', schema:'public', table:'archive_docs' },
+          { event:'*', schema:'public', table:'archive_checks' }
+        ] },
+      access_token: token
+    } });
+    hbTimer = setInterval(() => {
+      send({ topic:'phoenix', event:'heartbeat', ref:String(liveRef++), payload:{} });
+      accessToken().then(t => send({ topic:'realtime:fakeloi', event:'access_token', ref:String(liveRef++), payload:{ access_token:t } })).catch(() => {});
+    }, 25000);
+  };
+  sock.onmessage = ev => {
+    let m; try { m = JSON.parse(ev.data); } catch(e){ return; }
+    if (m.event === 'phx_reply' && m.payload && m.payload.status === 'ok' && !live) setLive(true);
+    if (m.event === 'phx_reply' && m.payload && m.payload.status === 'error'){ setLive(false); }
+    if (m.event === 'postgres_changes'){
+      const table = m.payload && m.payload.data && m.payload.data.table;
+      if (table === 'envelopes' || table === 'customers') scheduleRefresh();
+      else if (canArchive()) scheduleArchiveRefresh();
+    }
+  };
+  sock.onclose = () => {
+    if (ws !== sock) return;
+    ws = null; setLive(false);
+    if (!LOCAL.session) return;
+    wsTries = Math.min(wsTries + 1, 6);
+    wsTimer = setTimeout(wsConnect, 1000 * Math.pow(2, wsTries - 1));
+  };
+  sock.onerror = () => { try { sock.close(); } catch(e){} };
+}
+/* Μικρή καθυστέρηση: αν έρθουν πολλές αλλαγές μαζί, φορτώνει μία φορά */
+let refreshTimer = null, arcTimer = null;
+function scheduleRefresh(){ clearTimeout(refreshTimer); refreshTimer = setTimeout(() => { lastRefresh = Date.now(); refresh(); }, 350); }
+function scheduleArchiveRefresh(){ clearTimeout(arcTimer); arcTimer = setTimeout(() => loadArchive(), 350); }
+
 let refreshing = false;
 async function refresh(){
   if (!LOCAL.session || refreshing || pendingOps) return;
@@ -759,9 +834,11 @@ async function refresh(){
       api('customers?select=id,name,name_key&order=name.asc')
     ]);
     if (pendingOps) return;   // μην πατήσεις πάνω σε αλλαγή που μόλις έγινε
+    const before = DB.envelopes;
     DB.envelopes = (envs || []).map(fromRow);
     DB.customers = (custs || []).map(c => ({ id:c.id, name:c.name, key:c.name_key }));
     setOnline(true); cacheData();
+    announceChanges(before, DB.envelopes);
     renderAll(); checkReminders();
     cleanupHistory();
     uppercaseLegacy().then(unifyDates);
@@ -928,6 +1005,32 @@ function onHashChange(){
 }
 window.addEventListener('hashchange', onHashChange);
 window.addEventListener('popstate', onHashChange);
+/* Τι άλλαξε από αλλού: σύντομο μήνυμα, ώστε να μην αλλάζει η οθόνη σιωπηλά */
+let firstSync = true;
+function announceChanges(before, after){
+  if (firstSync){ firstSync = false; return; }
+  const wasEmpty = !before.length && after.length;
+  if (wasEmpty) return;
+  const map = new Map(before.map(e => [e.id, e]));
+  const added = after.filter(e => !map.has(e.id));
+  const changed = after.filter(e => { const o = map.get(e.id); return o && (o.date !== e.date || o.name !== e.name || o.kind !== e.kind || o.note !== e.note || !!o.givenAt !== !!e.givenAt); });
+  const gone = before.filter(e => !after.some(x => x.id === e.id));
+  if (!added.length && !changed.length && !gone.length) return;
+  const names = list => [...new Set(list.map(e => e.name))].sort((a,b) => a.localeCompare(b,'el'));
+  const parts = [];
+  const newEnv = names(added).filter(n => !before.some(e => norm(e.name) === norm(n) && !e.givenAt));
+  if (newEnv.length) parts.push(`νέος φάκελος: ${newEnv.join(', ')}`);
+  else if (added.length) parts.push(`νέο έγγραφο: ${names(added).join(', ')}`);
+  const given = changed.filter(e => e.givenAt && !map.get(e.id).givenAt);
+  if (given.length) parts.push(`δόθηκε: ${names(given).join(', ')}`);
+  const dated = changed.filter(e => e.date !== map.get(e.id).date && !e.givenAt);
+  if (dated.length) parts.push(`νέα ημέρα: ${dated.map(e => `${e.name} → ${e.date ? dayLabel(e.date, true) : 'χωρίς ημέρα'}`).filter((v,i,a) => a.indexOf(v) === i).join(', ')}`);
+  const other = changed.filter(e => !given.includes(e) && !dated.includes(e));
+  if (other.length) parts.push(`ενημερώθηκε: ${names(other).join(', ')}`);
+  if (gone.length && !given.length) parts.push(`αφαιρέθηκε: ${names(gone).join(', ')}`);
+  if (!parts.length) return;
+  toast(`<b>Ενημέρωση από άλλον υπολογιστή</b><br>${esc(parts.join(' · '))}`, { kind:'alert' });
+}
 function updateTitle(){
   const n = LOCAL.session ? groupsOf(pending()).filter(g => g.date === todayIso()).length : 0;
   document.title = `${n ? `(${n}) ` : ''}${(PAGES[view] || PAGES.main).title} | Μύλοι Αρκαδίου`;
@@ -1011,7 +1114,9 @@ function buildLogin(){
       setOnline(true);
       const to = pendingRoute || { v:'main', sub:'' }; pendingRoute = null;
       go(to.v, { sub: to.sub });
+      firstSync = true;
       await refresh();
+      wsConnect();
     } catch(e){
       $('lErr').innerHTML = `<span class="bad">${e instanceof NetError
         ? (IN_FRAME ? 'Δεν έγινε σύνδεση με τη βάση. Μέσα στο Claude οι εξωτερικές συνδέσεις μπλοκάρονται, άνοιξε την εφαρμογή από το δικό σας link.' : 'Δεν έγινε σύνδεση με τη βάση. Έλεγξε το internet.')
@@ -2403,7 +2508,7 @@ function renderSettingsState(){
   $('sNotif').innerHTML = `<span class="state ${cls}">${txt}</span>`;
   $('sNotifBtn').hidden = st === 'granted' || st === 'unsupported';
   renderCustGrid();
-  $('sAcc').innerHTML = `Λογαριασμός: <b>${esc(account() ? account().name : '')}</b> (${esc(LOCAL.session ? LOCAL.session.email : '')}). Τα δεδομένα είναι στη βάση Supabase και φαίνονται από κάθε υπολογιστή που συνδέεται. Από το ιστορικό σβήνονται μόνο φάκελοι που <b>έχουν δοθεί</b> πριν από ${HISTORY_DAYS} μέρες. Όσοι είναι ακόμα στο stand δεν σβήνονται ποτέ, όσος καιρός κι αν περάσει.`;
+  $('sAcc').innerHTML = `Λογαριασμός: <b>${esc(account() ? account().name : '')}</b> (${esc(LOCAL.session ? LOCAL.session.email : '')}). Τα δεδομένα είναι στη βάση Supabase. Κάθε αλλαγή εμφανίζεται αμέσως στους άλλους υπολογιστές, χωρίς ανανέωση σελίδας. Από το ιστορικό σβήνονται μόνο φάκελοι που <b>έχουν δοθεί</b> πριν από ${HISTORY_DAYS} μέρες. Όσοι είναι ακόμα στο stand δεν σβήνονται ποτέ, όσος καιρός κι αν περάσει.`;
 }
 let custQ = '';
 function renderCustGrid(){
@@ -2502,10 +2607,15 @@ let lastRefresh = 0;
 function tick(){
   const t = todayIso();
   if (t !== lastDay){ lastDay = t; pruneFired(); saveLocal(); renderAll(); }
-  if (LOCAL.session && Date.now() - lastRefresh > REFRESH_SEC*1000){ lastRefresh = Date.now(); refresh(); }
+  const every = (live ? REFRESH_SEC : LIVE_SEC) * 1000;
+  if (LOCAL.session && Date.now() - lastRefresh > every){ lastRefresh = Date.now(); refresh(); }
+  if (LOCAL.session && !ws) wsConnect();
   checkReminders();
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden){ lastRefresh = 0; tick(); } });
+window.addEventListener('online', () => { lastRefresh = 0; wsClose(); tick(); });
+window.addEventListener('offline', () => { setOnline(false); wsClose(); });
+window.addEventListener('beforeunload', wsClose);
 
 /* ===================== INIT ===================== */
 (function initLogo(){
@@ -2525,6 +2635,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden){ las
   buildMain();
   const start = parseHash();
   go(start.v, { sub: start.sub, fromHash:true });
+  if (LOCAL.session) wsConnect();
   setTimeout(tick, 300);
   setInterval(tick, 10000);
 })();
