@@ -1847,7 +1847,7 @@ const ARC = { loaded:false, loading:false, setupMissing:false, checks:[], missin
 
 /* ---------- Ανάγνωση κωδικών από το κείμενο της εικόνας ---------- */
 const LAT2GR = { A:'Α',B:'Β',E:'Ε',Z:'Ζ',H:'Η',I:'Ι',K:'Κ',M:'Μ',N:'Ν',O:'Ο',P:'Ρ',T:'Τ',Y:'Υ',X:'Χ' };
-const DIGIT_LIKE = { 'O':'0','Ο':'0','Q':'0','Θ':'0','D':'0','I':'1','Ι':'1','Ί':'1','Ϊ':'1','L':'1','|':'1','!':'1','S':'5','Z':'2' };
+const DIGIT_LIKE = { 'O':'0','Ο':'0','Q':'0','Θ':'0','D':'0','I':'1','Ι':'1','Ί':'1','Ϊ':'1','L':'1','|':'1','!':'1','S':'5','Z':'2','Ζ':'2' };
 const isDigitish = c => /[0-9]/.test(c) || c in DIGIT_LIKE;
 function splitCode(token){
   const t = String(token).toUpperCase();
@@ -1855,75 +1855,218 @@ function splitCode(token){
   while (i > 0 && isDigitish(t[i-1])){ i--; if (/[0-9]/.test(t[i])) real++; }
   let digits = t.slice(i), prefix = t.slice(0, i);
   while (digits.length && /[SZL]/.test(digits[0])){ prefix += digits[0]; digits = digits.slice(1); }
-  if (real < 3 || digits.length < 4) return null;
-  if (!/^[A-ZΑ-Ω]{1,6}$/.test(prefix)) return null;
+  if (digits.length < 4) return null;
+  /* πόσα «πραγματικά» ψηφία χρειάζονται: σε μεγάλους κωδικούς το OCR διαβάζει συχνά όλα τα 0 ως Ο/Θ */
+  const need = digits.length >= 6 ? 0 : digits.length >= 5 ? 1 : 2;
+  if (real < need) return null;
+  if (!/^[A-ZΑ-Ω]{2,6}$/.test(prefix)) return null;
   const pre = [...prefix].map(c => LAT2GR[c] || c).join('');
   const num = [...digits].map(c => DIGIT_LIKE[c] || c).join('');
   if (!/^\d+$/.test(num)) return null;
   return { prefix: pre, num, raw: digits, latin: /[A-Z]/.test(prefix) };
 }
-/* Διαβάζει τις γραμμές της εικόνας. Κρατάει τη σειρά των γραμμών (για σύγκριση δύο αναγνώσεων). */
+/* Το OCR σπάει συχνά τον κωδικό στη μέση («ΤΔΑΘΟΟΊ 186»). Ενώνει κομμάτια της ίδιας γραμμής. */
+function lineCode(up){
+  const toks = up.match(/[A-ZΑ-ΩΆΈΉΊΌΎΏΪΫ0-9|!]+/g) || [];
+  for (let i = 0; i < toks.length; i++){
+    if (toks[i].length < 3) continue;
+    for (let j = Math.min(toks.length, i + 3); j > i; j--){
+      const joined = toks.slice(i, j).join('');
+      if (joined.length < 5) continue;
+      const c = splitCode(joined);
+      if (c && /[A-ZΑ-Ω]/.test(toks[i][0])) return c;
+    }
+  }
+  return null;
+}
 function parseDocText(text){
-  const rows = [], issues = [];
+  const lines = [];
   String(text || '').split(/\r?\n/).forEach(raw => {
-    const up = raw.normalize('NFC').toUpperCase();
+    /* καθαρίζει τόνους/πνεύματα (Ὁ → Ο, Ί → Ι), που μπερδεύουν και τις ημερομηνίες και τους κωδικούς */
+    const up = raw.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f\u0342-\u0345]/g, '').normalize('NFC');
     const dm = up.replace(/[ΊΙIL|]/g, '1').match(/(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})/);
-    let found = null;
-    for (const tk of (up.match(/[A-ZΑ-ΩΆΈΉΊΌΎΏΪΫ0-9|!]{5,}/g) || [])){ const c = splitCode(tk); if (c){ found = c; break; } }
+    const tail = dm ? up.slice(up.indexOf(dm[0]) + dm[0].length) : up;
     let date = '';
     if (dm){ let [, d, m, y] = dm; y = y.length === 2 ? '20' + y : y; const dt = new Date(+y, +m - 1, +d); if (dt.getMonth() === +m - 1 && dt.getDate() === +d) date = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
-    if (found) rows.push({ ...found, date });
-    else if (dm) issues.push({ date, raw: raw.trim() });
+    const found = lineCode(tail) || (dm ? null : lineCode(up));
+    const looksRow = dm || /[Α-ΩA-Z]{2,}[Α-ΩA-Z0-9|!]{4,}/.test(tail);
+    if (found || looksRow) lines.push({ date, tail, raw: raw.trim(), r: found });
   });
-  // 1) κοινό πρόθεμα (ΤΑΑ → ΤΔΑ), προτιμώντας ό,τι διαβάστηκε με ελληνικά
-  const tally = list => { const c = {}; list.forEach(r => c[r.prefix] = (c[r.prefix] || 0) + 1); return Object.entries(c).sort((a,b) => b[1] - a[1]); };
-  const greek = rows.filter(r => !r.latin);
-  const dom = (greek.length ? tally(greek) : tally(rows).filter(([, n]) => n >= 2))[0];
-  if (dom) rows.forEach(r => {
-    if (r.prefix !== dom[0] && r.prefix.length === dom[0].length && [...r.prefix].filter((c,i) => c !== dom[0][i]).length === 1){ r.fixedFrom = r.prefix + r.num; r.prefix = dom[0]; }
+  /* γραμμές που δεν διαβάστηκε η ημερομηνία: παίρνουν την πιο συχνή της εικόνας */
+  const dc = {}; lines.forEach(l => { if (l.date) dc[l.date] = (dc[l.date] || 0) + 1; });
+  const domDate = (Object.entries(dc).sort((a,b) => b[1] - a[1])[0] || [''])[0];
+  lines.forEach(l => { if (!l.date) l.date = domDate; });
+  /* μεμονωμένες ημερομηνίες που διαφέρουν μόνο σε ένα ψηφίο από την κύρια (π.χ. 9/5 αντί 9/9)
+     είναι σχεδόν πάντα λάθος ανάγνωση· μπαίνει η κύρια */
+  if (domDate){
+    const [dy, dm2, dd] = domDate.split('-');
+    lines.forEach(l => {
+      if (!l.date || l.date === domDate) return;
+      const [y, m, d] = l.date.split('-');
+      /* ίδια μέρα και χρονιά, άλλος μήνας (ή ανάποδα): λάθος ανάγνωση, όχι πραγματικά άλλη μέρα.
+         Λίστες με παραστατικά από πολλές μέρες διαφέρουν στη μέρα, οπότε δεν τις πειράζει. */
+      const sameDayYear = y === dy && d === dd && m !== dm2;
+      const sameDayMonth = m === dm2 && d === dd && y !== dy;
+      if ((sameDayYear || sameDayMonth) && (dc[domDate] || 0) > (dc[l.date] || 0)) l.date = domDate;
+    });
+  }
+  const rows = lines.filter(l => l.r).map(l => l.r);
+  /* Πόσα ψηφία έχει κάθε σειρά (κάθε πρόθεμα έχει τη δική της μορφή, π.χ. ΤΔΑ 7, ΕΣΑΥ 6) */
+  const lenOf = () => { const o = {}; lines.filter(l => l.r).forEach(l => { (o[l.r.prefix] = o[l.r.prefix] || {})[l.r.num.length] = (o[l.r.prefix][l.r.num.length] || 0) + 1; }); return o; };
+  let stats = lenOf();
+  const domLen = p => Number((Object.entries(stats[p] || {}).sort((a,b) => b[1] - a[1])[0] || [0])[0]);
+  const strongPrefixes = () => Object.keys(stats).sort((a,b) => b.length - a.length);
+  /* παραπανίσια μηδενικά μπροστά (το OCR διπλασιάζει συχνά τα 0): κόβονται */
+  const trimZeros = (num, L) => (L && num.length > L && /^0+$/.test(num.slice(0, num.length - L))) ? num.slice(num.length - L) : num;
+  /* Δεύτερη ευκαιρία: γραμμές που δεν διαβάστηκαν, με βάση τις σειρές που ήδη βρέθηκαν.
+     Κρατάει ψηφία και ό,τι μοιάζει με ψηφίο, πετάει τα σκουπίδια του OCR (Σ, Ξ, Ό…),
+     και δέχεται μόνο αν ο αριθμός βγει με το σωστό πλήθος ψηφίων για τη σειρά. */
+  function repair(tail){
+    const gr = [...tail].map(c => LAT2GR[c] || c).join('');
+    for (const p of strongPrefixes()){
+      const L = domLen(p); if (!L) continue;
+      let from = 0, i;
+      while ((i = gr.indexOf(p, from)) >= 0){
+        from = i + 1;
+        if (i > 0 && /[Α-ΩA-Z]/.test(gr[i-1])) continue;
+        const rest = gr.slice(i + p.length);
+        const digits = trimZeros([...rest].map(c => /[0-9]/.test(c) ? c : (DIGIT_LIKE[c] || '')).join(''), L);
+        if (digits.length === L) return { prefix:p, num:digits, raw:rest, latin:false, repaired:true };
+      }
+    }
+    return null;
+  }
+  lines.forEach(l => { if (!l.r){ const fix = repair(l.tail); if (fix){ l.r = fix; } } });
+  stats = lenOf();
+  /* Λάθος γράμμα σε σειρά: μόνο όταν το διάβασε λατινικά (π.χ. TAA αντί ΤΔΑ) ή είναι γνωστό μπέρδεμα
+     σχημάτων, και μόνο προς σειρά που εμφανίζεται πολλές φορές με τα ίδια ψηφία. */
+  const LOOKALIKE = [['Α','Δ'],['Α','Λ'],['Δ','Λ'],['Ο','Θ'],['Ε','Σ'],['Π','Η'],['Γ','Τ'],['Ξ','Σ'],['Υ','Ψ'],['Ζ','Σ']].map(p => p.join(''));
+  const near = (a,b) => { if (a.length !== b.length) return false; const d = [...a].map((c,i) => c !== b[i] ? [c,b[i]] : null).filter(Boolean); return d.length === 1 && LOOKALIKE.some(p => p.includes(d[0][0]) && p.includes(d[0][1])); };
+  const all = () => lines.filter(l => l.r).map(l => l.r);
+  const count = {}; all().forEach(r => count[r.prefix] = (count[r.prefix] || 0) + 1);
+  const strong = Object.entries(count).filter(([, n]) => n >= 3).sort((a,b) => b[1] - a[1]).map(([p]) => p);
+  all().forEach(r => {
+    if (count[r.prefix] >= 3) return;
+    const target = strong.find(p => p !== r.prefix && p.length === r.prefix.length && (r.latin || near(r.prefix, p)) && Math.abs(r.num.length - domLen(p)) <= 1);
+    if (target){ r.fixedFrom = r.prefix + r.num; r.prefix = target; }
   });
-  // 2) ένα ψηφίο παραπάνω (π.χ. «Ί1210» → 1210): σβήνει το ψηφίο που κάνει τον αριθμό να ταιριάζει στη σειρά
-  const lens = {}; rows.forEach(r => lens[r.num.length] = (lens[r.num.length] || 0) + 1);
-  const domLen = Number((Object.entries(lens).sort((a,b) => b[1] - a[1])[0] || [0])[0]);
-  rows.filter(r => r.num.length === domLen + 1).forEach(r => {
-    const good = rows.filter(x => x !== r && x.prefix === r.prefix && x.num.length === domLen).map(x => Number(x.num));
+  stats = lenOf();
+  /* Ένα ψηφίο παραπάνω μέσα στη σειρά: σβήνει αυτό που φέρνει τον αριθμό στη σωστή θέση */
+  all().forEach(r => {
+    const L = domLen(r.prefix);
+    if (!L || r.num.length !== L + 1) return;
+    const good = all().filter(x => x !== r && x.prefix === r.prefix && x.num.length === L).map(x => Number(x.num));
     if (!good.length) return;
-    const lo = Math.min(...good) - 1, hi = Math.max(...good) + 1;
+    const lo = Math.min(...good) - 2, hi = Math.max(...good) + 2;
     const order = [...r.raw].map((c, i) => [i, !/[0-9]/.test(c)]).sort((a, b) => b[1] - a[1]).map(x => x[0]);
     for (const i of order){
+      if (i >= r.num.length) continue;
       const cand = r.num.slice(0, i) + r.num.slice(i + 1), n = Number(cand);
       if (n >= lo && n <= hi && !good.includes(n)){ r.fixedFrom = r.fixedFrom || (r.prefix + r.num); r.num = cand; break; }
     }
   });
-  const lens2 = {}; rows.forEach(r => lens2[r.num.length] = (lens2[r.num.length] || 0) + 1);
-  const domLen2 = Number((Object.entries(lens2).sort((a,b) => b[1] - a[1])[0] || [0])[0]);
-  return { rows: rows.map(r => ({ code: r.prefix + r.num, date: r.date, fixedFrom: r.fixedFrom || '', check: r.num.length !== domLen2 })), issues };
+  stats = lenOf();
+  /* ό,τι έμεινε με παραπανίσια μηδενικά μπροστά (χωρίς άλλη ένδειξη από τη σειρά) */
+  all().forEach(r => { const L = domLen(r.prefix), t = trimZeros(r.num, L); if (t !== r.num){ r.fixedFrom = r.fixedFrom || (r.prefix + r.num); r.num = t; } });
+  stats = lenOf();
+  return {
+    rows: lines.filter(l => l.r).map(l => ({ code: l.r.prefix + l.r.num, date: l.date, fixedFrom: l.r.fixedFrom || '', check: l.r.num.length !== domLen(l.r.prefix) })),
+    issues: lines.filter(l => !l.r).map(l => ({ date:l.date, raw:l.raw }))
+  };
 }
-function codeParts(code){ const m = String(code).match(/^([Α-ΩA-Z]+)(\d+)$/); return m ? { prefix:m[1], n:Number(m[2]), len:m[2].length } : null; }
-/* Δύο αναγνώσεις της ίδιας εικόνας (με και χωρίς περιορισμό χαρακτήρων).
-   Ό,τι βγαίνει ίδιο και στις δύο είναι σίγουρο· όπου διαφωνούν, κρατάει αυτό που ταιριάζει
-   στη σειρά αρίθμησης και το σημαδεύει «έλεγξέ το», με την άλλη ανάγνωση ως εναλλακτική. */
+/* Ταιριάζει τις δύο αναγνώσεις γραμμή προς γραμμή (κοινή υπακολουθία), ακόμα κι αν η μία
+   έχασε μια γραμμή. Όπου διαφωνούν, κρατάει αυτό που ταιριάζει στη σειρά αρίθμησης. */
+function alignRows(A, B){
+  const n = A.length, m = B.length;
+  const dp = Array.from({ length:n + 1 }, () => new Array(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--)
+    dp[i][j] = A[i].code === B[j].code ? dp[i+1][j+1] + 1 : Math.max(dp[i+1][j], dp[i][j+1]);
+  const pairs = []; let i = 0, j = 0;
+  while (i < n && j < m){
+    if (A[i].code === B[j].code){ pairs.push([A[i], B[j]]); i++; j++; }
+    else if (dp[i+1][j] >= dp[i][j+1]){ pairs.push([A[i], null]); i++; }
+    else { pairs.push([null, B[j]]); j++; }
+  }
+  while (i < n) pairs.push([A[i++], null]);
+  while (j < m) pairs.push([null, B[j++]]);
+  /* Μονές γραμμές που πέφτουν μεταξύ δύο κοινών σημείων είναι οι ίδιες γραμμές
+     διαβασμένες αλλιώς: ζευγαρώνονται με τη σειρά τους. */
+  const out = [];
+  let aRun = [], bRun = [];
+  const flush = () => {
+    const n = Math.max(aRun.length, bRun.length);
+    for (let k = 0; k < n; k++) out.push([aRun[k] || null, bRun[k] || null]);
+    aRun = []; bRun = [];
+  };
+  pairs.forEach(([x, y]) => {
+    if (x && y){ flush(); out.push([x, y]); return; }
+    if (x) aRun.push(x); else if (y) bRun.push(y);
+  });
+  flush();
+  return out;
+}
 function mergePasses(a, b){
-  const bCodes = new Set(b.rows.map(r => r.code)), aCodes = new Set(a.rows.map(r => r.code));
+  const bCodes = new Set(b.rows.map(r => r.code));
   const sure = a.rows.filter(r => bCodes.has(r.code)).map(r => r.code);
   const sureNums = p => sure.map(codeParts).filter(x => x && x.prefix === p.prefix && x.len === p.len).map(x => x.n);
   const fits = code => { const p = codeParts(code); if (!p) return -1; const ns = sureNums(p); if (!ns.length) return 0; if (ns.includes(p.n)) return -1;
     const lo = Math.min(...ns), hi = Math.max(...ns); return (p.n > lo && p.n < hi) ? 2 : (p.n === lo - 1 || p.n === hi + 1) ? 1 : 0; };
+  /* πόσα ψηφία έχει συνήθως κάθε σειρά, με βάση και τις δύο αναγνώσεις */
+  const lenTally = {};
+  [...a.rows, ...b.rows].forEach(r => { const p = codeParts(r.code); if (!p) return; (lenTally[p.prefix] = lenTally[p.prefix] || {})[p.len] = (lenTally[p.prefix][p.len] || 0) + 1; });
+  const okLen = code => { const p = codeParts(code); if (!p) return false; const t = lenTally[p.prefix] || {}; const best = Number((Object.entries(t).sort((x,y) => y[1] - x[1])[0] || [0])[0]); return p.len === best; };
   const out = [], used = new Set();
-  const push = (r, extra={}) => { if (used.has(r.code)) return; used.add(r.code); out.push({ ...r, ...extra }); };
-  if (a.rows.length === b.rows.length){
-    a.rows.forEach((ra, i) => {
-      const rb = b.rows[i];
+  const push = (r, extra={}) => { if (!r || used.has(r.code)) return; used.add(r.code); out.push({ ...r, ...extra }); };
+  alignRows(a.rows, b.rows).forEach(([ra, rb]) => {
+    if (ra && rb){
       if (ra.code === rb.code) return push({ ...ra, check: ra.check && rb.check, fixedFrom: ra.fixedFrom && rb.fixedFrom ? ra.fixedFrom : '' });
-      const pick = fits(rb.code) > fits(ra.code) ? [rb, ra] : [ra, rb];
-      push(pick[0], { check:true, alt:pick[1].code, date: pick[0].date || pick[1].date });
-    });
-  } else {
-    const main = a.rows.length >= b.rows.length ? a : b, other = main === a ? bCodes : aCodes;
-    main.rows.forEach(r => push(r, other.has(r.code) ? {} : { check:true }));
-  }
-  return { rows: out, issues: a.issues.length <= b.issues.length ? a.issues : b.issues };
+      const pa = codeParts(ra.code), pb = codeParts(rb.code);
+      /* ίδια ψηφία, διαφορετικό πρόθεμα: εμπιστεύσου την ανάγνωση που είδε μόνο ελληνικά */
+      const sameNum = pa && pb && pa.n === pb.n && pa.len === pb.len;
+      const la = okLen(ra.code), lb = okLen(rb.code);
+      /* σειρά που εμφανίζεται πολλές φορές: αν η μία ανάγνωση την είδε λατινικά, δεν είναι πραγματική διαφωνία */
+      const cnt = {}; [...a.rows, ...b.rows].forEach(x => { const q = codeParts(x.code); if (q) cnt[q.prefix] = (cnt[q.prefix] || 0) + 1; });
+      const pick = sameNum ? [rb, ra]
+        : (la !== lb) ? (la ? [ra, rb] : [rb, ra])                      // σωστό πλήθος ψηφίων για τη σειρά
+        : (fits(rb.code) > fits(ra.code)) ? [rb, ra]                    // ταιριάζει στη σειρά αρίθμησης
+        : (fits(ra.code) > fits(rb.code)) ? [ra, rb]
+        : [rb, ra];                                                     // ισοπαλία: η ανάγνωση μόνο με ελληνικά
+      const [good, other] = pick, pg = codeParts(good.code), po = codeParts(other.code);
+      const sameDigits = pg && po && pg.n === po.n && pg.len === po.len;
+      const clearPrefix = sameDigits && (cnt[pg.prefix] || 0) >= 3 && (cnt[pg.prefix] || 0) > (cnt[po.prefix] || 0) * 2;
+      const clearLen = pg && po && pg.prefix === po.prefix && okLen(good.code) && !okLen(other.code);
+      const sure = clearPrefix || clearLen;
+      return push(good, { check: sure ? good.check : true, alt: sure ? '' : other.code, date: good.date || other.date });
+    }
+    push(ra || rb, { check:true });
+  });
+  return { rows: sequenceCheck(out), issues: a.issues.length <= b.issues.length ? a.issues : b.issues };
 }
+/* Οι λίστες είναι πάντα σε αύξουσα σειρά. Ό,τι σπάει τη σειρά (π.χ. 1158 ανάμεσα σε 1187 και 1189)
+   σημαδεύεται, και προτείνεται ο αριθμός που λείπει από τη σειρά. */
+function sequenceCheck(rows){
+  const idx = {};
+  rows.forEach((r, i) => { const p = codeParts(r.code); if (!p) return; (idx[p.prefix + '|' + p.len] = idx[p.prefix + '|' + p.len] || []).push({ i, n:p.n, len:p.len, prefix:p.prefix }); });
+  Object.values(idx).forEach(list => {
+    if (list.length < 3) return;
+    list.forEach((cur, k) => {
+      const prev = list[k-1], next = list[k+1];
+      const bad = (prev && cur.n <= prev.n) || (next && cur.n >= next.n);
+      if (!bad) return;
+      const r = rows[cur.i];
+      r.check = true;
+      let guess = '';
+      if (prev && next && next.n - prev.n === 2) guess = cur.prefix + String(prev.n + 1).padStart(cur.len, '0');
+      else if (prev && !next) guess = cur.prefix + String(prev.n + 1).padStart(cur.len, '0');
+      if (!guess || rows.some(x => x.code === guess)) return;
+      /* ο αριθμός που λείπει από τη σειρά είναι σχεδόν σίγουρα ο σωστός: μπαίνει αυτός,
+         και η ανάγνωση του OCR μένει ως εναλλακτική για έλεγχο */
+      r.alt = r.code; r.code = guess; cur.n = Number(guess.slice(cur.prefix.length));
+    });
+  });
+  return rows;
+}
+function codeParts(code){ const m = String(code).match(/^([Α-ΩA-Z]+)(\d+)$/); return m ? { prefix:m[1], n:Number(m[2]), len:m[2].length } : null; }
 /* Κενά στην αρίθμηση: αν πηδάει από 1209 σε 1211, μάλλον χάθηκε μία γραμμή από την εικόνα */
 function sequenceGaps(codes){
   const by = {};
@@ -2288,11 +2431,14 @@ function renderArchive(){
         <div class="review-h">
           <div><h2>Βρέθηκαν ${ARC.review.length === 1 ? '1 παραστατικό' : ARC.review.length + ' παραστατικά'}</h2>
           <p>Σύγκρινέ τα με την εικόνα. Αν κάποιος κωδικός διαβάστηκε λάθος, διόρθωσέ τον πάνω του.</p>
-          ${(() => { const ex = ARC.review.filter(r => ARC.docs.has(r.code) || known(r.code)); const arch = ex.filter(r => !ARC.missing.has(r.code)).length; const ds = new Set(ARC.review.map(r => r.date).filter(Boolean));
-            return `<p class="rv-sum">${ds.size > 1 ? `Από ${ds.size} διαφορετικές μέρες. ` : ''}${ex.length ? `${ARC.review.length - ex.length} νέα, ${ex.length} υπάρχουν ήδη${arch ? ` (${arch} αρχειοθετημένα)` : ''}.` : 'Όλα νέα.'}</p>`; })()}</div>
+          ${(() => { const ex = ARC.review.filter(r => ARC.docs.has(r.code) || known(r.code)); const arch = ex.filter(r => !ARC.missing.has(r.code)).length;
+            const ds = new Set(ARC.review.map(r => r.date).filter(Boolean));
+            const ser = {}; ARC.review.forEach(r => { const p = codeParts(r.code); if (p) ser[p.prefix] = (ser[p.prefix] || 0) + 1; });
+            const list = Object.entries(ser).sort((a,b) => b[1] - a[1]);
+            return `<p class="rv-sum">${list.length > 1 ? `${list.length} σειρές: ${list.map(([k,n]) => `${esc(k)} ×${n}`).join(', ')}. ` : ''}${ds.size > 1 ? `Από ${ds.size} μέρες. ` : ''}${ex.length ? `${ARC.review.length - ex.length} νέα, ${ex.length} υπάρχουν ήδη${arch ? ` (${arch} αρχειοθετημένα)` : ''}.` : 'Όλα νέα.'}</p>`; })()}</div>
           <div class="btns"><button class="btn ghost sm" data-arc="cancel-review">Ακύρωση</button><button class="btn primary sm" data-arc="save-review" ${ARC.busy || !ARC.review.length ? 'disabled' : ''}>Αποθήκευση ελέγχου</button></div>
         </div>
-        ${gaps.length ? `<div class="notice">${ENV_SVG}<div><b>Η αρίθμηση πηδάει.</b> Ίσως δεν διαβάστηκε μία γραμμή από την εικόνα. Αν υπάρχει στη λίστα σου, πρόσθεσέ τη: ${gaps.map(g => `<button class="btn ghost sm" data-arc="add-gap" data-code="${esc(g)}">+ ${esc(g)}</button>`).join(' ')}</div></div>` : ''}
+        ${gaps.length ? `<div class="notice">${ENV_SVG}<div><b>Λείπουν αριθμοί από τη σειρά.</b> Ίσως δεν διαβάστηκε κάποια γραμμή. Αν υπάρχει στη λίστα σου, πρόσθεσέ τη: ${gaps.map(g => `<button class="btn ghost sm" data-arc="add-gap" data-code="${esc(g)}">+ ${esc(g)}</button>`).join(' ')}</div></div>` : ''}
         ${ARC.reviewIssues.length ? `<div class="notice">${ENV_SVG}<div><b>${ARC.reviewIssues.length === 1 ? 'Μία γραμμή' : ARC.reviewIssues.length + ' γραμμές'} με ημερομηνία δεν διαβάστηκαν σωστά.</b> Κοίτα την εικόνα και πρόσθεσέ ${ARC.reviewIssues.length === 1 ? 'την' : 'τες'} με το χέρι από κάτω.</div></div>` : ''}
         <div class="review-grid">
           <div class="review-imgs">${ARC.images.map(u => `<a href="${u}" target="_blank" rel="noopener"><img src="${u}" alt="Στιγμιότυπο που ανέβηκε"></a>`).join('')}</div>
@@ -2309,7 +2455,7 @@ function renderArchive(){
                 <button class="icon-btn" data-arc="rv-del" data-i="${i}" aria-label="Αφαίρεση">×</button>
               </div>`).join('')}</div>
             <div class="rv-add">
-              <input class="inp" id="rvNew" placeholder="Πρόσθεσε με το χέρι, π.χ. ΤΔΑ0001214" spellcheck="false" autocomplete="off">
+              <input class="inp" id="rvNew" placeholder="Πρόσθεσε με το χέρι, π.χ. ΤΔΑ0001214 ή ΠΕΔ0000065" spellcheck="false" autocomplete="off">
               <button class="btn ghost sm" data-arc="rv-add">Προσθήκη</button>
             </div>
           </div>
