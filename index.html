@@ -509,6 +509,29 @@ input{font:inherit;color:inherit}
 .chq-row small .ok{color:var(--olive-deep);font-weight:700}
 .chq-row small .bad{color:var(--red);font-weight:700}
 .dprev.warn{color:var(--wheat-dark)}
+
+/* ===== ΕΝΙΑΙΑ ΕΝΟΤΗΤΑ ΦΑΚΕΛΟΙ / STAND ===== */
+.view-toggle{margin-bottom:18px}
+@media (max-width:600px){.view-toggle{width:100%}.view-toggle button{flex:1}}
+.nav-btn.icon-only{padding:8px 10px;color:var(--muted)}
+.nav-btn.icon-only svg{width:19px;height:19px;display:block}
+.nav-btn.icon-only:hover,.nav-btn.icon-only.active{color:var(--olive-dark)}
+.nav-btn.icon-only.active::after{left:10px;right:10px}
+/* ===== ΕΡΓΑΣΙΕΣ ===== */
+.task-grid{grid-template-columns:minmax(200px,2fr) auto auto auto auto auto}
+.task-grid .f-title{grid-column:1 / -1}
+@media (min-width:1000px){.task-grid .f-title{grid-column:auto}}
+@media (max-width:640px){.task-grid{grid-template-columns:1fr 1fr}.task-grid > .btn{grid-column:1 / -1}}
+.task-grid select.inp{min-width:120px}
+.task-chk{width:22px;height:22px;border:2px solid #C9C6B8;border-radius:6px;background:var(--white);flex-shrink:0;cursor:pointer;padding:0}
+.task-chk:hover{border-color:var(--olive)}
+.task-row{gap:12px}
+.task-row.late b{color:var(--red)}
+.task-row.today b{color:var(--olive-deep)}
+.task-row.someday small{color:#ADAB9F}
+.task-row.done b{color:var(--muted);text-decoration:line-through}
+.task-row .chk-box.on{background:var(--olive-dark);border-color:var(--olive-dark);display:grid;place-items:center}
+.task-row .chk-box.on::after{content:"";width:6px;height:11px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg) translate(-1px,-1px)}
 </style>
 </head>
 <body>
@@ -531,6 +554,7 @@ input{font:inherit;color:inherit}
   <section class="view" id="view-login"></section>
   <section class="view" id="view-main"></section>
   <section class="view" id="view-stand"></section>
+  <section class="view" id="view-task"></section>
   <section class="view" id="view-chq"></section>
   <section class="view" id="view-arc"></section>
   <section class="view" id="view-set"></section>
@@ -767,6 +791,7 @@ function logout(msg){
   wsClose();
   LOCAL.session = null; LOCAL.cache = null; LOCAL.lastSeen = 0; saveLocal();
   DB = { envelopes:[], customers:[] };
+  Object.assign(TSK, { loaded:false, list:[] });
   Object.assign(CHQ, { loaded:false, list:[], q:'' });
   Object.assign(ARC, { loaded:false, checks:[], missing:new Map(), openId:null, openDocs:new Map(), review:[], reviewIssues:[], images:[], q:'' });
   if ($('view-arc')) $('view-arc').innerHTML = '';
@@ -823,7 +848,8 @@ async function wsConnect(){
     if (m.event === 'phx_reply' && m.payload && m.payload.status === 'error'){ setLive(false); }
     if (m.event === 'postgres_changes'){
       const table = m.payload && m.payload.data && m.payload.data.table;
-      if (table === 'cheques') scheduleChequeRefresh();
+      if (table === 'tasks') scheduleTaskRefresh();
+      else if (table === 'cheques') scheduleChequeRefresh();
       else if (table === 'envelopes' || table === 'customers') scheduleRefresh();
       else if (canArchive()) scheduleArchiveRefresh();
     }
@@ -856,6 +882,8 @@ function checkIdle(){
 
 let refreshTimer = null, arcTimer = null;
 function scheduleRefresh(){ clearTimeout(refreshTimer); refreshTimer = setTimeout(() => { lastRefresh = Date.now(); refresh(); }, 350); }
+let taskTimer = null;
+function scheduleTaskRefresh(){ clearTimeout(taskTimer); taskTimer = setTimeout(() => loadTasks(), 350); }
 let chqTimer = null;
 function scheduleChequeRefresh(){ clearTimeout(chqTimer); chqTimer = setTimeout(() => loadCheques(), 350); }
 function scheduleArchiveRefresh(){ clearTimeout(arcTimer); arcTimer = setTimeout(() => loadArchive(), 350); }
@@ -878,7 +906,7 @@ async function refresh(){
     renderAll(); checkReminders();
     cleanupHistory();
     uppercaseLegacy().then(unifyDates);
-    loadCheques();
+    loadTasks(); loadCheques();
     if (canArchive() && !ARC.loaded && !ARC.loading) loadArchive();
   } catch(e){ handleError(e, 'Δεν ενημερώθηκαν οι φάκελοι.', true); }
   finally { refreshing = false; }
@@ -990,6 +1018,31 @@ function checkReminders(){
     if (mins >= toMin(S.morningTime)){ if (env.date === t) mark('day', env); else if (env.date < t) mark('miss', env); }
     if (S.eveEnabled && mins >= toMin(S.eveTime) && env.date > t && prevWorkDay(env.date) === t) mark('eve', env);
   });
+  /* Εργασίες: την ημέρα τους και κάθε μέρα όσο μένουν εκκρεμείς */
+  const taskDue = [];
+  taskOpen().filter(x => mine(x) && x.due).forEach(x => {
+    const at = x.time ? toMin(x.time) : toMin(S.morningTime);
+    const kind = x.due === t ? 'task-day' : x.due < t ? 'task-late' : '';
+    if (!kind) return;
+    if (kind === 'task-day' && mins < at) return;
+    if (kind === 'task-late' && mins < toMin(S.morningTime)) return;
+    const k = `${t}|${kind}|${x.id}`;
+    if (!LOCAL.fired[k]){ LOCAL.fired[k] = 1; taskDue.push({ kind, x }); }
+  });
+  if (taskDue.length){
+    saveLocal();
+    const fireT = (kind, one, many) => {
+      const list = taskDue.filter(v => v.kind === kind).map(v => v.x);
+      if (!list.length) return;
+      if (list.length <= 3) list.forEach(x => { const [a3,b3] = one(x); remind(a3, b3, `${kind}-${x.id}`); });
+      else { const [a3,b3] = many(list); remind(a3, b3, `${kind}-summary`); }
+    };
+    fireT('task-day', x => [x.title, `Σήμερα${x.time ? ' στις ' + x.time : ''}.${x.note ? ' ' + x.note : ''}`],
+                      l => [`${l.length} εργασίες για σήμερα`, l.map(x => x.title).join(', ')]);
+    fireT('task-late', x => [`Εκκρεμεί: ${x.title}`, `Ήταν για ${dayLabel(x.due, true)}.`],
+                       l => [`${l.length} εκπρόθεσμες εργασίες`, l.map(x => x.title).join(', ')]);
+    beep();
+  }
   /* Επιταγές: λίγες μέρες πριν, την ημέρα της εξόφλησης, και όσο μένουν εκκρεμείς */
   const chqDue = [];
   if (canCheques() && mins >= toMin(S.morningTime)) chqOpen().forEach(c => {
@@ -1045,15 +1098,19 @@ function pruneFired(){
 /* ---------- Σελίδες με δικό τους σύνδεσμο (permalink) ---------- */
 const PAGES = {
   main:  { slug:'fakeloi',        sub:'ΦΑΚΕΛΟΙ ΠΕΛΑΤΩΝ',              title:'Φάκελοι' },
-  stand: { slug:'stand',          sub:'STAND ΦΑΚΕΛΩΝ',                title:'Stand' },
+  stand: { slug:'fakeloi/stand',  sub:'ΦΑΚΕΛΟΙ · STAND',              title:'Stand' },
+  task:  { slug:'ergasies',       sub:'ΕΡΓΑΣΙΕΣ',                     title:'Εργασίες' },
   chq:   { slug:'epitages',       sub:'ΕΠΙΤΑΓΕΣ',                     title:'Επιταγές' },
   arc:   { slug:'archeiothetisi', sub:'ΑΡΧΕΙΟΘΕΤΗΣΗ ΠΑΡΑΣΤΑΤΙΚΩΝ',    title:'Αρχειοθέτηση' },
   set:   { slug:'rythmiseis',     sub:'ΡΥΘΜΙΣΕΙΣ',                    title:'Ρυθμίσεις' },
   login: { slug:'syndesi',        sub:'ΣΥΝΔΕΣΗ',                      title:'Σύνδεση' }
 };
 function parseHash(){
-  const [slug = '', sub = ''] = decodeURIComponent(location.hash.replace(/^#\/?/, '')).split('/');
-  const v = Object.keys(PAGES).find(k => PAGES[k].slug === slug) || 'main';
+  const path = decodeURIComponent(location.hash.replace(/^#\/?/, ''));
+  const two = path.split('/').slice(0, 2).join('/');
+  let v = Object.keys(PAGES).find(k => PAGES[k].slug === two);
+  let sub = path.split('/').slice(2).join('/');
+  if (!v){ const one = path.split('/')[0]; v = Object.keys(PAGES).find(k => PAGES[k].slug === one) || 'main'; sub = path.split('/').slice(1).join('/'); }
   return { v, sub };
 }
 function setHash(v, sub=''){
@@ -1105,16 +1162,18 @@ function renderNav(){
   if (!LOCAL.session){ $('nav').innerHTML = ''; return; }
   const n = groupsOf(pending()).filter(g => g.date && g.date <= todayIso()).length;
   $('nav').innerHTML = `
-    <button class="nav-btn${view==='main'?' active':''}" data-go="main">ΦΑΚΕΛΟΙ${n ? `<span class="cnt">${n}</span>` : ''}</button>
-    <button class="nav-btn${view==='stand'?' active':''}" data-go="stand">STAND</button>
+    <button class="nav-btn${view==='main'||view==='stand'?' active':''}" data-go="main">ΦΑΚΕΛΟΙ${n ? `<span class="cnt">${n}</span>` : ''}</button>
+    <button class="nav-btn${view==='task'?' active':''}" data-go="task">ΕΡΓΑΣΙΕΣ${TSK.loaded && taskDueCount() ? `<span class="cnt">${taskDueCount()}</span>` : ''}</button>
     ${canCheques() ? `<button class="nav-btn${view==='chq'?' active':''}" data-go="chq">ΕΠΙΤΑΓΕΣ${CHQ.loaded && (chqDueToday() + chqOverdue()) ? `<span class="cnt">${chqDueToday() + chqOverdue()}</span>` : ''}</button>` : ''}
-    ${canArchive() ? `<button class="nav-btn${view==='arc'?' active':''}" data-go="arc"><span class="nl-long">ΑΡΧΕΙΟΘΕΤΗΣΗ</span><span class="nl-short">ΑΡΧΕΙΟ</span>${ARC.loaded && lateCount() ? `<span class="cnt" title="Παραστατικά που καθυστερούν">${lateCount()}</span>` : ''}</button>` : ''}
-    <button class="nav-btn${view==='set'?' active':''}" data-go="set" aria-label="Ρυθμίσεις"><span class="nl-long">ΡΥΘΜΙΣΕΙΣ</span><svg class="nl-short" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>`;
+    ${canArchive() ? `<button class="nav-btn${view==='arc'?' active':''}" data-go="arc"><span class="nl-long">ΑΡΧΕΙΟΘΕΤΗΣΗ</span><span class="nl-short">ΑΡΧΕΙΟ</span>${ARC.loaded && lateCount() ? `<span class="cnt">${lateCount()}</span>` : ''}</button>` : ''}
+    <button class="nav-btn icon-only${view==='set'?' active':''}" data-go="set" aria-label="Ρυθμίσεις" title="Ρυθμίσεις"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>`;
 }
 let pendingRoute = null;
 function go(v, opts = {}){
   if (!LOCAL.session){ if (v !== 'login') pendingRoute = { v, sub: opts.sub || '' }; v = 'login'; }
   if (LOCAL.session && v === 'login') v = 'main';
+  if (v === 'task' && !$('taskBody')) buildTasks();
+  if (v === 'task'){ renderTasks(); loadTasks(); }
   if (v === 'chq' && !canCheques()) v = 'main';
   if (v === 'arc' && !canArchive()) v = 'main';
   if (!PAGES[v]) v = 'main';
@@ -1142,6 +1201,7 @@ function renderAll(){
   if (view === 'main') renderMain();
   if (view === 'set') renderSettingsState();
   if (view === 'chq') renderCheques();
+  if (view === 'task') renderTasks();
   if (view === 'stand') renderStand();
 }
 function renderNotifBar(){
@@ -1325,6 +1385,7 @@ const docBody = e => ({ id:e.id, name:e.name, date:e.date || null, kind:e.kind |
 
 function buildMain(){
   $('view-main').innerHTML = `
+    ${viewToggle('main')}
     <div class="greet"><h1 id="hello"></h1><p id="sub"></p></div>
     <div class="card add-card">
       <div class="add-grid">
@@ -1851,11 +1912,19 @@ function standData(){
   bySlot.forEach(list => list.sort((a,b) => a.name.localeCompare(b.name,'el')));
   return { layout, bySlot };
 }
+/* Οι «Φάκελοι» και το «Stand» είναι η ίδια ενότητα, με δύο όψεις */
+function viewToggle(cur){
+  return `<div class="seg view-toggle" role="radiogroup">
+    <button type="button" role="radio" aria-checked="${cur === 'main'}" class="${cur === 'main' ? 'on' : ''}" data-go="main">Λίστα</button>
+    <button type="button" role="radio" aria-checked="${cur === 'stand'}" class="${cur === 'stand' ? 'on' : ''}" data-go="stand">Stand</button>
+  </div>`;
+}
 function renderStand(){
   const { layout, bySlot } = standData();
   const total = [...bySlot.values()].reduce((n, l) => n + l.length, 0);
   const cur = Number(LOCAL.settings.standSlots) || 3;
   $('view-stand').innerHTML = `
+    ${viewToggle('stand')}
     <div class="page-h">
       <h1>Stand σε αλφαβητική σειρά</h1>
       <p>${total ? `${total === 1 ? '1 φάκελος' : total + ' φάκελοι'} στο stand. Κάθε φάκελος πάει στη θήκη με το πρώτο γράμμα του ονόματος, και μέσα στη θήκη αλφαβητικά, από μπροστά προς τα πίσω.` : 'Το stand είναι άδειο.'}</p>
@@ -2651,6 +2720,252 @@ document.addEventListener('paste', e => {
   if (!items.length) return;
   e.preventDefault();
   handleImages(items.map(i => i.getAsFile()));
+});
+
+/* ===================== ΕΡΓΑΣΙΕΣ ===================== */
+/* Μικρά task και υπενθυμίσεις που δεν είναι φάκελοι ή επιταγές:
+   «να στείλω τιμοκατάλογο», «έλεγχος αποθέματος κάθε Δευτέρα», «ραντεβού λογιστή».
+   Μπορούν να επαναλαμβάνονται και να ανατίθενται σε συγκεκριμένο άτομο. */
+const TASK_TITLE_MAX = 120, TASK_NOTE_MAX = 200;
+const REPEATS = { none:'Μία φορά', daily:'Κάθε μέρα', weekdays:'Δευτ–Παρ', weekly:'Κάθε εβδομάδα', monthly:'Κάθε μήνα' };
+const TSK = { loaded:false, loading:false, setupMissing:false, list:[], tab:'open', who:'all' };
+const taskRow = r => ({ id:r.id, title:r.title, due:r.due_date || '', time:r.due_time || '', repeat:r.repeat || 'none', assignee:r.assignee || 'all', note:r.note || '', doneAt:r.done_at || null });
+const myEmail = () => String((LOCAL.session && LOCAL.session.email) || '').toLowerCase();
+const mine = t => t.assignee === 'all' || t.assignee === myEmail();
+const taskOpen = () => TSK.list.filter(t => !t.doneAt);
+const taskSort = (a,b) => (a.due || '9999').localeCompare(b.due || '9999') || (a.time || '99').localeCompare(b.time || '99') || a.title.localeCompare(b.title,'el');
+const taskDueCount = () => taskOpen().filter(t => mine(t) && t.due && t.due <= todayIso()).length;
+const whoName = a => a === 'all' ? 'Όλοι' : (ACCOUNTS[a] || {}).name || a;
+const nextDue = (due, repeat) => {
+  const d = fromIso(due);
+  if (repeat === 'daily') return iso(addDays(d, 1));
+  if (repeat === 'weekdays'){ let x = addDays(d, 1); while (![1,2,3,4,5].includes(x.getDay())) x = addDays(x, 1); return iso(x); }
+  if (repeat === 'weekly') return iso(addDays(d, 7));
+  if (repeat === 'monthly'){ const n = new Date(d.getFullYear(), d.getMonth() + 1, 1, 12); const day = Math.min(d.getDate(), new Date(n.getFullYear(), n.getMonth() + 1, 0).getDate()); return iso(new Date(n.getFullYear(), n.getMonth(), day, 12)); }
+  return '';
+};
+const taskBody = t => ({ id:t.id, title:t.title, due_date:t.due || null, due_time:t.time || null, repeat:t.repeat, assignee:t.assignee, note:t.note || null, done_at:t.doneAt });
+
+async function loadTasks(){
+  if (TSK.loading || !LOCAL.session) return;
+  TSK.loading = true;
+  try {
+    const rows = await api('tasks?select=id,title,due_date,due_time,repeat,assignee,note,done_at&order=due_date.asc');
+    TSK.list = (rows || []).map(taskRow);
+    TSK.loaded = true; TSK.setupMissing = false; setOnline(true);
+    renderNav(); checkReminders();
+  } catch(e){
+    if (/HTTP 40[04]|PGRST|42P01/.test(String(e && e.message))) TSK.setupMissing = true;
+    else handleError(e, 'Δεν φόρτωσαν οι εργασίες.', true);
+  } finally { TSK.loading = false; if (view === 'task') renderTasks(); }
+}
+function taskMutate(apply, request, rollback, msg){
+  apply(); if (view === 'task') renderTasks(); renderNav();
+  pendingOps++;
+  return Promise.resolve().then(request).then(() => setOnline(true))
+    .catch(e => { rollback(); if (view === 'task') renderTasks(); renderNav(); handleError(e, msg); })
+    .finally(() => { pendingOps--; });
+}
+function addTask(){
+  const title = clean($('tTitle').value).slice(0, TASK_TITLE_MAX);
+  if (!title){ $('tTitle').focus(); return; }
+  const raw = $('tDate').value.trim();
+  const pd = raw ? parseDateInput(raw) : { value:'' };
+  if (raw && !pd.value){ $('tHint').innerHTML = `<span class="bad">${esc(dateError(pd))}</span>`; $('tDate').focus(); return; }
+  const time = ($('tTime').value || '').trim();
+  const repeat = $('tRepeat').value;
+  if (repeat !== 'none' && !pd.value){ $('tHint').innerHTML = '<span class="bad">Η επανάληψη χρειάζεται ημερομηνία αφετηρίας.</span>'; $('tDate').focus(); return; }
+  const t = { id:uuid(), title, due:pd.value || '', time, repeat, assignee:$('tWho').value, note:'', doneAt:null };
+  $('tTitle').value = ''; $('tDate').value = ''; $('tTime').value = ''; $('tRepeat').value = 'none'; $('tWho').value = 'all';
+  $('tDatePrev').textContent = ''; $('tHint').innerHTML = TASK_HINT; $('tTitle').focus();
+  taskMutate(
+    () => TSK.list.push(t),
+    () => api('tasks', { method:'POST', body:taskBody(t), prefer:'return=minimal' }),
+    () => { TSK.list = TSK.list.filter(x => x.id !== t.id); },
+    'Δεν αποθηκεύτηκε η εργασία.'
+  ).then(() => checkReminders());
+  toast(`${esc(title)}${t.due ? ` — ${esc(dayLabel(t.due, true))}` : ''}${t.repeat !== 'none' ? ` · ${esc(REPEATS[t.repeat].toLowerCase())}` : ''}.`);
+}
+/* Ολοκλήρωση: αν επαναλαμβάνεται, πηγαίνει μόνη της στην επόμενη φορά */
+function completeTask(id){
+  const t = TSK.list.find(x => x.id === id); if (!t || t.doneAt) return;
+  if (t.repeat !== 'none' && t.due){
+    const prevDue = t.due, next = nextDue(t.due, t.repeat);
+    taskMutate(
+      () => { t.due = next; },
+      () => api(`tasks?id=eq.${id}`, { method:'PATCH', body:{ due_date:next }, prefer:'return=minimal' }),
+      () => { t.due = prevDue; },
+      'Η αλλαγή δεν αποθηκεύτηκε.'
+    ).then(() => checkReminders());
+    ['task-day','task-late'].forEach(k => delete LOCAL.fired[`${todayIso()}|${k}|${id}`]);
+    saveLocal();
+    toast(`Έγινε: ${esc(t.title)}. Επόμενη φορά ${esc(dayLabel(next, true))}.`, { action:{ label:'Αναίρεση', fn:() => taskMutate(
+      () => { t.due = prevDue; },
+      () => api(`tasks?id=eq.${id}`, { method:'PATCH', body:{ due_date:prevDue }, prefer:'return=minimal' }),
+      () => { t.due = next; }, 'Η αναίρεση δεν αποθηκεύτηκε.'
+    ) } });
+    return;
+  }
+  const stamp = new Date().toISOString();
+  taskMutate(
+    () => { t.doneAt = stamp; },
+    () => api(`tasks?id=eq.${id}`, { method:'PATCH', body:{ done_at:stamp }, prefer:'return=minimal' }),
+    () => { t.doneAt = null; },
+    'Η αλλαγή δεν αποθηκεύτηκε.'
+  );
+  toast(`Έγινε: ${esc(t.title)}.`, { action:{ label:'Αναίρεση', fn:() => taskMutate(
+    () => { t.doneAt = null; },
+    () => api(`tasks?id=eq.${id}`, { method:'PATCH', body:{ done_at:null }, prefer:'return=minimal' }),
+    () => { t.doneAt = stamp; }, 'Η αναίρεση δεν αποθηκεύτηκε.'
+  ) } });
+}
+function reopenTask(id){
+  const t = TSK.list.find(x => x.id === id); if (!t) return;
+  const prev = t.doneAt;
+  taskMutate(
+    () => { t.doneAt = null; },
+    () => api(`tasks?id=eq.${id}`, { method:'PATCH', body:{ done_at:null }, prefer:'return=minimal' }),
+    () => { t.doneAt = prev; },
+    'Η επαναφορά δεν αποθηκεύτηκε.'
+  );
+}
+function setTaskField(id, field, value){
+  const t = TSK.list.find(x => x.id === id); if (!t) return;
+  const key = { due:'due_date', time:'due_time', repeat:'repeat', assignee:'assignee', note:'note', title:'title' }[field];
+  const prev = t[field];
+  if (prev === value) return;
+  taskMutate(
+    () => { t[field] = value; },
+    () => api(`tasks?id=eq.${id}`, { method:'PATCH', body:{ [key]: value || null }, prefer:'return=minimal' }),
+    () => { t[field] = prev; },
+    'Η αλλαγή δεν αποθηκεύτηκε.'
+  ).then(() => checkReminders());
+}
+function deleteTask(id){
+  const t = TSK.list.find(x => x.id === id); if (!t) return;
+  taskMutate(
+    () => { TSK.list = TSK.list.filter(x => x.id !== id); },
+    () => api(`tasks?id=eq.${id}`, { method:'DELETE', prefer:'return=minimal' }),
+    () => { TSK.list.push(t); },
+    'Η διαγραφή δεν αποθηκεύτηκε.'
+  );
+  toast(`Διαγράφηκε: ${esc(t.title)}.`, { action:{ label:'Αναίρεση', fn:() => taskMutate(
+    () => TSK.list.push(t),
+    () => api('tasks', { method:'POST', body:taskBody(t), prefer:'return=minimal' }),
+    () => { TSK.list = TSK.list.filter(x => x.id !== t.id); }, 'Η αναίρεση δεν αποθηκεύτηκε.'
+  ) } });
+}
+/* ---------- Εμφάνιση ---------- */
+const TASK_HINT = 'Ημερομηνία: γράψε 25, 2509 ή +3. Χωρίς ημερομηνία μένει στη λίστα «Κάποια στιγμή».';
+function buildTasks(){
+  const whoOpts = [['all','Όλοι'], ...Object.entries(ACCOUNTS).map(([mail, a]) => [mail, a.name])];
+  $('view-task').innerHTML = `
+    <div class="page-h">
+      <h1>Εργασίες</h1>
+      <p>Μικρά task και υπενθυμίσεις που δεν είναι φάκελοι ή επιταγές. Μπορούν να επαναλαμβάνονται και να δίνονται σε συγκεκριμένο άτομο.</p>
+    </div>
+    <div class="card add-card">
+      <div class="add-grid task-grid">
+        <label class="f f-title"><span>Τι πρέπει να γίνει</span><input class="inp" id="tTitle" maxlength="${TASK_TITLE_MAX}" autocomplete="off" placeholder="π.χ. αποστολή τιμοκαταλόγου"></label>
+        <div class="f"><span>Πότε</span>
+          <div class="when">
+            <input class="inp dinp" id="tDate" type="text" inputmode="numeric" autocomplete="off" placeholder="ηη/μμ" aria-label="Ημερομηνία" aria-describedby="tDatePrev">
+            <button class="btn ghost sm" data-task="date-today">Σήμερα</button>
+          </div>
+          <small class="dprev" id="tDatePrev"></small>
+        </div>
+        <label class="f"><span>Ώρα</span><input class="inp" id="tTime" type="time" aria-label="Ώρα"></label>
+        <label class="f"><span>Επανάληψη</span><select class="inp" id="tRepeat">${Object.entries(REPEATS).map(([k,v]) => `<option value="${k}">${v}</option>`).join('')}</select></label>
+        <label class="f"><span>Για ποιον</span><select class="inp" id="tWho">${whoOpts.map(([k,v]) => `<option value="${k}">${v}</option>`).join('')}</select></label>
+        <button class="btn primary" id="tAdd">Προσθήκη</button>
+      </div>
+      <p class="hint" id="tHint">${TASK_HINT}</p>
+    </div>
+    <div class="search-row">
+      <div class="seg" id="tTabs" role="radiogroup"></div>
+      <div class="seg" id="tWhoTabs" role="radiogroup">${[['all','Όλες'],['me','Δικές μου']].map(([k,v]) => `<button type="button" role="radio" data-task-who="${k}">${v}</button>`).join('')}</div>
+    </div>
+    <div id="taskBody"></div>`;
+  $('tDate').addEventListener('input', () => {
+    const raw = $('tDate').value.trim(), el = $('tDatePrev');
+    if (!raw){ el.textContent = ''; el.className = 'dprev'; return; }
+    const r = parseDateInput(raw);
+    el.className = 'dprev' + (r.value ? (r.past ? ' warn' : '') : ' bad');
+    el.textContent = r.value ? `${DAYS_FULL[fromIso(r.value).getDay()]} ${fmtDate(r.value)}${r.past ? ' · έχει περάσει' : ''}` : 'Δεν την κατάλαβα';
+  });
+  $('tDate').addEventListener('blur', () => { const r = parseDateInput($('tDate').value); if (r.value) $('tDate').value = fmtDate(r.value); });
+  ['tTitle','tDate','tTime'].forEach(id => $(id).addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing){ e.preventDefault(); addTask(); } }));
+  $('tAdd').onclick = addTask;
+}
+function taskCard(t){
+  const today = todayIso();
+  const st = !t.due ? 'someday' : t.due < today ? 'late' : t.due === today ? 'today' : '';
+  const when = !t.due ? 'Χωρίς ημερομηνία' : t.due === today ? 'Σήμερα' : t.due < today ? `Πέρασε ${ageText(Math.round((fromIso(today) - fromIso(t.due)) / 86400000))}` : dayLabel(t.due);
+  return `<div class="row task-row ${st}">
+    <button class="chk-box task-chk" data-task="done" data-id="${t.id}" aria-label="Ολοκληρώθηκε: ${esc(t.title)}" title="Ολοκληρώθηκε"></button>
+    <div class="r-main">
+      <b>${esc(t.title)}</b>
+      <small>${esc(when)}${t.time ? ` · ${esc(t.time)}` : ''}${t.repeat !== 'none' ? ` · ${esc(REPEATS[t.repeat].toLowerCase())}` : ''}${t.assignee !== 'all' ? ` · ${esc(whoName(t.assignee))}` : ''}</small>
+    </div>
+    <input class="inp dinp" type="text" inputmode="numeric" autocomplete="off" placeholder="ηη/μμ" value="${esc(t.due ? fmtDate(t.due) : '')}" data-task-date="${t.id}" data-orig="${esc(t.due)}" title="${esc(DATE_HELP)}" aria-label="Ημερομηνία">
+    <button class="icon-btn" data-task="del" data-id="${t.id}" aria-label="Διαγραφή" title="Διαγραφή">×</button>
+  </div>`;
+}
+function renderTasks(){
+  if (!$('taskBody')) buildTasks();
+  const body = $('taskBody');
+  if (TSK.setupMissing){
+    body.innerHTML = `<div class="card move-card"><b>Χρειάζεται μία ρύθμιση στη βάση</b><ol><li>Άνοιξε το Supabase → SQL Editor και τρέξε ξανά το <code>supabase-setup.sql</code>.</li><li>Μετά ανανέωσε αυτή τη σελίδα.</li></ol></div>`;
+    return;
+  }
+  if (!TSK.loaded){ body.innerHTML = `<p class="hint">${TSK.loading ? 'Φόρτωση…' : ''}</p>`; if (!TSK.loading) loadTasks(); return; }
+  const filt = t => TSK.who === 'all' || mine(t);
+  const open = taskOpen().filter(filt).sort(taskSort);
+  const done = TSK.list.filter(t => t.doneAt && filt(t)).sort((a,b) => (b.doneAt || '').localeCompare(a.doneAt || ''));
+  $('tTabs').innerHTML = [['open',`Ανοιχτές (${open.length})`],['done',`Έγιναν (${done.length})`]]
+    .map(([k,l]) => `<button type="button" role="radio" aria-checked="${TSK.tab === k}" class="${TSK.tab === k ? 'on' : ''}" data-task-tab="${k}">${l}</button>`).join('');
+  document.querySelectorAll('[data-task-who]').forEach(b => { b.classList.toggle('on', b.dataset.taskWho === TSK.who); b.setAttribute('aria-checked', b.dataset.taskWho === TSK.who); });
+  if (TSK.tab === 'done'){
+    body.innerHTML = done.length ? `<div class="rows">${done.slice(0, 80).map(t => `<div class="row task-row done">
+      <span class="chk-box on" aria-hidden="true"></span>
+      <div class="r-main"><b>${esc(t.title)}</b><small>Έγινε ${esc(shortDate(iso(new Date(t.doneAt))))}${t.assignee !== 'all' ? ` · ${esc(whoName(t.assignee))}` : ''}</small></div>
+      <button class="btn ghost sm" data-task="reopen" data-id="${t.id}">Επαναφορά</button>
+      <button class="icon-btn" data-task="del" data-id="${t.id}" aria-label="Διαγραφή">×</button></div>`).join('')}</div>`
+      : `<p class="empty">Καμία ολοκληρωμένη εργασία.</p>`;
+    return;
+  }
+  const t0 = todayIso(), week = iso(addDays(new Date(), 7));
+  const late = open.filter(x => x.due && x.due < t0), today = open.filter(x => x.due === t0);
+  const soon = open.filter(x => x.due > t0 && x.due <= week), later = open.filter(x => x.due > week);
+  const someday = open.filter(x => !x.due);
+  let html = '';
+  if (late.length) html += section(`ΕΚΠΡΟΘΕΣΜΕΣ (${late.length})`, `<div class="rows bad">${late.map(taskCard).join('')}</div>`, true);
+  if (today.length) html += section('ΣΗΜΕΡΑ', `<div class="rows">${today.map(taskCard).join('')}</div>`);
+  if (soon.length) html += section('ΕΠΟΜΕΝΕΣ 7 ΜΕΡΕΣ', `<div class="rows">${soon.map(taskCard).join('')}</div>`);
+  if (later.length) html += section('ΑΡΓΟΤΕΡΑ', `<div class="rows">${later.map(taskCard).join('')}</div>`);
+  if (someday.length) html += section('ΚΑΠΟΙΑ ΣΤΙΓΜΗ', `<div class="rows">${someday.map(taskCard).join('')}</div>`);
+  body.innerHTML = html || `<p class="empty">Καμία ανοιχτή εργασία. Πρόσθεσε την πρώτη από πάνω.</p>`;
+}
+document.addEventListener('click', e => {
+  const tb = e.target.closest('[data-task-tab]');
+  if (tb){ TSK.tab = tb.dataset.taskTab; renderTasks(); return; }
+  const wb = e.target.closest('[data-task-who]');
+  if (wb){ TSK.who = wb.dataset.taskWho; renderTasks(); return; }
+  const b = e.target.closest('[data-task]');
+  if (!b) return;
+  const act = b.dataset.task;
+  if (act === 'date-today'){ $('tDate').value = fmtDate(todayIso()); $('tDate').dispatchEvent(new Event('input')); $('tTitle').focus(); return; }
+  if (act === 'done') completeTask(b.dataset.id);
+  else if (act === 'reopen') reopenTask(b.dataset.id);
+  else if (act === 'del') deleteTask(b.dataset.id);
+});
+document.addEventListener('change', e => {
+  const d = e.target.closest('[data-task-date]');
+  if (!d) return;
+  if (!d.value.trim()){ d.blur(); setTaskField(d.dataset.taskDate, 'due', ''); return; }
+  const r = parseDateInput(d.value);
+  if (!r.value){ toast(esc(dateError(r))); d.value = d.dataset.orig ? fmtDate(d.dataset.orig) : ''; return; }
+  d.blur(); setTaskField(d.dataset.taskDate, 'due', r.value);
 });
 
 /* ===================== ΕΠΙΤΑΓΕΣ ===================== */
