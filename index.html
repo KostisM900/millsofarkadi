@@ -599,7 +599,7 @@ const LOCAL_KEY = 'arkadi-fakeloi-local-v1';   // ρυθμίσεις συσκε�
 const HISTORY_DAYS = 90;
 const REFRESH_SEC = 30;          // εφεδρικός έλεγχος, αν πέσει η ζωντανή σύνδεση
 const LIVE_SEC = 6;              // όταν η ζωντανή σύνδεση είναι κάτω: γρήγορος έλεγχος
-const DEFAULT_SETTINGS = { userName:'Ζωή', morningTime:'07:30', eveEnabled:true, eveTime:'14:00', sound:true, standSlots:3, workDays:[1,2,3,4,5], chqPreDays:2, idleHours:8 };
+const DEFAULT_SETTINGS = { userName:'Ζωή', morningTime:'07:30', eveEnabled:true, eveTime:'14:00', sound:true, standSlots:3, workDays:[1,2,3,4,5], chqPreDays:2, idleHours:8, arcKeepDays:30 };
 const DAYS_FULL = ['Κυριακή','Δευτέρα','Τρίτη','Τετάρτη','Πέμπτη','Παρασκευή','Σάββατο'];
 const MONTHS = ['Ιανουαρίου','Φεβρουαρίου','Μαρτίου','Απριλίου','Μαΐου','Ιουνίου','Ιουλίου','Αυγούστου','Σεπτεμβρίου','Οκτωβρίου','Νοεμβρίου','Δεκεμβρίου'];
 const REDUCE = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -804,7 +804,7 @@ function logout(msg){
   LOCAL.session = null; LOCAL.cache = null; LOCAL.lastSeen = 0; saveLocal();
   DB = { envelopes:[], customers:[] };
   Object.assign(CHQ, { loaded:false, list:[], q:'' });
-  Object.assign(ARC, { loaded:false, checks:[], missing:new Map(), openId:null, openDocs:new Map(), review:[], reviewIssues:[], images:[], q:'' });
+  Object.assign(ARC, { loaded:false, checks:[], missing:new Map(), docs:new Map(), stamps:new Map(), openId:null, openDocs:new Map(), review:[], reviewIssues:[], images:[], q:'' });
   if ($('view-arc')) $('view-arc').innerHTML = '';
   pendingRoute = null;
   go('login');
@@ -1959,7 +1959,7 @@ const ARCHIVE_EMAILS = ['social@m-m-m.gr'];
 const account = () => ACCOUNTS[String((LOCAL.session && LOCAL.session.email) || '').toLowerCase()] || null;
 const canArchive = () => !!(LOCAL.session && ARCHIVE_EMAILS.includes(String(LOCAL.session.email || '').toLowerCase()));
 const TESSERACT_URL = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
-const ARC = { loaded:false, loading:false, setupMissing:false, checks:[], missing:new Map(), docs:new Map(), openId:null, openDocs:new Map(),
+const ARC = { loaded:false, loading:false, setupMissing:false, checks:[], missing:new Map(), docs:new Map(), stamps:new Map(), openId:null, openDocs:new Map(),
               review:[], reviewIssues:[], images:[], busy:false, filter:'missing', q:'' };
 
 /* ---------- Ανάγνωση κωδικών από το κείμενο της εικόνας ---------- */
@@ -2286,8 +2286,10 @@ async function loadArchive(){
     ARC.checks = checks || [];
     ARC.missing = new Map((miss || []).map(r => [r.code, r]));
     ARC.docs = new Map((recent || []).map(r => [r.code, r]));
+    (recent || []).forEach(r => { if (r.archived_at) ARC.stamps.set(r.code, r.archived_at); else ARC.stamps.delete(r.code); });
     (miss || []).forEach(r => { if (!ARC.docs.has(r.code)) ARC.docs.set(r.code, r); });
     ARC.loaded = true; ARC.setupMissing = false; setOnline(true);
+    cleanupChecks();
   } catch(e){
     if (/HTTP 40[04]|PGRST|42P01/.test(String(e && e.message))) ARC.setupMissing = true;
     else handleError(e, 'Δεν φόρτωσαν οι έλεγχοι αρχειοθέτησης.');
@@ -2298,6 +2300,51 @@ async function loadArchive(){
     if (view === 'arc') renderArchive();
   }
 }
+/* Ολοκληρωμένοι έλεγχοι: όταν όλα τα παραστατικά τους έχουν αρχειοθετηθεί εδώ και
+   τόσες μέρες, σβήνονται μαζί με τα παραστατικά τους. Δεν μένει τίποτα χωρίς λόγο. */
+const arcKeepDays = () => Math.min(365, Math.max(0, Number(LOCAL.settings.arcKeepDays ?? 30)));
+/* Πότε ολοκληρώθηκε ένας έλεγχος: η πιο πρόσφατη αρχειοθέτηση των παραστατικών του */
+function checkDoneAt(chk, stamps){
+  let last = '';
+  for (const c of chk.codes){
+    const at = stamps.get(c);
+    if (!at) return '';                     // κάτι λείπει ακόμα
+    if (at > last) last = at;
+  }
+  return last;
+}
+function checkDeleteIn(chk){
+  const done = checkDoneAt(chk, ARC.stamps);
+  if (!done) return null;
+  const left = arcKeepDays() - Math.floor((Date.now() - new Date(done).getTime()) / 86400000);
+  return Math.max(0, left);
+}
+let arcCleaning = false;
+async function cleanupChecks(){
+  if (arcCleaning || !ARC.loaded || !ARC.checks.length) return;
+  arcCleaning = true;
+  try {
+    const cutoff = new Date(Date.now() - arcKeepDays() * 86400000).toISOString();
+    const old = await api(`archive_docs?select=code,archived_at&archived_at=not.is.null&archived_at=lt.${encodeURIComponent(cutoff)}`);
+    if (!old || !old.length) return;
+    const stamps = new Map(old.map(r => [r.code, r.archived_at]));
+    const ripe = ARC.checks.filter(c => c.codes.length && checkDoneAt(c, stamps));
+    if (!ripe.length) return;
+    const ripeIds = new Set(ripe.map(c => c.id));
+    const keep = ARC.checks.filter(c => !ripeIds.has(c.id));
+    const stillUsed = new Set(keep.flatMap(c => c.codes));
+    const codes = [...new Set(ripe.flatMap(c => c.codes))].filter(c => !stillUsed.has(c));
+    for (const c of ripe) await api(`archive_checks?id=eq.${c.id}`, { method:'DELETE', prefer:'return=minimal' });
+    for (let i = 0; i < codes.length; i += 80) await api(`archive_docs?${idsFilter2(codes.slice(i, i + 80))}`, { method:'DELETE', prefer:'return=minimal' });
+    ARC.checks = keep;
+    codes.forEach(c => { ARC.docs.delete(c); ARC.missing.delete(c); ARC.stamps.delete(c); ARC.openDocs.delete(c); });
+    if (ARC.openId && ripeIds.has(ARC.openId)){ ARC.openId = null; setHash('arc'); }
+    renderNav(); if (view === 'arc') renderArchive();
+    toast(`Διαγράφηκ${ripe.length === 1 ? 'ε 1 ολοκληρωμένος έλεγχος' : `αν ${ripe.length} ολοκληρωμένοι έλεγχοι`} και ${codes.length === 1 ? '1 παραστατικό' : codes.length + ' παραστατικά'}, μετά από ${arcKeepDays()} ${arcKeepDays() === 1 ? 'μέρα' : 'μέρες'}.`);
+  } catch(e){} finally { arcCleaning = false; }
+}
+const idsFilter2 = codes => `code=in.(${codes.map(c => `"${c}"`).join(',')})`;
+
 async function openCheck(id){
   const chk = ARC.checks.find(c => c.id === id);
   if (!chk) return;
@@ -2310,6 +2357,7 @@ async function openCheck(id){
       const rows = await api(`archive_docs?select=code,doc_date,archived_at&code=in.${encodeURIComponent(inList(part))}`);
       (rows || []).forEach(r => {
         ARC.openDocs.set(r.code, r); ARC.docs.set(r.code, r);
+        if (r.archived_at) ARC.stamps.set(r.code, r.archived_at); else ARC.stamps.delete(r.code);
         if (r.archived_at) ARC.missing.delete(r.code); else ARC.missing.set(r.code, { code:r.code, doc_date:r.doc_date });
       });
     }
@@ -2326,7 +2374,7 @@ function setArchived(codes, archived){
   const prev = codes.map(c => [c, ARC.missing.get(c)]);
   const stamp = archived ? new Date().toISOString() : null;
   arcMutate(
-    () => { codes.forEach(c => { if (archived) ARC.missing.delete(c); else ARC.missing.set(c, { code:c, doc_date:docDate(c) || null }); const d = ARC.docs.get(c); if (d) d.archived_at = stamp; }); renderNav(); },
+    () => { codes.forEach(c => { if (archived){ ARC.missing.delete(c); ARC.stamps.set(c, stamp); } else { ARC.missing.set(c, { code:c, doc_date:docDate(c) || null }); ARC.stamps.delete(c); } const d = ARC.docs.get(c); if (d) d.archived_at = stamp; }); renderNav(); },
     async () => { for (let i = 0; i < codes.length; i += 80) await api(`archive_docs?code=in.${encodeURIComponent(inList(codes.slice(i, i + 80)))}`, { method:'PATCH', body:{ archived_at:stamp }, prefer:'return=minimal' }); },
     () => prev.forEach(([c, v]) => { if (v) ARC.missing.set(c, v); else ARC.missing.delete(c); }),
     'Η αλλαγή δεν αποθηκεύτηκε.'
@@ -2511,7 +2559,7 @@ function buildArchive(){
   $('view-arc').innerHTML = `
     <div class="page-h">
       <h1>Έλεγχος αρχειοθέτησης παραστατικών</h1>
-      <p>Ανέβασε στιγμιότυπο με τη λίστα των παραστατικών. Η αναγνώριση γίνεται μέσα στον browser: η εικόνα δεν ανεβαίνει πουθενά, αποθηκεύονται μόνο οι αριθμοί των παραστατικών.</p>
+      <p>Ανέβασε στιγμιότυπο με τη λίστα των παραστατικών. Η αναγνώριση γίνεται μέσα στον browser: η εικόνα δεν ανεβαίνει πουθενά, αποθηκεύονται μόνο οι αριθμοί των παραστατικών. Όταν ένας έλεγχος ολοκληρωθεί, σβήνεται μόνος του μετά από <b id="arcKeepTxt"></b>.</p>
     </div>
     <label class="drop" id="arcDrop">
       <input type="file" id="arcFile" accept="image/*" multiple hidden>
@@ -2530,6 +2578,7 @@ function buildArchive(){
 function renderArchive(){
   if (!$('arcBody')) buildArchive();
   const body = $('arcBody');
+  if ($('arcKeepTxt')) $('arcKeepTxt').textContent = arcKeepDays() === 0 ? 'λίγη ώρα' : ageText(arcKeepDays());
   $('arcDrop').classList.toggle('busy', ARC.busy);
   $('arcDrop').classList.toggle('compact', !ARC.busy && !!(ARC.openId || ARC.review.length || ARC.images.length));
   if (!ARC.busy && $('arcProg')) $('arcProg').hidden = true;
@@ -2601,7 +2650,7 @@ function renderArchive(){
       <section class="card check">
         <div class="check-top"><button class="btn ghost sm back" data-arc="back">← Όλοι οι έλεγχοι</button><button class="btn link-danger" data-arc="del-check">Διαγραφή ελέγχου</button></div>
         <h2>${esc(chk.label)}</h2>
-        <p class="check-sub">Ανέβηκε ${shortDate(iso(new Date(chk.created_at)))} στις ${hhmm(chk.created_at)}${days.size > 1 ? `, παραστατικά από ${days.size} διαφορετικές μέρες` : ''}</p>
+        <p class="check-sub">Ανέβηκε ${shortDate(iso(new Date(chk.created_at)))} στις ${hhmm(chk.created_at)}${days.size > 1 ? `, παραστατικά από ${days.size} διαφορετικές μέρες` : ''}${!waiting.length && checkDeleteIn(chk) != null ? ` · διαγράφεται ${checkDeleteIn(chk) === 0 ? 'σύντομα' : `σε ${ageText(checkDeleteIn(chk))}`}` : ''}</p>
         <div class="progress"><i style="width:${pct}%"></i></div>
         <p class="check-sum">${waiting.length
           ? `<b>${done} από ${codes.length}</b> αρχειοθετημένα. <span class="wait">${waiting.length} σε αναμονή</span>${late.length ? `, <span class="miss">από αυτά ${late.length} καθυστερούν</span>` : ''}.`
@@ -2640,7 +2689,8 @@ function renderArchive(){
     </div>
     ${ARC.checks.length ? section('ΠΡΟΗΓΟΥΜΕΝΟΙ ΕΛΕΓΧΟΙ', `<div class="rows">${ARC.checks.map(c => {
       const w = c.codes.filter(x => ARC.missing.has(x)), l = w.filter(x => docState(x) === 'late').length;
-      return `<div class="row chk-hist"><button class="r-main" data-arc="open" data-id="${c.id}"><b>${esc(c.label)}</b><small>Ανέβηκε ${shortDate(iso(new Date(c.created_at)))} στις ${hhmm(c.created_at)}</small></button>
+      const left = w.length ? null : checkDeleteIn(c);
+      return `<div class="row chk-hist"><button class="r-main" data-arc="open" data-id="${c.id}"><b>${esc(c.label)}</b><small>Ανέβηκε ${shortDate(iso(new Date(c.created_at)))} στις ${hhmm(c.created_at)}${left != null ? ` · σβήνεται ${left === 0 ? 'σύντομα' : `σε ${ageText(left)}`}` : ''}</small></button>
         <span class="tag ${l ? 'none' : w.length ? 'wait' : 'today'}">${l ? `Καθυστερούν ${l}` : w.length ? `Σε αναμονή ${w.length}` : 'Πλήρης'}</span>
         <button class="icon-btn" data-arc="del" data-id="${c.id}" aria-label="Διαγραφή ελέγχου" title="Διαγραφή ελέγχου">×</button></div>`;
     }).join('')}</div>`) : ''}`;
@@ -2907,6 +2957,10 @@ function buildSettings(){
         <label class="switch"><input type="checkbox" id="sEve" ${S.eveEnabled ? 'checked' : ''} aria-label="Υπενθύμιση την προηγούμενη μέρα"><span></span></label>
         <input class="inp" type="time" id="sEveTime" value="${esc(S.eveTime)}" ${S.eveEnabled ? '' : 'disabled'} aria-label="Ώρα υπενθύμισης την προηγούμενη μέρα">
       </div>
+      ${canArchive() ? `<div class="set-row">
+        <div class="sr-t"><b>Αρχειοθέτηση: αυτόματη διαγραφή</b><small>Πόσες μέρες μετά την ολοκλήρωση σβήνεται ένας έλεγχος μαζί με τα παραστατικά του. 0 = αμέσως.</small></div>
+        <input class="inp" type="number" id="sArcKeep" min="0" max="365" value="${arcKeepDays()}" style="width:70px;text-align:center">
+      </div>` : ''}
       ${canCheques() ? `<div class="set-row">
         <div class="sr-t"><b>Επιταγές: πόσες μέρες πριν</b><small>Προειδοποίηση πριν από την ημέρα εξόφλησης. 0 = μόνο την ίδια μέρα.</small></div>
         <input class="inp" type="number" id="sChqPre" min="0" max="30" value="${chqPreDays()}" style="width:70px;text-align:center">
@@ -2957,6 +3011,7 @@ function buildSettings(){
   $('sEve').addEventListener('change', e => { S2.eveEnabled = e.target.checked; $('sEveTime').disabled = !e.target.checked; saveLocal(); checkReminders(); });
   $('sEveTime').addEventListener('change', e => { if (e.target.value){ S2.eveTime = e.target.value; saveLocal(); checkReminders(); } });
   $('sIdle').addEventListener('change', e => { S2.idleHours = Math.min(72, Math.max(0, Number(e.target.value) || 0)); e.target.value = idleHours(); saveLocal(); });
+  if ($('sArcKeep')) $('sArcKeep').addEventListener('change', e => { S2.arcKeepDays = Math.min(365, Math.max(0, Number(e.target.value) || 0)); e.target.value = arcKeepDays(); saveLocal(); cleanupChecks(); if (view === 'arc') renderArchive(); });
   if ($('sChqPre')) $('sChqPre').addEventListener('change', e => { S2.chqPreDays = Math.min(30, Math.max(0, Number(e.target.value) || 0)); e.target.value = chqPreDays(); saveLocal(); checkReminders(); });
   $('sSound').addEventListener('change', e => { S2.sound = e.target.checked; saveLocal(); if (e.target.checked) beep(); });
 }
