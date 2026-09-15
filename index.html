@@ -644,7 +644,7 @@ const ACCOUNTS = {
   'info@m-m-m.gr':   { name:'Γραφείο', voc:'' }
 };
 /* Το όνομα της πλατφόρμας: εμφανίζεται στη σύνδεση και στον τίτλο της καρτέλας */
-const APP_NAME = 'Εσωτερικό σύστημα οργάνωσης';
+const APP_NAME = 'Οργάνωση γραφείου';
 const LOGO_URLS = ['https://m-m-m.gr/wp-content/uploads/2024/04/logo-150.png', 'https://i.imgur.com/oDCFSVE.png'];
 const LOCAL_KEY = 'arkadi-fakeloi-local-v1';   // ρυθμίσεις συσκευής, σύνδεση, προσωρινό αντίγραφο για εκτός σύνδεσης
 const HISTORY_DAYS = 90;
@@ -2859,11 +2859,12 @@ document.addEventListener('paste', e => {
 });
 
 /* ===================== ΟΧΗΜΑΤΑ: ΚΤΕΟ & ΚΑΡΤΑ ΚΑΥΣΑΕΡΙΩΝ ===================== */
-/* Πρόσβαση: info@m-m-m.gr (επιβάλλεται από τους κανόνες RLS στη βάση).
+/* Πρόσβαση: info@m-m-m.gr και social@m-m-m.gr (επιβάλλεται από τους κανόνες RLS στη βάση).
    Πεδία: πινακίδα, περιγραφή, ημερομηνίες λήξης, διάστημα ανανέωσης. */
 const VEH_KINDS = { kteo:'ΚΤΕΟ', emis:'Κάρτα καυσαερίων' };
 const VEH = { loaded:false, loading:false, setupMissing:false, list:[], month:null };
-const canVehicles = () => String((LOCAL.session && LOCAL.session.email) || '').toLowerCase() === 'info@m-m-m.gr';
+const VEHICLE_EMAILS = ['info@m-m-m.gr', 'social@m-m-m.gr'];
+const canVehicles = () => VEHICLE_EMAILS.includes(String((LOCAL.session && LOCAL.session.email) || '').toLowerCase());
 const vehRow = r => ({ id:r.id, plate:r.plate, name:r.name || '', note:r.note || '',
   kteo:r.kteo_due || '', kteoM:r.kteo_months || 12, emis:r.emis_due || '', emisM:r.emis_months || 12 });
 const vehWarnDays = () => Math.min(180, Math.max(1, Number(LOCAL.settings.vehWarnDays ?? 30)));
