@@ -598,7 +598,7 @@ input{font:inherit;color:inherit}
 
 <header class="topbar">
   <div class="topbar-in">
-    <a class="brand" href="#" data-go="main">
+    <a class="brand" href="#" data-go="home">
       <img id="logo" alt="Μύλοι Αρκαδίου">
       <span class="brand-fallback" id="logoFb" hidden>ΜΑ</span>
       <span class="bt"><b>Μύλοι Αρκαδίου</b><span id="brandSub">ΦΑΚΕΛΟΙ ΠΕΛΑΤΩΝ</span></span>
@@ -639,9 +639,9 @@ const SB_KEY = 'sb_publishable_DEt0kj1lYRxlglhOpUE2gw_amhEcWDA';
 
 /* Ποιος είναι ποιος: ο λογαριασμός ορίζει το όνομα στην αρχική (και σε κλητική) */
 const ACCOUNTS = {
-  'social@m-m-m.gr': { name:'Κωστής', voc:'Κωστή' },
-  'sales2@m-m-m.gr': { name:'Ζωή',    voc:'Ζωή' },
-  'info@m-m-m.gr':   { name:'Γραφείο', voc:'' }
+  'social@m-m-m.gr': { name:'Κωστής',    voc:'Κωστή',    home:'main' },
+  'sales2@m-m-m.gr': { name:'Ζωή',       voc:'Ζωή',      home:'main' },
+  'info@m-m-m.gr':   { name:'Πηνελόπη',  voc:'Πηνελόπη', home:'veh' }
 };
 /* Το όνομα της πλατφόρμας: εμφανίζεται στη σύνδεση και στον τίτλο της καρτέλας */
 const APP_NAME = 'Οργάνωση γραφείου';
@@ -1042,7 +1042,7 @@ function remind(title, body, tag){
   if (notifState() === 'granted'){
     try {
       const n = new Notification(title, { body, tag, icon: LOGO_URLS[0], requireInteraction: true });
-      n.onclick = () => { window.focus(); go('main'); n.close(); };
+      n.onclick = () => { window.focus(); go(homeView()); n.close(); };
     } catch(e){}
   }
   toast(`<b>${esc(title)}</b><br>${esc(body)}`, { sticky:true, kind:'alert' });
@@ -1174,6 +1174,7 @@ const PAGES = {
 };
 function parseHash(){
   const path = decodeURIComponent(location.hash.replace(/^#\/?/, ''));
+  if (!path) return { v: LOCAL.session ? homeView() : 'main', sub:'' };
   const two = path.split('/').slice(0, 2).join('/');
   let v = Object.keys(PAGES).find(k => PAGES[k].slug === two);
   let sub = path.split('/').slice(2).join('/');
@@ -1310,7 +1311,7 @@ function buildLogin(){
       await login(email, pass);
       setOnline(true);
       LOCAL.lastSeen = Date.now(); saveLocal();
-      const to = pendingRoute || { v:'main', sub:'' }; pendingRoute = null;
+      const to = pendingRoute || { v:homeView(), sub:'' }; pendingRoute = null;
       go(to.v, { sub: to.sub });
       firstSync = true;
       await refresh();
@@ -2053,6 +2054,8 @@ function printStand(kind){
    ο αριθμός του παραστατικού, η ημερομηνία του και η κατάσταση αρχειοθέτησης. */
 const ARCHIVE_EMAILS = ['social@m-m-m.gr'];
 const account = () => ACCOUNTS[String((LOCAL.session && LOCAL.session.email) || '').toLowerCase()] || null;
+/* Η σελίδα που ανοίγει μετά τη σύνδεση, ανάλογα με τον λογαριασμό */
+const homeView = () => { const a = account(); return a && a.home ? a.home : 'main'; };
 const canArchive = () => !!(LOCAL.session && ARCHIVE_EMAILS.includes(String(LOCAL.session.email || '').toLowerCase()));
 const TESSERACT_URL = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
 const ARC = { loaded:false, loading:false, setupMissing:false, checks:[], missing:new Map(), docs:new Map(), stamps:new Map(), openId:null, openDocs:new Map(),
@@ -3002,8 +3005,8 @@ const VEH_HINT = 'Ημερομηνίες: γράψε 25, 2509 ή 250927. Κεν�
 function buildVehicles(){
   $('view-veh').innerHTML = `
     <div class="page-h">
-      <h1>Οχήματα</h1>
-      <p>ΚΤΕΟ και κάρτα καυσαερίων, με υπενθύμιση πριν τη λήξη.</p>
+      <h1 id="vHello">Οχήματα</h1>
+      <p id="vSub">ΚΤΕΟ και κάρτα καυσαερίων, με υπενθύμιση πριν τη λήξη.</p>
     </div>
     <div class="card add-card veh-add">
       <div class="veh-fields">
@@ -3069,6 +3072,13 @@ function calendarHTML(){
 function renderVehicles(){
   if (!$('vehBody')) buildVehicles();
   const body = $('vehBody');
+  if ($('vHello') && homeView() === 'veh'){
+    const now = new Date(), a = account();
+    $('vHello').textContent = `${now.getHours() < 12 ? 'Καλημέρα' : 'Καλησπέρα'}${a && a.voc ? ', ' + a.voc : ''}`;
+    const n = VEH.loaded ? vehAlertCount() : 0;
+    $('vSub').innerHTML = `<span class="date">${longDate(todayIso())}.</span> ` + (!VEH.loaded ? 'Οχήματα: ΚΤΕΟ και κάρτα καυσαερίων.'
+      : n ? `${n === 1 ? 'Μία λήξη θέλει' : n + ' λήξεις θέλουν'} προσοχή.` : 'Καμία λήξη δεν πλησιάζει.');
+  }
   if (VEH.setupMissing){
     body.innerHTML = `<div class="card move-card"><b>Χρειάζεται μία ρύθμιση στη βάση</b><ol><li>Άνοιξε το Supabase → SQL Editor και τρέξε ξανά το <code>supabase-setup.sql</code>.</li><li>Μετά ανανέωσε αυτή τη σελίδα.</li></ol></div>`;
     return;
@@ -3453,7 +3463,7 @@ function exportData(){
 /* ===================== EVENTS ===================== */
 document.addEventListener('click', e => {
   const g = e.target.closest('[data-go]');
-  if (g){ e.preventDefault(); go(g.dataset.go); return; }
+  if (g){ e.preventDefault(); go(g.dataset.go === 'home' ? homeView() : g.dataset.go); return; }
   const kb = e.target.closest('[data-kind]');
   if (kb){ addKind = kb.dataset.kind; $('aKind').innerHTML = kindSeg(addKind, 'kind'); updateHint(); return; }
   const lb = e.target.closest('[data-letter]');
@@ -3540,8 +3550,12 @@ window.addEventListener('beforeunload', wsClose);
   pruneFired();
   if (LOCAL.cache){ DB.envelopes = LOCAL.cache.envelopes || []; DB.customers = LOCAL.cache.customers || []; }
   buildMain();
-  const start = parseHash();
-  go(start.v, { sub: start.sub, fromHash:true });
+  if (location.hash.replace(/^#\/?/, '')){
+    const start = parseHash();
+    go(start.v, { sub: start.sub, fromHash:true });
+  } else {
+    go(LOCAL.session ? homeView() : 'login', { fromHash:true });
+  }
   if (LOCAL.session) wsConnect();
   setTimeout(tick, 300);
   setInterval(tick, 10000);
