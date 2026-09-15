@@ -545,6 +545,50 @@ input{font:inherit;color:inherit}
 .nav-btn.icon-only svg{width:19px;height:19px;display:block}
 .nav-btn.icon-only:hover,.nav-btn.icon-only.active{color:var(--olive-dark)}
 .nav-btn.icon-only.active::after{left:10px;right:10px}
+
+/* ===== ΟΧΗΜΑΤΑ ===== */
+.veh-fields{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap}
+.veh-fields .f-grow{flex:1;min-width:200px}
+.veh-fields .btn{padding:10px 22px}
+.plate-inp{width:130px;font-weight:800;letter-spacing:.1em;text-align:center}
+.veh-fields .dinp{width:140px}
+@media (max-width:640px){.veh-fields .f,.veh-fields .btn{width:100%}.plate-inp,.veh-fields .dinp{width:100%}}
+.veh-list{display:flex;flex-direction:column;gap:10px}
+.veh-item{display:grid;grid-template-columns:minmax(150px,1fr) minmax(150px,auto) 180px auto;gap:16px;align-items:center;background:var(--white);border:1px solid var(--line);border-left:4px solid var(--line);border-radius:10px;padding:12px 14px}
+.veh-item.soon{border-left-color:var(--wheat)}
+.veh-item.today{border-left-color:var(--olive)}
+.veh-item.late{border-left-color:var(--red);background:#FFFCFB;border-color:#EBD3D1}
+.vi-head{display:flex;flex-direction:column;gap:2px;min-width:0}
+.vi-plate{font-size:17px;font-weight:800;letter-spacing:.06em}
+.vi-name{font-size:12.5px;color:var(--muted)}
+.vi-kind{display:flex;flex-direction:column;gap:3px}
+.vi-kind small{font-size:12.5px;font-weight:700;color:var(--muted)}
+.veh-item.soon .vi-kind small{color:var(--wheat-dark)}
+.veh-item.late .vi-kind small,.veh-item.late .vi-plate{color:var(--red)}
+.ktag.kteo{background:var(--olive-tint);color:var(--olive-deep)}
+.ktag.emis{background:var(--wheat-tint);color:var(--wheat-dark)}
+.veh-fill{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--muted)}
+.veh-fill .inp{width:auto;min-width:120px;padding:6px 9px;font-size:13px}
+.veh-all{margin-top:8px}
+@media (max-width:760px){.veh-item{grid-template-columns:1fr auto}.ci-date,.ci-actions{grid-column:1 / -1}.ci-date{flex-direction:row;align-items:center;gap:8px}}
+/* ημερολόγιο */
+.cal{background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:14px}
+.cal-head{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.cal-head b{font-size:15px;min-width:150px;text-align:center}
+.cal-sp{flex:1}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-dow{font-size:11px;font-weight:800;color:var(--muted);text-align:center;padding:4px 0}
+.cal-cell{min-height:62px;border:1px solid var(--line-2);border-radius:7px;padding:4px;display:flex;flex-direction:column;gap:3px}
+.cal-cell.empty{border:0}
+.cal-cell.today{border-color:var(--olive);background:var(--olive-tint)}
+.cal-n{font-size:11.5px;font-weight:700;color:var(--muted)}
+.cal-cell.today .cal-n{color:var(--olive-deep)}
+.cal-ev{font-size:10.5px;font-weight:800;line-height:1.25;border-radius:4px;padding:2px 4px;background:var(--line-2);color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cal-ev i{display:block;font-style:normal;font-weight:600;font-size:9.5px;opacity:.8}
+.cal-ev.soon{background:var(--wheat-tint);color:var(--wheat-dark)}
+.cal-ev.today{background:var(--olive-dark);color:#fff}
+.cal-ev.late{background:var(--red-tint);color:var(--red)}
+@media (max-width:640px){.cal-cell{min-height:50px}.cal-ev i{display:none}}
 </style>
 </head>
 <body>
@@ -567,6 +611,7 @@ input{font:inherit;color:inherit}
   <section class="view" id="view-login"></section>
   <section class="view" id="view-main"></section>
   <section class="view" id="view-stand"></section>
+  <section class="view" id="view-veh"></section>
   <section class="view" id="view-chq"></section>
   <section class="view" id="view-arc"></section>
   <section class="view" id="view-set"></section>
@@ -592,14 +637,15 @@ const SB_KEY = 'sb_publishable_DEt0kj1lYRxlglhOpUE2gw_amhEcWDA';
 /* Ποιος είναι ποιος: ο λογαριασμός ορίζει το όνομα στην αρχική (και σε κλητική) */
 const ACCOUNTS = {
   'social@m-m-m.gr': { name:'Κωστής', voc:'Κωστή' },
-  'sales2@m-m-m.gr': { name:'Ζωή',    voc:'Ζωή' }
+  'sales2@m-m-m.gr': { name:'Ζωή',    voc:'Ζωή' },
+  'info@m-m-m.gr':   { name:'Γραφείο', voc:'' }
 };
 const LOGO_URLS = ['https://m-m-m.gr/wp-content/uploads/2024/04/logo-150.png', 'https://i.imgur.com/oDCFSVE.png'];
 const LOCAL_KEY = 'arkadi-fakeloi-local-v1';   // ρυθμίσεις συσκευής, σύνδεση, προσωρινό αντίγραφο για εκτός σύνδεσης
 const HISTORY_DAYS = 90;
 const REFRESH_SEC = 30;          // εφεδρικός έλεγχος, αν πέσει η ζωντανή σύνδεση
 const LIVE_SEC = 6;              // όταν η ζωντανή σύνδεση είναι κάτω: γρήγορος έλεγχος
-const DEFAULT_SETTINGS = { userName:'Ζωή', morningTime:'07:30', eveEnabled:true, eveTime:'14:00', sound:true, standSlots:3, workDays:[1,2,3,4,5], chqPreDays:2, idleHours:8, arcKeepDays:30 };
+const DEFAULT_SETTINGS = { userName:'Ζωή', morningTime:'07:30', eveEnabled:true, eveTime:'14:00', sound:true, standSlots:3, workDays:[1,2,3,4,5], chqPreDays:2, idleHours:8, arcKeepDays:30, vehWarnDays:30 };
 const DAYS_FULL = ['Κυριακή','Δευτέρα','Τρίτη','Τετάρτη','Πέμπτη','Παρασκευή','Σάββατο'];
 const MONTHS = ['Ιανουαρίου','Φεβρουαρίου','Μαρτίου','Απριλίου','Μαΐου','Ιουνίου','Ιουλίου','Αυγούστου','Σεπτεμβρίου','Οκτωβρίου','Νοεμβρίου','Δεκεμβρίου'];
 const REDUCE = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -803,6 +849,7 @@ function logout(msg){
   wsClose();
   LOCAL.session = null; LOCAL.cache = null; LOCAL.lastSeen = 0; saveLocal();
   DB = { envelopes:[], customers:[] };
+  Object.assign(VEH, { loaded:false, list:[], month:null });
   Object.assign(CHQ, { loaded:false, list:[], q:'' });
   Object.assign(ARC, { loaded:false, checks:[], missing:new Map(), docs:new Map(), stamps:new Map(), openId:null, openDocs:new Map(), review:[], reviewIssues:[], images:[], q:'' });
   if ($('view-arc')) $('view-arc').innerHTML = '';
@@ -859,7 +906,8 @@ async function wsConnect(){
     if (m.event === 'phx_reply' && m.payload && m.payload.status === 'error'){ setLive(false); }
     if (m.event === 'postgres_changes'){
       const table = m.payload && m.payload.data && m.payload.data.table;
-      if (table === 'cheques') scheduleChequeRefresh();
+      if (table === 'vehicles') scheduleVehicleRefresh();
+      else if (table === 'cheques') scheduleChequeRefresh();
       else if (table === 'envelopes' || table === 'customers') scheduleRefresh();
       else if (canArchive()) scheduleArchiveRefresh();
     }
@@ -892,6 +940,8 @@ function checkIdle(){
 
 let refreshTimer = null, arcTimer = null;
 function scheduleRefresh(){ clearTimeout(refreshTimer); refreshTimer = setTimeout(() => { lastRefresh = Date.now(); refresh(); }, 350); }
+let vehTimer = null;
+function scheduleVehicleRefresh(){ clearTimeout(vehTimer); vehTimer = setTimeout(() => loadVehicles(), 350); }
 let chqTimer = null;
 function scheduleChequeRefresh(){ clearTimeout(chqTimer); chqTimer = setTimeout(() => loadCheques(), 350); }
 function scheduleArchiveRefresh(){ clearTimeout(arcTimer); arcTimer = setTimeout(() => loadArchive(), 350); }
@@ -914,7 +964,7 @@ async function refresh(){
     renderAll(); checkReminders();
     cleanupHistory();
     uppercaseLegacy().then(unifyDates);
-    loadCheques();
+    loadCheques(); loadVehicles();
     if (canArchive() && !ARC.loaded && !ARC.loading) loadArchive();
   } catch(e){ handleError(e, 'Δεν ενημερώθηκαν οι φάκελοι.', true); }
   finally { refreshing = false; }
@@ -1026,6 +1076,35 @@ function checkReminders(){
     if (mins >= toMin(S.morningTime)){ if (env.date === t) mark('day', env); else if (env.date < t) mark('miss', env); }
     if (S.eveEnabled && mins >= toMin(S.eveTime) && env.date > t && prevWorkDay(env.date) === t) mark('eve', env);
   });
+  /* Οχήματα: στο περιθώριο προειδοποίησης, την ημέρα της λήξης, και κάθε μέρα μετά */
+  if (canVehicles() && mins >= toMin(S.morningTime)){
+    const vd = [];
+    vehDeadlines().forEach(x => {
+      const st = vehState(x.due);
+      if (st === 'ok') return;
+      const kind = st === 'late' ? 'veh-late' : st === 'today' ? 'veh-day' : 'veh-soon';
+      const key = `${t}|${kind}|${x.v.id}-${x.kind}`;
+      if (kind === 'veh-soon' && ![vehWarnDays(), 14, 7, 3, 1].includes(vehDaysLeft(x.due))) return;
+      if (!LOCAL.fired[key]){ LOCAL.fired[key] = 1; vd.push({ kind, x }); }
+    });
+    if (vd.length){
+      saveLocal();
+      const fireV = (kind, one, many) => {
+        const list = vd.filter(v => v.kind === kind).map(v => v.x);
+        if (!list.length) return;
+        if (list.length <= 3) list.forEach(x => { const [a4,b4] = one(x); remind(a4, b4, `${kind}-${x.v.id}-${x.kind}`); });
+        else { const [a4,b4] = many(list); remind(a4, b4, `${kind}-summary`); }
+      };
+      const nm = x => `${VEH_KINDS[x.kind]} · ${x.v.plate}`;
+      fireV('veh-late', x => [`Έληξε: ${nm(x)}`, `Η λήξη ήταν ${dayLabel(x.due, true)}. Το όχημα δεν επιτρέπεται να κυκλοφορεί.`],
+                        l => [`${l.length} λήξεις οχημάτων έχουν περάσει`, l.map(nm).join(', ')]);
+      fireV('veh-day',  x => [`Λήγει σήμερα: ${nm(x)}`, `${x.v.name || x.v.plate}.`],
+                        l => [`${l.length} λήξεις οχημάτων σήμερα`, l.map(nm).join(', ')]);
+      fireV('veh-soon', x => [`Σε ${ageText(vehDaysLeft(x.due))}: ${nm(x)}`, `Λήξη ${dayLabel(x.due, true)}.`],
+                        l => [`${l.length} λήξεις οχημάτων πλησιάζουν`, l.map(x => `${nm(x)} (${dayLabel(x.due, true)})`).join(', ')]);
+      beep();
+    }
+  }
   /* Επιταγές: λίγες μέρες πριν, την ημέρα της εξόφλησης, και όσο μένουν εκκρεμείς */
   const chqDue = [];
   if (canCheques() && mins >= toMin(S.morningTime)) chqOpen().forEach(c => {
@@ -1082,6 +1161,7 @@ function pruneFired(){
 const PAGES = {
   main:  { slug:'fakeloi',        sub:'ΦΑΚΕΛΟΙ ΠΕΛΑΤΩΝ',              title:'Φάκελοι' },
   stand: { slug:'fakeloi/stand',  sub:'ΦΑΚΕΛΟΙ · STAND',              title:'Stand' },
+  veh:   { slug:'ochimata',       sub:'ΟΧΗΜΑΤΑ',                      title:'Οχήματα' },
   chq:   { slug:'epitages',       sub:'ΕΠΙΤΑΓΕΣ',                     title:'Επιταγές' },
   arc:   { slug:'archeiothetisi', sub:'ΑΡΧΕΙΟΘΕΤΗΣΗ ΠΑΡΑΣΤΑΤΙΚΩΝ',    title:'Αρχειοθέτηση' },
   set:   { slug:'rythmiseis',     sub:'ΡΥΘΜΙΣΕΙΣ',                    title:'Ρυθμίσεις' },
@@ -1145,6 +1225,7 @@ function renderNav(){
   const n = groupsOf(pending()).filter(g => g.date && g.date <= todayIso()).length;
   $('nav').innerHTML = `
     <button class="nav-btn${view==='main'||view==='stand'?' active':''}" data-go="main">ΦΑΚΕΛΟΙ${n ? `<span class="cnt">${n}</span>` : ''}</button>
+    ${canVehicles() ? `<button class="nav-btn${view==='veh'?' active':''}" data-go="veh">ΟΧΗΜΑΤΑ${VEH.loaded && vehAlertCount() ? `<span class="cnt">${vehAlertCount()}</span>` : ''}</button>` : ''}
     ${canCheques() ? `<button class="nav-btn${view==='chq'?' active':''}" data-go="chq">ΕΠΙΤΑΓΕΣ${CHQ.loaded && (chqDueToday() + chqOverdue()) ? `<span class="cnt">${chqDueToday() + chqOverdue()}</span>` : ''}</button>` : ''}
     ${canArchive() ? `<button class="nav-btn${view==='arc'?' active':''}" data-go="arc"><span class="nl-long">ΑΡΧΕΙΟΘΕΤΗΣΗ</span><span class="nl-short">ΑΡΧΕΙΟ</span>${ARC.loaded && lateCount() ? `<span class="cnt">${lateCount()}</span>` : ''}</button>` : ''}
     <button class="nav-btn icon-only${view==='set'?' active':''}" data-go="set" aria-label="Ρυθμίσεις" title="Ρυθμίσεις"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>`;
@@ -1153,6 +1234,8 @@ let pendingRoute = null;
 function go(v, opts = {}){
   if (!LOCAL.session){ if (v !== 'login') pendingRoute = { v, sub: opts.sub || '' }; v = 'login'; }
   if (LOCAL.session && v === 'login') v = 'main';
+  if (v === 'veh' && !canVehicles()) v = 'main';
+  if (v === 'veh'){ if (!$('vehBody')) buildVehicles(); renderVehicles(); loadVehicles(); }
   if (v === 'chq' && !canCheques()) v = 'main';
   if (v === 'arc' && !canArchive()) v = 'main';
   if (!PAGES[v]) v = 'main';
@@ -1180,6 +1263,7 @@ function renderAll(){
   if (view === 'main') renderMain();
   if (view === 'set') renderSettingsState();
   if (view === 'chq') renderCheques();
+  if (view === 'veh') renderVehicles();
   if (view === 'stand') renderStand();
 }
 function renderNotifBar(){
@@ -1803,7 +1887,7 @@ function renderMain(){
   const nwTitle = nw === tm ? 'ΑΥΡΙΟ' : upper(dayLabel(nw));
   const nodate = G.filter(g => !g.date).sort(byName);
 
-  $('hello').textContent = `${now.getHours() < 12 ? 'Καλημέρα' : 'Καλησπέρα'}${account() ? ', ' + account().voc : ''}`;
+  $('hello').textContent = `${now.getHours() < 12 ? 'Καλημέρα' : 'Καλησπέρα'}${account() && account().voc ? ', ' + account().voc : ''}`;
   const todayAll = allG.filter(g => g.date === t).length;
   const sub = !allG.length ? 'Το stand είναι άδειο.'
     : (todayAll ? `${todayAll === 1 ? 'Ένας φάκελος φεύγει' : todayAll + ' φάκελοι φεύγουν'} σήμερα.` : 'Κανένας φάκελος δεν φεύγει σήμερα.')
@@ -2768,6 +2852,275 @@ document.addEventListener('paste', e => {
   handleImages(items.map(i => i.getAsFile()));
 });
 
+/* ===================== ΟΧΗΜΑΤΑ: ΚΤΕΟ & ΚΑΡΤΑ ΚΑΥΣΑΕΡΙΩΝ ===================== */
+/* Πρόσβαση: info@m-m-m.gr (επιβάλλεται από τους κανόνες RLS στη βάση).
+   Πεδία: πινακίδα, περιγραφή, ημερομηνίες λήξης, διάστημα ανανέωσης. */
+const VEH_KINDS = { kteo:'ΚΤΕΟ', emis:'Κάρτα καυσαερίων' };
+const VEH = { loaded:false, loading:false, setupMissing:false, list:[], month:null };
+const canVehicles = () => String((LOCAL.session && LOCAL.session.email) || '').toLowerCase() === 'info@m-m-m.gr';
+const vehRow = r => ({ id:r.id, plate:r.plate, name:r.name || '', note:r.note || '',
+  kteo:r.kteo_due || '', kteoM:r.kteo_months || 12, emis:r.emis_due || '', emisM:r.emis_months || 12 });
+const vehWarnDays = () => Math.min(180, Math.max(1, Number(LOCAL.settings.vehWarnDays ?? 30)));
+/* Όλες οι λήξεις σε μία λίστα, ταξινομημένες */
+function vehDeadlines(){
+  const out = [];
+  VEH.list.forEach(v => ['kteo','emis'].forEach(k => { const d = v[k]; if (d) out.push({ v, kind:k, due:d }); }));
+  return out.sort((a,b) => a.due.localeCompare(b.due) || a.v.plate.localeCompare(b.v.plate,'el'));
+}
+const vehDaysLeft = due => Math.round((fromIso(due) - fromIso(todayIso())) / 86400000);
+function vehState(due){
+  const n = vehDaysLeft(due);
+  return n < 0 ? 'late' : n === 0 ? 'today' : n <= vehWarnDays() ? 'soon' : 'ok';
+}
+const vehAlertCount = () => vehDeadlines().filter(d => vehState(d.due) !== 'ok').length;
+const vehLabel = v => `${v.plate}${v.name ? ' · ' + v.name : ''}`;
+const addMonths = (dateIso, m) => { const d = fromIso(dateIso); const n = new Date(d.getFullYear(), d.getMonth() + m, 1, 12); const day = Math.min(d.getDate(), new Date(n.getFullYear(), n.getMonth() + 1, 0).getDate()); return iso(new Date(n.getFullYear(), n.getMonth(), day, 12)); };
+const plateFmt = s => upper(clean(s)).replace(/[\s.]+/g, '-').replace(/[^A-ZΑ-Ω0-9-]/g, '').replace(/-+/g, '-').slice(0, 12);
+const vehBody = v => ({ id:v.id, plate:v.plate, name:v.name || null, note:v.note || null,
+  kteo_due:v.kteo || null, kteo_months:v.kteoM, emis_due:v.emis || null, emis_months:v.emisM });
+
+async function loadVehicles(){
+  if (VEH.loading || !LOCAL.session || !canVehicles()) return;
+  VEH.loading = true;
+  try {
+    const rows = await api('vehicles?select=id,plate,name,note,kteo_due,kteo_months,emis_due,emis_months&order=plate.asc');
+    VEH.list = (rows || []).map(vehRow);
+    VEH.loaded = true; VEH.setupMissing = false; setOnline(true);
+    renderNav(); checkReminders();
+  } catch(e){
+    if (/HTTP 40[04]|PGRST|42P01/.test(String(e && e.message))) VEH.setupMissing = true;
+    else handleError(e, 'Δεν φόρτωσαν τα οχήματα.', true);
+  } finally { VEH.loading = false; if (view === 'veh') renderVehicles(); }
+}
+function vehMutate(apply, request, rollback, msg){
+  apply(); if (view === 'veh') renderVehicles(); renderNav();
+  pendingOps++;
+  return Promise.resolve().then(request).then(() => setOnline(true))
+    .catch(e => { rollback(); if (view === 'veh') renderVehicles(); renderNav(); handleError(e, msg); })
+    .finally(() => { pendingOps--; });
+}
+function addVehicle(){
+  const plate = plateFmt($('vPlate').value);
+  if (!plate){ $('vPlate').focus(); return; }
+  if (VEH.list.some(v => norm(v.plate) === norm(plate))){ $('vHint').innerHTML = `<span class="bad">Υπάρχει ήδη όχημα με πινακίδα ${esc(plate)}.</span>`; return; }
+  const kteo = parseDateInput($('vKteo').value), emis = parseDateInput($('vEmis').value);
+  if ($('vKteo').value.trim() && !kteo.value){ $('vHint').innerHTML = `<span class="bad">ΚΤΕΟ: ${esc(dateError(kteo))}</span>`; return; }
+  if ($('vEmis').value.trim() && !emis.value){ $('vHint').innerHTML = `<span class="bad">Καυσαέρια: ${esc(dateError(emis))}</span>`; return; }
+  const v = { id:uuid(), plate, name:clean($('vName').value).slice(0,60), note:'',
+              kteo:kteo.value || '', kteoM:12, emis:emis.value || '', emisM:12 };
+  ['vPlate','vName','vKteo','vEmis'].forEach(id => $(id).value = '');
+  $('vHint').innerHTML = VEH_HINT; $('vPlate').focus();
+  vehMutate(
+    () => VEH.list.push(v),
+    () => api('vehicles', { method:'POST', body:vehBody(v), prefer:'return=minimal' }),
+    () => { VEH.list = VEH.list.filter(x => x.id !== v.id); },
+    'Δεν αποθηκεύτηκε το όχημα.'
+  ).then(() => checkReminders());
+  toast(`Προστέθηκε: ${esc(vehLabel(v))}.`);
+}
+function setVehField(id, field, value){
+  const v = VEH.list.find(x => x.id === id); if (!v) return;
+  const key = { plate:'plate', name:'name', note:'note', kteo:'kteo_due', emis:'emis_due', kteoM:'kteo_months', emisM:'emis_months' }[field];
+  const prev = v[field];
+  if (prev === value) return;
+  vehMutate(
+    () => { v[field] = value; },
+    () => api(`vehicles?id=eq.${id}`, { method:'PATCH', body:{ [key]: value === '' ? null : value }, prefer:'return=minimal' }),
+    () => { v[field] = prev; },
+    'Η αλλαγή δεν αποθηκεύτηκε.'
+  ).then(() => checkReminders());
+}
+/* Ανανέωση: η νέα λήξη μπαίνει τόσους μήνες μετά τη σημερινή μέρα */
+function renewVeh(id, kind){
+  const v = VEH.list.find(x => x.id === id); if (!v) return;
+  const months = kind === 'kteo' ? v.kteoM : v.emisM;
+  const next = addMonths(todayIso(), months), prev = v[kind];
+  vehMutate(
+    () => { v[kind] = next; },
+    () => api(`vehicles?id=eq.${id}`, { method:'PATCH', body:{ [kind === 'kteo' ? 'kteo_due' : 'emis_due']: next }, prefer:'return=minimal' }),
+    () => { v[kind] = prev; },
+    'Η ανανέωση δεν αποθηκεύτηκε.'
+  ).then(() => checkReminders());
+  toast(`${VEH_KINDS[kind]} · ${esc(v.plate)}: νέα λήξη ${esc(fmtDate(next))}.`, { action:{ label:'Αναίρεση', fn:() => vehMutate(
+    () => { v[kind] = prev; },
+    () => api(`vehicles?id=eq.${id}`, { method:'PATCH', body:{ [kind === 'kteo' ? 'kteo_due' : 'emis_due']: prev || null }, prefer:'return=minimal' }),
+    () => { v[kind] = next; }, 'Η αναίρεση δεν αποθηκεύτηκε.'
+  ) } });
+}
+function deleteVehicle(id){
+  const v = VEH.list.find(x => x.id === id); if (!v) return;
+  vehMutate(
+    () => { VEH.list = VEH.list.filter(x => x.id !== id); },
+    () => api(`vehicles?id=eq.${id}`, { method:'DELETE', prefer:'return=minimal' }),
+    () => { VEH.list.push(v); },
+    'Η διαγραφή δεν αποθηκεύτηκε.'
+  );
+  toast(`Διαγράφηκε: ${esc(vehLabel(v))}.`, { action:{ label:'Αναίρεση', fn:() => vehMutate(
+    () => VEH.list.push(v),
+    () => api('vehicles', { method:'POST', body:vehBody(v), prefer:'return=minimal' }),
+    () => { VEH.list = VEH.list.filter(x => x.id !== v.id); }, 'Η αναίρεση δεν αποθηκεύτηκε.'
+  ) } });
+}
+/* ---------- Ημερολόγιο (.ics) για Google Calendar ---------- */
+function icsText(){
+  const stamp = new Date().toISOString().replace(/[-:]/g,'').split('.')[0] + 'Z';
+  const lines = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Myloi Arkadiou//Ochimata//EL','CALSCALE:GREGORIAN','METHOD:PUBLISH','X-WR-CALNAME:Οχήματα · Μύλοι Αρκαδίου'];
+  vehDeadlines().forEach(({ v, kind, due }) => {
+    lines.push('BEGIN:VEVENT',
+      `UID:${v.id}-${kind}@m-m-m.gr`,
+      `DTSTAMP:${stamp}`,
+      `DTSTART;VALUE=DATE:${due.replace(/-/g,'')}`,
+      `DTEND;VALUE=DATE:${iso(addDays(fromIso(due),1)).replace(/-/g,'')}`,
+      `SUMMARY:${VEH_KINDS[kind]} — ${v.plate}${v.name ? ' (' + v.name + ')' : ''}`,
+      'BEGIN:VALARM','TRIGGER:-P30D','ACTION:DISPLAY',`DESCRIPTION:${VEH_KINDS[kind]} ${v.plate} σε 30 μέρες`,'END:VALARM',
+      'BEGIN:VALARM','TRIGGER:-P7D','ACTION:DISPLAY',`DESCRIPTION:${VEH_KINDS[kind]} ${v.plate} σε 7 μέρες`,'END:VALARM',
+      'END:VEVENT');
+  });
+  lines.push('END:VCALENDAR');
+  return lines.join('\r\n');
+}
+function downloadIcs(){
+  if (!vehDeadlines().length){ toast('Δεν υπάρχουν ημερομηνίες για εξαγωγή.'); return; }
+  try {
+    const blob = new Blob([icsText()], { type:'text/calendar;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = `ochimata-${todayIso()}.ics`;
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 800);
+    toast('Κατέβηκε το αρχείο. Στο Google Calendar: Ρυθμίσεις → Εισαγωγή και εξαγωγή → Εισαγωγή.');
+  } catch(e){ toast('Η λήψη αρχείου δεν επιτρέπεται εδώ.'); }
+}
+/* ---------- Εμφάνιση ---------- */
+const VEH_HINT = 'Ημερομηνίες: γράψε 25, 2509 ή 250927. Κενό αν δεν την ξέρεις ακόμα.';
+function buildVehicles(){
+  $('view-veh').innerHTML = `
+    <div class="page-h">
+      <h1>Οχήματα</h1>
+      <p>ΚΤΕΟ και κάρτα καυσαερίων, με υπενθύμιση πριν τη λήξη.</p>
+    </div>
+    <div class="card add-card veh-add">
+      <div class="veh-fields">
+        <label class="f"><span>Πινακίδα</span><input class="inp plate-inp" id="vPlate" maxlength="12" autocomplete="off" placeholder="ΑΒΓ-1234"></label>
+        <label class="f f-grow"><span>Περιγραφή</span><input class="inp" id="vName" maxlength="60" autocomplete="off" placeholder="π.χ. Φορτηγό Mercedes"></label>
+        <label class="f"><span>Λήξη ΚΤΕΟ</span><input class="inp dinp" id="vKteo" type="text" inputmode="numeric" autocomplete="off" placeholder="ηη/μμ/εεεε"></label>
+        <label class="f"><span>Λήξη καυσαερίων</span><input class="inp dinp" id="vEmis" type="text" inputmode="numeric" autocomplete="off" placeholder="ηη/μμ/εεεε"></label>
+        <button class="btn primary" id="vAdd">Προσθήκη</button>
+      </div>
+      <p class="hint" id="vHint">${VEH_HINT}</p>
+    </div>
+    <div id="vehBody"></div>`;
+  upperInput($('vPlate'));
+  $('vPlate').addEventListener('input', e => { e.target.value = plateFmt(e.target.value); });
+  ['vKteo','vEmis'].forEach(id => $(id).addEventListener('blur', () => { const r = parseDateInput($(id).value); if (r.value) $(id).value = fmtDate(r.value); }));
+  ['vPlate','vName','vKteo','vEmis'].forEach(id => $(id).addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing){ e.preventDefault(); addVehicle(); } }));
+  $('vAdd').onclick = addVehicle;
+}
+function dlRow({ v, kind, due }){
+  const st = vehState(due), n = vehDaysLeft(due);
+  const when = n < 0 ? `έληξε πριν από ${ageText(-n)}` : n === 0 ? 'λήγει σήμερα' : `σε ${ageText(n)}`;
+  return `<div class="veh-item ${st}">
+    <div class="vi-head"><b class="vi-plate">${esc(v.plate)}</b>${v.name ? `<span class="vi-name">${esc(v.name)}</span>` : ''}</div>
+    <div class="vi-kind"><span class="ktag ${kind}">${esc(VEH_KINDS[kind])}</span><small>${esc(when)}</small></div>
+    <div class="ci-date">
+      <input class="inp dinp" type="text" inputmode="numeric" autocomplete="off" placeholder="ηη/μμ/εεεε" value="${esc(fmtDate(due))}" data-veh-date="${v.id}" data-kind="${kind}" data-orig="${esc(due)}" title="${esc(DATE_HELP)}" aria-label="Λήξη ${esc(VEH_KINDS[kind])} για ${esc(v.plate)}">
+      <small>${esc(longDate(due))}</small>
+    </div>
+    <div class="ci-actions">
+      <button class="btn ${st === 'ok' ? 'ghost' : 'primary'} sm" data-veh="renew" data-id="${v.id}" data-kind="${kind}" title="Νέα λήξη ${(kind === 'kteo' ? v.kteoM : v.emisM)} μήνες από σήμερα">Ανανεώθηκε</button>
+    </div>
+  </div>`;
+}
+/* Μήνας με τις λήξεις, για γρήγορη ματιά */
+function calendarHTML(){
+  const base = VEH.month ? fromIso(VEH.month + '-01') : fromIso(todayIso().slice(0,7) + '-01');
+  const y = base.getFullYear(), m = base.getMonth();
+  const first = new Date(y, m, 1, 12), days = new Date(y, m + 1, 0).getDate();
+  const lead = (first.getDay() + 6) % 7;                       // Δευτέρα πρώτη
+  const byDay = {};
+  vehDeadlines().forEach(d => { const dt = fromIso(d.due); if (dt.getFullYear() === y && dt.getMonth() === m) (byDay[dt.getDate()] = byDay[dt.getDate()] || []).push(d); });
+  const cells = [];
+  for (let i = 0; i < lead; i++) cells.push('<div class="cal-cell empty"></div>');
+  for (let day = 1; day <= days; day++){
+    const list = byDay[day] || [], isToday = iso(new Date(y, m, day, 12)) === todayIso();
+    cells.push(`<div class="cal-cell${isToday ? ' today' : ''}${list.length ? ' has' : ''}">
+      <span class="cal-n">${day}</span>
+      ${list.map(d => `<span class="cal-ev ${vehState(d.due)}" title="${esc(VEH_KINDS[d.kind])} — ${esc(d.v.plate)}">${esc(d.v.plate)}<i>${d.kind === 'kteo' ? 'ΚΤΕΟ' : 'καυσ.'}</i></span>`).join('')}
+    </div>`);
+  }
+  return `<div class="cal">
+    <div class="cal-head">
+      <button class="btn ghost sm" data-veh="prev-month" aria-label="Προηγούμενος μήνας">‹</button>
+      <b>${MONTHS[m]} ${y}</b>
+      <button class="btn ghost sm" data-veh="next-month" aria-label="Επόμενος μήνας">›</button>
+      <button class="btn ghost sm" data-veh="this-month">Τρέχων μήνας</button>
+      <span class="cal-sp"></span>
+      <button class="btn ghost sm" data-veh="ics">Λήψη για ημερολόγιο (.ics)</button>
+    </div>
+    <div class="cal-grid">${['Δε','Τρ','Τε','Πε','Πα','Σα','Κυ'].map(d => `<div class="cal-dow">${d}</div>`).join('')}${cells.join('')}</div>
+  </div>`;
+}
+function renderVehicles(){
+  if (!$('vehBody')) buildVehicles();
+  const body = $('vehBody');
+  if (VEH.setupMissing){
+    body.innerHTML = `<div class="card move-card"><b>Χρειάζεται μία ρύθμιση στη βάση</b><ol><li>Άνοιξε το Supabase → SQL Editor και τρέξε ξανά το <code>supabase-setup.sql</code>.</li><li>Μετά ανανέωσε αυτή τη σελίδα.</li></ol></div>`;
+    return;
+  }
+  if (!VEH.loaded){ body.innerHTML = `<p class="hint">${VEH.loading ? 'Φόρτωση…' : ''}</p>`; if (!VEH.loading) loadVehicles(); return; }
+  if (!VEH.list.length){ body.innerHTML = `<p class="empty">Δεν έχει καταχωρηθεί όχημα. Πρόσθεσε το πρώτο από πάνω.</p>`; return; }
+  const all = vehDeadlines();
+  const late = all.filter(d => vehState(d.due) === 'late');
+  const soon = all.filter(d => ['today','soon'].includes(vehState(d.due)));
+  const ok = all.filter(d => vehState(d.due) === 'ok');
+  const missing = VEH.list.filter(v => !v.kteo || !v.emis);
+  let html = '';
+  if (late.length) html += section(`ΕΛΗΞΑΝ (${late.length})`, `<div class="veh-list">${late.map(dlRow).join('')}</div>`, true);
+  if (soon.length) html += section(`ΛΗΓΟΥΝ ΣΥΝΤΟΜΑ (${soon.length})`, `<div class="veh-list">${soon.map(dlRow).join('')}</div>`);
+  if (ok.length) html += section('ΕΠΟΜΕΝΕΣ ΛΗΞΕΙΣ', `<div class="veh-list">${ok.map(dlRow).join('')}</div>`);
+  if (missing.length) html += section('ΧΩΡΙΣ ΗΜΕΡΟΜΗΝΙΑ', `<div class="rows">${missing.map(v => `<div class="row">
+      <div class="r-main"><b>${esc(v.plate)}</b>${v.name ? `<small>${esc(v.name)}</small>` : ''}</div>
+      ${!v.kteo ? `<label class="veh-fill"><span>ΚΤΕΟ</span><input class="inp dinp" type="text" inputmode="numeric" placeholder="ηη/μμ/εεεε" data-veh-date="${v.id}" data-kind="kteo" data-orig=""></label>` : ''}
+      ${!v.emis ? `<label class="veh-fill"><span>Καυσαέρια</span><input class="inp dinp" type="text" inputmode="numeric" placeholder="ηη/μμ/εεεε" data-veh-date="${v.id}" data-kind="emis" data-orig=""></label>` : ''}
+      <button class="icon-btn" data-veh="del" data-id="${v.id}" aria-label="Διαγραφή" title="Διαγραφή οχήματος">×</button>
+    </div>`).join('')}</div>`);
+  html += section('ΗΜΕΡΟΛΟΓΙΟ', calendarHTML());
+  html += `<div class="rows veh-all">${VEH.list.slice().sort((a,b) => a.plate.localeCompare(b.plate,'el')).map(v => `<div class="row">
+      <div class="r-main"><b>${esc(v.plate)}</b><small>${esc(v.name || 'χωρίς περιγραφή')} · ΚΤΕΟ κάθε ${v.kteoM} μήνες · καυσαέρια κάθε ${v.emisM} μήνες</small></div>
+      <label class="veh-fill"><span>ΚΤΕΟ</span><select class="inp" data-veh-months="${v.id}" data-kind="kteoM">${[6,12,24].map(n => `<option value="${n}" ${v.kteoM === n ? 'selected' : ''}>${n} μήνες</option>`).join('')}</select></label>
+      <label class="veh-fill"><span>Καυσαέρια</span><select class="inp" data-veh-months="${v.id}" data-kind="emisM">${[6,12].map(n => `<option value="${n}" ${v.emisM === n ? 'selected' : ''}>${n} μήνες</option>`).join('')}</select></label>
+      <button class="icon-btn" data-veh="del" data-id="${v.id}" aria-label="Διαγραφή" title="Διαγραφή οχήματος">×</button>
+    </div>`).join('')}</div>`;
+  body.innerHTML = html;
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-veh]');
+  if (!b) return;
+  const act = b.dataset.veh;
+  if (act === 'renew') renewVeh(b.dataset.id, b.dataset.kind);
+  else if (act === 'del') deleteVehicle(b.dataset.id);
+  else if (act === 'ics') downloadIcs();
+  else if (act === 'this-month'){ VEH.month = null; renderVehicles(); }
+  else if (act === 'prev-month' || act === 'next-month'){
+    const base = VEH.month ? fromIso(VEH.month + '-01') : fromIso(todayIso().slice(0,7) + '-01');
+    const n = new Date(base.getFullYear(), base.getMonth() + (act === 'next-month' ? 1 : -1), 1, 12);
+    VEH.month = `${n.getFullYear()}-${pad(n.getMonth()+1)}`;
+    renderVehicles();
+  }
+});
+document.addEventListener('change', e => {
+  const d = e.target.closest('[data-veh-date]');
+  if (d){
+    const raw = d.value.trim();
+    if (!raw){ setVehField(d.dataset.vehDate, d.dataset.kind, ''); return; }
+    const r = parseDateInput(raw);
+    if (!r.value){ toast(esc(dateError(r))); d.value = d.dataset.orig ? fmtDate(d.dataset.orig) : ''; return; }
+    d.blur(); setVehField(d.dataset.vehDate, d.dataset.kind, r.value);
+    return;
+  }
+  const m = e.target.closest('[data-veh-months]');
+  if (m) setVehField(m.dataset.vehMonths, m.dataset.kind, Number(m.value));
+});
+
 /* ===================== ΕΠΙΤΑΓΕΣ ===================== */
 /* Πρόσβαση: social@m-m-m.gr (επιβάλλεται από τους κανόνες RLS στη βάση).
    Πεδία: ημέρα εξόφλησης, 4 τελευταία ψηφία, σύντομη σημείωση.
@@ -2975,6 +3328,10 @@ function buildSettings(){
         <label class="switch"><input type="checkbox" id="sEve" ${S.eveEnabled ? 'checked' : ''} aria-label="Υπενθύμιση την προηγούμενη μέρα"><span></span></label>
         <input class="inp" type="time" id="sEveTime" value="${esc(S.eveTime)}" ${S.eveEnabled ? '' : 'disabled'} aria-label="Ώρα υπενθύμισης την προηγούμενη μέρα">
       </div>
+      ${canVehicles() ? `<div class="set-row">
+        <div class="sr-t"><b>Οχήματα: προειδοποίηση πριν τη λήξη</b><small>Πόσες μέρες πριν αρχίζουν οι υπενθυμίσεις για ΚΤΕΟ και καυσαέρια.</small></div>
+        <input class="inp" type="number" id="sVehWarn" min="1" max="180" value="${vehWarnDays()}" style="width:70px;text-align:center">
+      </div>` : ''}
       ${canArchive() ? `<div class="set-row">
         <div class="sr-t"><b>Αρχειοθέτηση: αυτόματη διαγραφή</b><small>Πόσες μέρες μετά την ολοκλήρωση σβήνεται ένας έλεγχος μαζί με τα παραστατικά του. 0 = αμέσως.</small></div>
         <input class="inp" type="number" id="sArcKeep" min="0" max="365" value="${arcKeepDays()}" style="width:70px;text-align:center">
@@ -3029,6 +3386,7 @@ function buildSettings(){
   $('sEve').addEventListener('change', e => { S2.eveEnabled = e.target.checked; $('sEveTime').disabled = !e.target.checked; saveLocal(); checkReminders(); });
   $('sEveTime').addEventListener('change', e => { if (e.target.value){ S2.eveTime = e.target.value; saveLocal(); checkReminders(); } });
   $('sIdle').addEventListener('change', e => { S2.idleHours = Math.min(72, Math.max(0, Number(e.target.value) || 0)); e.target.value = idleHours(); saveLocal(); });
+  if ($('sVehWarn')) $('sVehWarn').addEventListener('change', e => { S2.vehWarnDays = Math.min(180, Math.max(1, Number(e.target.value) || 30)); e.target.value = vehWarnDays(); saveLocal(); checkReminders(); if (view === 'veh') renderVehicles(); });
   if ($('sArcKeep')) $('sArcKeep').addEventListener('change', e => { S2.arcKeepDays = Math.min(365, Math.max(0, Number(e.target.value) || 0)); e.target.value = arcKeepDays(); saveLocal(); cleanupChecks(); if (view === 'arc') renderArchive(); });
   if ($('sChqPre')) $('sChqPre').addEventListener('change', e => { S2.chqPreDays = Math.min(30, Math.max(0, Number(e.target.value) || 0)); e.target.value = chqPreDays(); saveLocal(); checkReminders(); });
   $('sSound').addEventListener('change', e => { S2.sound = e.target.checked; saveLocal(); if (e.target.checked) beep(); });
