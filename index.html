@@ -1070,7 +1070,7 @@ function checkReminders(){
                l => [`${l.length} φάκελοι φεύγουν σήμερα`, l.map(g => g.name).join(', ')]);
   fire('eve',  g => [`${dayLabel(g.date)}: φάκελος για ${g.name}${inside(g)}`, `Έχει παράδοση ${g.date === tm ? 'αύριο' : dayLabel(g.date)}. Ετοίμασε τον φάκελο${locOf(g)}.${notesOf(g)}`],
                l => [`${l.length} φάκελοι για ${l[0].date === tm ? 'αύριο' : dayLabel(l[0].date)}`, l.map(g => g.name).join(', ')]);
-  fire('miss', g => [`Ο φάκελος για ${g.name} είναι ακόμα στο stand`, `Η παράδοση ήταν ${dayLabel(g.date, true)}. Είναι ${slotIn(g.name)}. Αν δόθηκε, πάτα «Δόθηκε». Αλλιώς βάλε νέα ημέρα.`],
+  fire('miss', g => [`Ο φάκελος για ${g.name} είναι ακόμα στο stand`, `Η παράδοση ήταν ${dayLabel(g.date, true)}. Είναι ${slotIn(g.name)}. Αν δόθηκε, πάτα «Δόθηκε». Αλλιώς βάλ' τον στο επόμενο δρομολόγιο.`],
                l => [`${l.length} φάκελοι έμειναν στο stand`, l.map(g => g.name).join(', ')]);
   beep();
 }
@@ -1726,10 +1726,11 @@ function envCard(g){
     <button class="btn primary block" data-act="give" data-ids="${g.ids}">Δόθηκε</button>
   </article>`;
 }
-function row(g, small, primaryGive=false){
+function row(g, small, primaryGive=false, extra=''){
   const n = g.items.length;
   return `<div class="row">
     <div class="r-main"><b>${nameBtn(g)}</b>${slotBadge(g.name)}${n > 1 ? `<span class="pill">${docsCount(n)}</span>` : ''}<small>${small}</small>${itemsHTML(g)}</div>
+    ${extra}
     <input class="inp dinp" type="text" inputmode="numeric" autocomplete="off" placeholder="ηη/μμ" value="${esc(fmtDate(g.date))}" data-date="${g.ids}" data-orig="${esc(g.date)}" title="${esc(DATE_HELP)}" aria-label="Ημέρα παράδοσης για ${esc(g.name)}">
     <button class="btn ${primaryGive ? 'primary' : 'ghost'} sm" data-act="give" data-ids="${g.ids}">Δόθηκε</button>
     <button class="icon-btn" data-act="rm" data-ids="${g.ids}" aria-label="Αφαίρεση φακέλου" title="Αφαίρεση φακέλου (λάθος καταχώρηση)">×</button>
@@ -1780,6 +1781,11 @@ function renderIndexBar(allG){
   }).join('') + (letterFilter ? `<button type="button" class="clear" data-letter="">Όλα</button>` : '');
 }
 
+/* Ο φάκελος δεν δόθηκε και η μέρα πέρασε: ένα κλικ τον πάει στο επόμενο δρομολόγιο */
+function postponeBtn(g){
+  const nw = nextWorkDay(todayIso());
+  return `<button class="btn ghost sm" data-act="postpone" data-ids="${g.ids}" data-d="${nw}" title="Μετάθεση στο επόμενο δρομολόγιο">→ ${esc(nw === tomorrowIso() ? 'αύριο' : dayLabel(nw, true))}</button>`;
+}
 function renderMain(){
   if (!$('lists')) return;
   const active = document.activeElement;
@@ -1813,7 +1819,7 @@ function renderMain(){
       ? `<b>Ναι.</b> ${G.length === 1 ? 'Υπάρχει φάκελος' : `${G.length} φάκελοι`} στο stand: ${G.map(g => `${esc(g.name)} (${esc(docSummary(g.items))}${g.date ? `, παράδοση ${esc(dayLabel(g.date, true))}` : ''}), ${esc(slotName(g.name))}`).join('· ')}.`
       : `<b>Όχι.</b> Κανένας φάκελος στο stand για «${esc($('q').value.trim())}».${gHits.length ? ' Από κάτω όσοι έχουν ήδη δοθεί.' : ''}`;
     if (today.length) html += section('ΦΕΥΓΟΥΝ ΣΗΜΕΡΑ', `<div class="env-grid">${today.map(envCard).join('')}</div>`);
-    if (missed.length) html += section('ΕΜΕΙΝΑΝ ΣΤΟ STAND', `<div class="rows bad">${indexed(missed, g => row(g, `Η παράδοση ήταν ${esc(dayLabel(g.date, true))}.`, true))}</div>`, true);
+    if (missed.length) html += section('ΕΜΕΙΝΑΝ ΣΤΟ STAND', `<div class="rows bad">${indexed(missed, g => row(g, `Η παράδοση ήταν ${esc(dayLabel(g.date, true))}.`, true, postponeBtn(g)))}</div>`, true);
     const rest = [...tmr, ...later, ...nodate].sort(byName);
     if (rest.length) html += section('ΣΤΟ STAND', `<div class="rows">${indexed(rest, g => row(g, `${g.date ? esc(dayLabel(g.date)) + '. ' : 'Χωρίς ημέρα. '}${sinceText(g.addedAt)}`))}</div>`);
     if (gHits.length) html += section('ΔΟΘΗΚΑΝ', givenRows(gHits));
@@ -1828,7 +1834,7 @@ function renderMain(){
   html += section('ΦΕΥΓΟΥΝ ΣΗΜΕΡΑ', today.length
     ? `<div class="env-grid">${today.map(envCard).join('')}</div>`
     : `<div class="empty">${letterFilter ? `Κανένας φάκελος στο ${letterFilter} για σήμερα.` : kindFilter ? (kindFilter === 'timologio' ? 'Κανένας φάκελος με τιμολόγιο για σήμερα.' : 'Κανένας φάκελος με απόδειξη για σήμερα.') : allG.length ? 'Κανένας φάκελος για σήμερα.' : 'Όταν μπαίνει φάκελος στο stand, γράψε τον πελάτη από πάνω.'}</div>`);
-  if (missed.length) html += section('ΕΜΕΙΝΑΝ ΣΤΟ STAND', `<div class="rows bad">${indexed(missed, g => row(g, `Η παράδοση ήταν ${esc(dayLabel(g.date, true))}. Αν δόθηκε, πάτα «Δόθηκε». Αλλιώς βάλε νέα ημέρα.`, true))}</div>`, true);
+  if (missed.length) html += section('ΕΜΕΙΝΑΝ ΣΤΟ STAND', `<div class="rows bad">${indexed(missed, g => row(g, `Η παράδοση ήταν ${esc(dayLabel(g.date, true))}. Αν δόθηκε, πάτα «Δόθηκε». Αλλιώς βάλ' τον στο επόμενο δρομολόγιο.`, true, postponeBtn(g)))}</div>`, true);
   if (tmr.length) html += section(nwTitle, `<div class="rows">${indexed(tmr, g => row(g, `${g.date !== nw || nw !== tm ? esc(dayLabel(g.date)) + '. ' : ''}${sinceText(g.addedAt)}`))}</div>`);
   if (later.length) html += section('ΕΠΟΜΕΝΕΣ ΜΕΡΕΣ', `<div class="rows">${indexed(later, g => row(g, `${esc(dayLabel(g.date))}. ${sinceText(g.addedAt)}`))}</div>`);
   if (nodate.length) html += section('ΧΩΡΙΣ ΗΜΕΡΑ ΠΑΡΑΔΟΣΗΣ', `<div class="rows">${indexed(nodate, g => row(g, `${sinceText(g.addedAt)}. Βάλε ημέρα για να έρθει υπενθύμιση.`))}</div>`);
@@ -3094,6 +3100,7 @@ document.addEventListener('click', e => {
   switch (a.dataset.act){
     case 'give': giveGroup(a.dataset.ids, a); break;
     case 'rm': removeEnvelope(a.dataset.ids); break;
+    case 'postpone': setGroupDate(a.dataset.ids, a.dataset.d); break;
     case 'rename': openRename(a.dataset.name); break;
     case 'edit': openEdit(id); break;
     case 'restore': restoreGiven(a.dataset.ids); break;
