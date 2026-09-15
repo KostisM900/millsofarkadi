@@ -625,6 +625,43 @@ input{font:inherit;color:inherit}
 .mod-ic svg{width:19px;height:19px}
 .mod-t{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700}
 .mod-l{font-size:12.5px;color:var(--muted);line-height:1.4}
+
+/* ===== ΑΡΧΙΚΗ: ΜΠΛΟΚ ΜΕ ΔΕΔΟΜΕΝΑ ===== */
+.home-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px;align-items:start}
+.hb{background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px 16px}
+.hb.bad{border-color:#EBD3D1}
+.hb-h{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.hb-h h3{font-size:12px;font-weight:800;letter-spacing:.1em;white-space:nowrap}
+.hb.bad .hb-h h3{color:var(--red)}
+.hb-n{min-width:20px;height:20px;padding:0 6px;border-radius:99px;background:var(--line-2);color:var(--ink);font-size:11px;font-weight:800;display:inline-flex;align-items:center;justify-content:center}
+.hb.bad .hb-n{background:var(--red-tint);color:var(--red)}
+.hb-h .rule{flex:1;height:1px;background:var(--line-2)}
+.hb-h .btn{padding:5px 10px;font-size:11.5px}
+.hb-list{display:flex;flex-direction:column}
+.hb-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line-2)}
+.hb-list > .hb-row:first-child{border-top:0}
+.hb-main{flex:1;min-width:0}
+.hb-main b{font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.hb-main small{display:block;color:var(--muted);font-size:12.5px;margin-top:1px}
+.hb-row.late .hb-main b{color:var(--red)}
+.w-late{color:var(--red);font-weight:700}
+.hb-row .btn{flex-shrink:0}
+.hb-row.chk{cursor:pointer}
+.hb-row.chk:hover{background:#FDFDFA}
+.hb-row.chk input{position:absolute;opacity:0;width:1px;height:1px}
+.hb-row.chk input:checked + .chk-box{background:var(--olive-dark);border-color:var(--olive-dark)}
+.hb-row.chk input:checked + .chk-box::after{content:"";width:6px;height:11px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.hb-row.chk .chk-box{width:20px;height:20px;display:grid;place-items:center}
+.hb-search{margin-bottom:8px}
+.hb-search .inp{width:100%;padding:8px 11px;font-size:13px}
+.hb-empty{color:var(--muted);font-size:13px;padding:6px 0}
+.hb .slot{margin-left:0}
+.q-body{margin-top:14px}
+.modal .m-err{margin:4px 0 0}
+.modal .m-err:empty{display:none}
+.q-tip{font-size:11.5px;color:var(--muted)}
+@media (max-width:460px){.q-tip{display:none}}
+.brand .bt span{white-space:nowrap}
 </style>
 </head>
 <body>
@@ -1198,7 +1235,7 @@ function pruneFired(){
 }
 /* ---------- Σελίδες με δικό τους σύνδεσμο (permalink) ---------- */
 const PAGES = {
-  home:  { slug:'arxiki',         sub:'ΑΡΧΙΚΗ',                       title:'Αρχική' },
+  home:  { slug:'arxiki',         sub:'ΕΣΩΤΕΡΙΚΟ ΣΥΣΤΗΜΑ',             title:'Αρχική' },
   main:  { slug:'fakeloi',        sub:'ΦΑΚΕΛΟΙ ΠΕΛΑΤΩΝ',              title:'Φάκελοι' },
   stand: { slug:'fakeloi/stand',  sub:'ΦΑΚΕΛΟΙ · STAND',              title:'Stand' },
   veh:   { slug:'ochimata',       sub:'ΟΧΗΜΑΤΑ',                      title:'Οχήματα' },
@@ -1505,7 +1542,7 @@ function buildMain(){
     <div class="card add-card">
       <div class="add-grid">
         <label class="f"><span>Πελάτης</span><input class="inp" id="aCust" autocomplete="off" spellcheck="false" placeholder="Όνομα πελάτη ή *μέρος του"></label>
-        <div class="f"><span>Είδος</span><div id="aKind">${kindSeg(addKind, 'kind')}</div></div>
+        <div class="f"><span>Είδος</span><div id="aKind">${kindSeg(addKind, 'akind')}</div></div>
         <div class="f"><span>Ημέρα παράδοσης</span>
           <div class="when">
             <input class="inp dinp" id="aDate" type="text" inputmode="numeric" autocomplete="off" placeholder="ηη/μμ" aria-label="Ημέρα παράδοσης" aria-describedby="aDatePrev">
@@ -1588,16 +1625,19 @@ function addDocument(){
   if (!typed){ $('aCust').focus(); return; }
   const pd = parseDateInput($('aDate').value);
   if (!pd.ok){ $('aHint').className = 'hint'; $('aHint').innerHTML = `<span class="bad">${esc(dateError(pd))}</span>`; $('aDate').focus(); return; }
+  const note = clean($('aNote').value).slice(0, NOTE_MAX);
+  $('aCust').value = ''; $('aDate').value = ''; $('aNote').value = ''; previewAddDate(); updateHint(); $('aCust').focus();
+  createEnvelopeDoc(typed, pd.value, addKind, note);
+}
+/* Δημιουργία εγγράφου: αν ο πελάτης έχει ήδη φάκελο, μπαίνει μέσα σε αυτόν */
+function createEnvelopeDoc(typed, date, kind, note){
   const existing = envelopeOf(typed);
   const name = upper(existing.length ? existing[0].name : (customerNames().find(n => norm(n) === norm(typed)) || typed));
-  const note = clean($('aNote').value).slice(0, NOTE_MAX), kind = addKind;
-  const doc = { id:uuid(), name, date:'', kind, note, addedAt:new Date().toISOString(), givenAt:null };
-  $('aCust').value = ''; $('aDate').value = ''; $('aNote').value = ''; previewAddDate(); updateHint(); $('aCust').focus();
+  const doc = { id:uuid(), name, date:'', kind, note:note || '', addedAt:new Date().toISOString(), givenAt:null };
 
   if (existing.length){
-    /* Μπαίνει στον φάκελο που υπάρχει ήδη */
     const oldDate = groupDate(existing);
-    const newDate = pd.value || oldDate;
+    const newDate = date || oldDate;
     const dateChanged = newDate !== oldDate || existing.some(e => (e.date || '') !== newDate);
     const prev = existing.map(e => [e, e.date]);
     doc.date = newDate;
@@ -1616,11 +1656,10 @@ function addDocument(){
       ['day','eve','miss'].forEach(k => { if (existing.some(e => LOCAL.fired[`${t}|${k}|${e.id}`])) LOCAL.fired[`${t}|${k}|${doc.id}`] = 1; });
       saveLocal();
     }
-    toast(`Μπήκε στον υπάρχοντα φάκελο για ${esc(name)}, ${esc(slotName(name))}. Μέσα τώρα: ${esc(docSummary([...existing, doc]))}.${pd.value && dateChanged ? ` Νέα ημέρα παράδοσης: ${esc(dayLabel(newDate, true))}.` : ''}`);
+    toast(`Μπήκε στον υπάρχοντα φάκελο για ${esc(name)}, ${esc(slotName(name))}. Μέσα τώρα: ${esc(docSummary([...existing, doc]))}.${date && dateChanged ? ` Νέα ημέρα παράδοσης: ${esc(dayLabel(newDate, true))}.` : ''}`);
     return;
   }
-  /* Νέος φάκελος */
-  doc.date = pd.value;
+  doc.date = date || '';
   mutate(
     () => { DB.envelopes.push(doc); },
     () => api('envelopes', { method:'POST', body:docBody(doc), prefer:'return=minimal' }),
@@ -2523,9 +2562,9 @@ async function openCheck(id){
   window.scrollTo({ top:0 });
 }
 async function arcMutate(apply, request, rollback, msg){
-  apply(); renderArchive();
+  apply(); if (view === 'arc') renderArchive(); if (view === 'home') homeArcRefresh();
   try { await request(); setOnline(true); }
-  catch(e){ rollback(); renderArchive(); handleError(e, msg); }
+  catch(e){ rollback(); if (view === 'arc') renderArchive(); if (view === 'home') homeArcRefresh(); handleError(e, msg); }
 }
 function setArchived(codes, archived){
   const prev = codes.map(c => [c, ARC.missing.get(c)]);
@@ -2964,47 +3003,258 @@ function homeModules(){
   return mods;
 }
 function buildHome(){ $('view-home').innerHTML = ''; }
+function homeBlock(title, view, items, emptyTxt, bad=false){
+  return `<section class="hb${bad ? ' bad' : ''}">
+    <header class="hb-h"><h3>${esc(title)}</h3><span class="hb-n">${items.length}</span><span class="rule"></span>
+      <button class="btn ghost sm" data-go="${view}">Άνοιγμα →</button></header>
+    ${items.length ? `<div class="hb-list">${items.join('')}</div>` : `<p class="hb-empty">${esc(emptyTxt)}</p>`}
+  </section>`;
+}
+const homeRow = (main, sub, actions, cls='') => `<div class="hb-row ${cls}">
+  <div class="hb-main"><b>${main}</b>${sub ? `<small>${sub}</small>` : ''}</div>${actions}</div>`;
 function renderHome(){
   const now = new Date(), a = account(), t = todayIso();
   const alerts = homeAlerts(), mods = homeModules();
   const actions = [
-    { act:'new-envelope', label:'Νέος φάκελος', v:'main' },
-    canVehicles() ? { act:'new-vehicle', label:'Νέο όχημα', v:'veh' } : null,
-    canCheques()  ? { act:'new-cheque', label:'Νέα επιταγή', v:'chq' } : null,
-    canArchive()  ? { act:'new-check', label:'Έλεγχος παραστατικών', v:'arc' } : null
+    { act:'new-envelope', label:'Νέος φάκελος' },
+    canVehicles() ? { act:'new-vehicle', label:'Νέο όχημα' } : null,
+    canCheques()  ? { act:'new-cheque', label:'Νέα επιταγή' } : null,
+    canArchive()  ? { act:'new-check', label:'Έλεγχος παραστατικών' } : null
   ].filter(Boolean);
+
+  /* Φάκελοι: τι φεύγει σήμερα και τι έμεινε */
+  const G = groupsOf(pending());
+  const envToday = G.filter(g => g.date === t).sort((x,y) => x.name.localeCompare(y.name,'el'));
+  const envLate = G.filter(g => g.date && g.date < t).sort((x,y) => x.name.localeCompare(y.name,'el'));
+  const envItems = [...envLate, ...envToday].slice(0, 8).map(g => homeRow(
+    esc(g.name) + `<span class="slot">${esc(slotOf(g.name).short)} · ${esc(slotOf(g.name).label)}</span>`,
+    `${esc(docSummary(g.items))}${g.date < t ? ` · <span class="w-late">έμεινε από ${esc(shortDate(g.date))}</span>` : ' · φεύγει σήμερα'}`,
+    `<button class="btn primary sm" data-act="give" data-ids="${g.ids}">Δόθηκε</button>`,
+    g.date < t ? 'late' : 'today'));
+
+  /* Αρχειοθέτηση: τσεκάρεις εδώ ό,τι ήρθε τώρα */
+  let arcBlock = '';
+  if (canArchive()){
+    const waiting = ARC.loaded ? [...ARC.missing.keys()].sort((x,y) => (docState(y) === 'late') - (docState(x) === 'late') || byCode(x,y)) : [];
+    const shown = waiting.slice(0, 8).map(c => {
+      const st = docState(c), d = docDate(c), age = ageDays(d);
+      return `<label class="hb-row chk ${st}">
+        <input type="checkbox" data-arc-code="${esc(c)}">
+        <span class="chk-box" aria-hidden="true"></span>
+        <div class="hb-main"><b>${esc(c)}</b><small>${d ? esc(fmtDate(d)) : 'χωρίς ημερομηνία'}${age != null ? ` · ${st === 'late' ? '<span class="w-late">καθυστερεί</span> ' : ''}${esc(ageText(age))}` : ''}</small></div>
+      </label>`;
+    });
+    arcBlock = `<section class="hb">
+      <header class="hb-h"><h3>ΠΑΡΑΣΤΑΤΙΚΑ ΣΕ ΑΝΑΜΟΝΗ</h3><span class="hb-n">${waiting.length}</span><span class="rule"></span>
+        <button class="btn ghost sm" data-go="arc">Άνοιγμα →</button></header>
+      <div class="hb-search"><input class="inp" id="hArcQ" type="search" placeholder="Βρες παραστατικό, π.χ. 1207" autocomplete="off" spellcheck="false" value="${esc(HOME.arcQ)}"></div>
+      <div class="hb-list" id="hArcList">${renderHomeArc(shown, waiting)}</div>
+    </section>`;
+  }
+
+  /* Επιταγές και οχήματα: μόνο ό,τι θέλει κίνηση */
+  const chqItems = (canCheques() && CHQ.loaded ? chqOpen().filter(c => c.due <= t) : []).slice(0, 6).map(c => homeRow(
+    (c.last4 ? `…${esc(c.last4)}` : 'επιταγή'),
+    `${esc(fmtDate(c.due))}${c.due < t ? ' · <span class="w-late">πέρασε</span>' : ' · εξοφλείται σήμερα'}${c.note ? ' · ' + esc(c.note) : ''}`,
+    `<button class="btn primary sm" data-chq="cleared" data-id="${c.id}">Εξοφλήθηκε</button>`,
+    c.due < t ? 'late' : 'today'));
+  const vehItems = (canVehicles() && VEH.loaded ? vehDeadlines().filter(x => vehState(x.due) !== 'ok') : []).slice(0, 6).map(x => homeRow(
+    esc(x.v.plate) + `<span class="ktag ${x.kind}">${esc(VEH_KINDS[x.kind])}</span>`,
+    `${esc(fmtDate(x.due))} · ${vehState(x.due) === 'late' ? `<span class="w-late">έληξε πριν ${esc(ageText(-vehDaysLeft(x.due)))}</span>` : vehDaysLeft(x.due) === 0 ? 'λήγει σήμερα' : `σε ${esc(ageText(vehDaysLeft(x.due)))}`}`,
+    `<button class="btn ghost sm" data-veh="renew" data-id="${x.v.id}" data-kind="${x.kind}">Ανανεώθηκε</button>`,
+    vehState(x.due) === 'late' ? 'late' : vehState(x.due) === 'today' ? 'today' : 'soon'));
+
   $('view-home').innerHTML = `
     <div class="greet">
       <h1>${now.getHours() < 12 ? 'Καλημέρα' : 'Καλησπέρα'}${a && a.voc ? ', ' + a.voc : ''}</h1>
       <p><span class="date">${longDate(t)}.</span> ${alerts.length ? `${alerts.length === 1 ? 'Ένα θέμα θέλει' : alerts.length + ' θέματα θέλουν'} προσοχή.` : 'Τίποτα δεν εκκρεμεί σήμερα.'}</p>
     </div>
     <div class="home-actions">${actions.map(x => `<button class="btn ghost home-act" data-home="${x.act}">+ ${esc(x.label)}</button>`).join('')}</div>
-    ${alerts.length ? `<div class="alerts">${alerts.map(x => `
-      <button class="alert-row ${x.lvl}" data-go="${x.v}">
-        <span class="dot"></span><span class="a-txt">${esc(x.txt)}</span><span class="a-go">Άνοιγμα →</span>
-      </button>`).join('')}</div>` : `<div class="all-clear">${HOME_ICONS.main}<div><b>Όλα εντάξει</b><small>Καμία εκκρεμότητα για σήμερα.</small></div></div>`}
-    <div class="sec-h" style="margin-top:32px"><h2>ΕΝΟΤΗΤΕΣ</h2><span class="rule"></span></div>
+    <div class="home-cols">
+      ${homeBlock('ΦΑΚΕΛΟΙ ΓΙΑ ΣΗΜΕΡΑ', 'main', envItems, G.length ? 'Κανένας φάκελος δεν φεύγει σήμερα.' : 'Το stand είναι άδειο.', !!envLate.length)}
+      ${arcBlock}
+      ${canCheques() ? homeBlock('ΕΠΙΤΑΓΕΣ ΓΙΑ ΣΗΜΕΡΑ', 'chq', chqItems, 'Καμία επιταγή για σήμερα.', chqItems.length && chqOverdue() > 0) : ''}
+      ${canVehicles() ? homeBlock('ΟΧΗΜΑΤΑ', 'veh', vehItems, 'Καμία λήξη δεν πλησιάζει.', vehItems.length && vehDeadlines().some(x => vehState(x.due) === 'late')) : ''}
+    </div>
+    <div class="sec-h" style="margin-top:30px"><h2>ΕΝΟΤΗΤΕΣ</h2><span class="rule"></span></div>
     <div class="mod-grid">${mods.map(m => `
       <button class="mod" data-go="${m.v}">
         <span class="mod-ic">${HOME_ICONS[m.v]}</span>
         <span class="mod-t">${esc(m.title)}${m.n ? `<span class="cnt">${m.n}</span>` : ''}</span>
         <span class="mod-l">${esc(m.line)}</span>
       </button>`).join('')}</div>`;
+  if ($('hArcQ')){
+    const q = $('hArcQ');
+    upperInput(q);
+    q.addEventListener('input', () => { HOME.arcQ = q.value; homeArcRefresh(); });
+  }
 }
-/* Γρήγορες ενέργειες: ανοίγουν τη σελίδα και βάζουν τον κέρσορα στο σωστό πεδίο */
+/* Η λίστα παραστατικών της αρχικής, με ή χωρίς αναζήτηση */
+const HOME = { arcQ:'' };
+function renderHomeArc(shown, waiting){
+  const raw = HOME.arcQ.trim();
+  if (!raw) return shown.length ? shown.join('') : '<p class="hb-empty">Δεν περιμένεις κανένα παραστατικό.</p>';
+  const q = normManualCode(raw) || upper(clean(raw)).replace(/\s/g,'');
+  const all = [...new Set([...ARC.checks.flatMap(c => c.codes), ...ARC.docs.keys(), ...ARC.missing.keys()])];
+  const hits = all.filter(c => c.includes(q)).sort(byCode).slice(0, 8);
+  if (!hits.length) return `<p class="hb-empty">Το ${esc(q)} δεν υπάρχει σε κανέναν έλεγχο.</p>`;
+  return hits.map(c => {
+    const st = docState(c), d = docDate(c);
+    return `<label class="hb-row chk ${st}">
+      <input type="checkbox" data-arc-code="${esc(c)}" ${st === 'done' ? 'checked' : ''}>
+      <span class="chk-box" aria-hidden="true"></span>
+      <div class="hb-main"><b>${esc(c)}</b><small>${d ? esc(fmtDate(d)) : 'χωρίς ημερομηνία'} · ${st === 'done' ? 'αρχειοθετημένο' : st === 'late' ? '<span class="w-late">καθυστερεί</span>' : 'σε αναμονή'}</small></div>
+    </label>`;
+  }).join('');
+}
+function homeArcRefresh(){
+  const el = $('hArcList'); if (!el) return;
+  const waiting = ARC.loaded ? [...ARC.missing.keys()].sort((x,y) => (docState(y) === 'late') - (docState(x) === 'late') || byCode(x,y)) : [];
+  const shown = waiting.slice(0, 8).map(c => {
+    const st = docState(c), d = docDate(c), age = ageDays(d);
+    return `<label class="hb-row chk ${st}">
+      <input type="checkbox" data-arc-code="${esc(c)}">
+      <span class="chk-box" aria-hidden="true"></span>
+      <div class="hb-main"><b>${esc(c)}</b><small>${d ? esc(fmtDate(d)) : 'χωρίς ημερομηνία'}${age != null ? ` · ${st === 'late' ? '<span class="w-late">καθυστερεί</span> ' : ''}${esc(ageText(age))}` : ''}</small></div>
+    </label>`;
+  });
+  el.innerHTML = renderHomeArc(shown, waiting);
+}
+/* Γρήγορη καταχώρηση χωρίς να φύγεις από την αρχική */
+function openQuickForm(kind){
+  const box = $('modalBox');
+  const forms = {
+    env: {
+      title:'Νέος φάκελος', save:'Καταχώρηση',
+      body:`
+        <label class="f m-field"><span>Πελάτης</span><input class="inp" id="qCust" autocomplete="off" spellcheck="false" placeholder="Όνομα πελάτη ή *μέρος του"></label>
+        <div class="f m-field"><span>Είδος</span><div id="qKind">${kindSeg(addKind, 'qkind')}</div></div>
+        <div class="f m-field"><span>Ημέρα παράδοσης</span>
+          <div class="when"><input class="inp dinp" id="qDate" type="text" inputmode="numeric" autocomplete="off" placeholder="ηη/μμ">
+          <button type="button" class="btn ghost sm" data-q="today">Σήμερα</button>
+          <button type="button" class="btn ghost sm" data-q="tmr">Αύριο</button></div>
+          <small class="dprev" id="qDatePrev"></small>
+        </div>
+        <label class="f m-field"><span>Σχόλιο</span><input class="inp" id="qNote" maxlength="200" autocomplete="off" placeholder="π.χ. στα χέρια του ιδιοκτήτη"></label>`,
+      init(){
+        upperInput($('qCust')); attachCombo($('qCust'), { onPick: () => $('qDate').focus() });
+        $('qDate').addEventListener('input', () => {
+          const r = parseDateInput($('qDate').value), el = $('qDatePrev');
+          el.className = 'dprev' + (r.value ? (r.past ? ' warn' : ' ok') : ' bad');
+          el.textContent = !$('qDate').value.trim() ? '' : r.value ? `${DAYS_FULL[fromIso(r.value).getDay()]} ${fmtDate(r.value)}` : 'Δεν την κατάλαβα';
+        });
+        setTimeout(() => $('qCust').focus(), 40);
+      },
+      submit(err){
+        const name = cleanName($('qCust').value);
+        if (!name){ err('Γράψε τον πελάτη.'); $('qCust').focus(); return false; }
+        const pd = parseDateInput($('qDate').value);
+        if (!pd.ok && $('qDate').value.trim()){ err(dateError(pd)); return false; }
+        createEnvelopeDoc(name, pd.value, addKind, clean($('qNote').value).slice(0, 200));
+        return true;
+      }
+    },
+    chq: {
+      title:'Νέα επιταγή', save:'Καταχώρηση',
+      body:`
+        <div class="f m-field"><span>Ημέρα εξόφλησης</span>
+          <div class="when"><input class="inp dinp" id="qDate" type="text" inputmode="numeric" autocomplete="off" placeholder="ηη/μμ">
+          <button type="button" class="btn ghost sm" data-q="today">Σήμερα</button></div>
+          <small class="dprev" id="qDatePrev"></small>
+        </div>
+        <label class="f m-field"><span>4 τελευταία ψηφία</span><input class="inp l4-inp" id="qLast4" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="0000"></label>
+        <label class="f m-field"><span>Σημείωση</span><input class="inp" id="qNote" maxlength="80" autocomplete="off" placeholder="π.χ. εκχώρηση σε λογαριασμό"></label>`,
+      init(){
+        $('qLast4').addEventListener('input', e => { e.target.value = (e.target.value.match(/\d/g) || []).join('').slice(0,4); });
+        $('qDate').addEventListener('input', () => {
+          const r = parseDateInput($('qDate').value), el = $('qDatePrev');
+          el.className = 'dprev' + (r.value ? (r.past ? ' warn' : ' ok') : ' bad');
+          el.textContent = !$('qDate').value.trim() ? '' : r.value ? `${DAYS_FULL[fromIso(r.value).getDay()]} ${fmtDate(r.value)}${r.past ? ' · έχει περάσει' : ''}` : 'Δεν την κατάλαβα';
+        });
+        setTimeout(() => $('qDate').focus(), 40);
+      },
+      submit(err){
+        const pd = parseDateInput($('qDate').value);
+        if (!pd.value){ err(dateError(pd)); return false; }
+        const msg = createCheque(pd.value, ($('qLast4').value.match(/\d/g) || []).join('').slice(0,4), clean($('qNote').value).slice(0,80));
+        if (msg){ err(msg); return false; }
+        return true;
+      }
+    },
+    veh: {
+      title:'Νέο όχημα', save:'Καταχώρηση',
+      body:`
+        <label class="f m-field"><span>Πινακίδα</span><input class="inp plate-inp" id="qPlate" maxlength="12" autocomplete="off" placeholder="ΑΒΓ-1234"></label>
+        <label class="f m-field"><span>Περιγραφή</span><input class="inp" id="qName" maxlength="60" autocomplete="off" placeholder="π.χ. Φορτηγό Mercedes"></label>
+        <div class="f2">
+          <label class="f"><span>Λήξη ΚΤΕΟ</span><input class="inp dinp" id="qKteo" type="text" inputmode="numeric" autocomplete="off" placeholder="ηη/μμ/εεεε"></label>
+          <label class="f"><span>Λήξη καυσαερίων</span><input class="inp dinp" id="qEmis" type="text" inputmode="numeric" autocomplete="off" placeholder="ηη/μμ/εεεε"></label>
+        </div>`,
+      init(){
+        upperInput($('qPlate'));
+        $('qPlate').addEventListener('input', e => { e.target.value = plateFmt(e.target.value); });
+        setTimeout(() => $('qPlate').focus(), 40);
+      },
+      submit(err){
+        const k = parseDateInput($('qKteo').value), m = parseDateInput($('qEmis').value);
+        if ($('qKteo').value.trim() && !k.value){ err('ΚΤΕΟ: ' + dateError(k)); return false; }
+        if ($('qEmis').value.trim() && !m.value){ err('Καυσαέρια: ' + dateError(m)); return false; }
+        const msg = createVehicle($('qPlate').value, $('qName').value, k.value, m.value);
+        if (msg){ err(msg); return false; }
+        return true;
+      }
+    }
+  };
+  const f = forms[kind]; if (!f) return;
+  box.innerHTML = `
+    <button class="icon-btn m-x" data-q="close" aria-label="Κλείσιμο">×</button>
+    <p class="m-eyebrow">ΓΡΗΓΟΡΗ ΚΑΤΑΧΩΡΗΣΗ</p>
+    <h2>${esc(f.title)}</h2>
+    <div class="q-body">${f.body}</div>
+    <p class="hint m-err" id="qErr"></p>
+    <div class="m-f"><small class="q-tip">Enter για καταχώρηση · Ctrl+Enter για καταχώρηση και επόμενο</small><span class="m-sp"></span>
+      <button class="btn ghost" data-q="close">Κλείσιμο</button>
+      <button class="btn primary" data-q="save">${esc(f.save)}</button>
+    </div>`;
+  const close = () => { $('modal').hidden = true; box.innerHTML = ''; document.removeEventListener('keydown', onKey); renderHome(); };
+  const err = m => { $('qErr').innerHTML = `<span class="bad">${esc(m)}</span>`; };
+  const save = (keepOpen) => {
+    $('qErr').innerHTML = '';
+    if (!f.submit(err)) return;
+    if (keepOpen){                       // συνεχίζεις με το επόμενο, χωρίς να κλείσει
+      box.querySelectorAll('input').forEach(i => { if (i.type !== 'hidden') i.value = ''; });
+      if ($('qDatePrev')) $('qDatePrev').textContent = '';
+      renderHome();
+      const first = box.querySelector('input'); if (first) first.focus();
+    } else close();
+  };
+  const onKey = e => {
+    if (e.key === 'Escape'){ e.preventDefault(); close(); }
+    if (e.key === 'Enter' && !e.isComposing && box.contains(document.activeElement) && document.activeElement.tagName === 'INPUT'){
+      e.preventDefault(); save(e.ctrlKey || e.metaKey);
+    }
+  };
+  box.onclick = e => {
+    const k = e.target.closest('[data-qkind]');
+    if (k){ addKind = k.dataset.qkind; $('qKind').innerHTML = kindSeg(addKind, 'qkind'); return; }
+    const b = e.target.closest('[data-q]'); if (!b) return;
+    if (b.dataset.q === 'close') close();
+    if (b.dataset.q === 'save') save(false);
+    if (b.dataset.q === 'today'){ $('qDate').value = fmtDate(todayIso()); $('qDate').dispatchEvent(new Event('input')); }
+    if (b.dataset.q === 'tmr'){ $('qDate').value = fmtDate(tomorrowIso()); $('qDate').dispatchEvent(new Event('input')); }
+  };
+  $('modal').onclick = e => { if (e.target === $('modal')) close(); };
+  document.addEventListener('keydown', onKey);
+  $('modal').hidden = false;
+  f.init();
+}
+/* Γρήγορες ενέργειες */
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-home]');
   if (!b) return;
-  const map = { 'new-envelope':['main','aCust'], 'new-vehicle':['veh','vPlate'], 'new-cheque':['chq','cDate'], 'new-check':['arc','arcFile'] };
-  const [v, field] = map[b.dataset.home] || [];
-  if (!v) return;
-  go(v);
-  setTimeout(() => {
-    const el = $(field);
-    if (!el) return;
-    if (field === 'arcFile') el.click();
-    else { el.focus(); el.scrollIntoView({ block:'center', behavior:'smooth' }); }
-  }, 120);
+  const quick = { 'new-envelope':'env', 'new-cheque':'chq', 'new-vehicle':'veh' };
+  if (quick[b.dataset.home]) return openQuickForm(quick[b.dataset.home]);
+  if (b.dataset.home === 'new-check'){ go('arc'); setTimeout(() => $('arcFile') && $('arcFile').click(), 150); }
 });
 
 /* ===================== ΟΧΗΜΑΤΑ: ΚΤΕΟ & ΚΑΡΤΑ ΚΑΥΣΑΕΡΙΩΝ ===================== */
@@ -3049,23 +3299,28 @@ async function loadVehicles(){
   } finally { VEH.loading = false; if (view === 'veh') renderVehicles(); }
 }
 function vehMutate(apply, request, rollback, msg){
-  apply(); if (view === 'veh') renderVehicles(); renderNav();
+  apply(); if (view === 'veh') renderVehicles(); if (view === 'home') renderHome(); renderNav();
   pendingOps++;
   return Promise.resolve().then(request).then(() => setOnline(true))
-    .catch(e => { rollback(); if (view === 'veh') renderVehicles(); renderNav(); handleError(e, msg); })
+    .catch(e => { rollback(); if (view === 'veh') renderVehicles(); if (view === 'home') renderHome(); renderNav(); handleError(e, msg); })
     .finally(() => { pendingOps--; });
 }
 function addVehicle(){
-  const plate = plateFmt($('vPlate').value);
-  if (!plate){ $('vPlate').focus(); return; }
-  if (VEH.list.some(v => norm(v.plate) === norm(plate))){ $('vHint').innerHTML = `<span class="bad">Υπάρχει ήδη όχημα με πινακίδα ${esc(plate)}.</span>`; return; }
   const kteo = parseDateInput($('vKteo').value), emis = parseDateInput($('vEmis').value);
   if ($('vKteo').value.trim() && !kteo.value){ $('vHint').innerHTML = `<span class="bad">ΚΤΕΟ: ${esc(dateError(kteo))}</span>`; return; }
   if ($('vEmis').value.trim() && !emis.value){ $('vHint').innerHTML = `<span class="bad">Καυσαέρια: ${esc(dateError(emis))}</span>`; return; }
-  const v = { id:uuid(), plate, name:clean($('vName').value).slice(0,60), note:'',
-              kteo:kteo.value || '', kteoM:12, emis:emis.value || '', emisM:12 };
+  const err = createVehicle($('vPlate').value, $('vName').value, kteo.value, emis.value);
+  if (err){ $('vHint').innerHTML = `<span class="bad">${esc(err)}</span>`; return; }
   ['vPlate','vName','vKteo','vEmis'].forEach(id => $(id).value = '');
   $('vHint').innerHTML = VEH_HINT; $('vPlate').focus();
+}
+/* Επιστρέφει μήνυμα λάθους, ή κενό αν καταχωρήθηκε */
+function createVehicle(plateRaw, nameRaw, kteoDue, emisDue){
+  const plate = plateFmt(plateRaw);
+  if (!plate) return 'Γράψε την πινακίδα.';
+  if (VEH.list.some(v => norm(v.plate) === norm(plate))) return `Υπάρχει ήδη όχημα με πινακίδα ${plate}.`;
+  const v = { id:uuid(), plate, name:clean(nameRaw).slice(0,60), note:'',
+              kteo:kteoDue || '', kteoM:12, emis:emisDue || '', emisM:12 };
   vehMutate(
     () => VEH.list.push(v),
     () => api('vehicles', { method:'POST', body:vehBody(v), prefer:'return=minimal' }),
@@ -3073,6 +3328,7 @@ function addVehicle(){
     'Δεν αποθηκεύτηκε το όχημα.'
   ).then(() => checkReminders());
   toast(`Προστέθηκε: ${esc(vehLabel(v))}.`);
+  return '';
 }
 function setVehField(id, field, value){
   const v = VEH.list.find(x => x.id === id); if (!v) return;
@@ -3281,29 +3537,34 @@ async function loadCheques(){
   } finally { CHQ.loading = false; if (view === 'chq') renderCheques(); }
 }
 function chqMutate(apply, request, rollback, msg){
-  apply(); if (view === 'chq') renderCheques(); renderNav();
+  apply(); if (view === 'chq') renderCheques(); if (view === 'home') renderHome(); renderNav();
   pendingOps++;
   return Promise.resolve().then(request).then(() => setOnline(true))
-    .catch(e => { rollback(); if (view === 'chq') renderCheques(); renderNav(); handleError(e, msg); })
+    .catch(e => { rollback(); if (view === 'chq') renderCheques(); if (view === 'home') renderHome(); renderNav(); handleError(e, msg); })
     .finally(() => { pendingOps--; });
 }
 function addCheque(){
   const pd = parseDateInput($('cDate').value);
   if (!pd.value){ $('cHint').innerHTML = `<span class="bad">${esc(dateError(pd))}</span>`; $('cDate').focus(); return; }
   const last4 = ($('cLast4').value.match(/\d/g) || []).join('').slice(0, 4);
-  if (last4 && last4.length < 4){ $('cHint').innerHTML = '<span class="bad">Γράψε ακριβώς 4 ψηφία, ή άφησέ το κενό.</span>'; $('cLast4').focus(); return; }
-  const note = clean($('cNote').value).slice(0, CHQ_NOTE_MAX);
-  if (last4 && chqOpen().some(c => c.last4 === last4 && c.due === pd.value)){ $('cHint').innerHTML = `<span class="bad">Υπάρχει ήδη εκκρεμής επιταγή …${esc(last4)} για ${esc(dayLabel(pd.value, true))}.</span>`; return; }
-  const c = { id:uuid(), due:pd.value, last4, note };
+  const err = createCheque(pd.value, last4, clean($('cNote').value).slice(0, CHQ_NOTE_MAX));
+  if (err){ $('cHint').innerHTML = `<span class="bad">${esc(err)}</span>`; return; }
   ['cDate','cLast4','cNote'].forEach(id => $(id).value = '');
   $('cHint').innerHTML = CHQ_HINT; $('cDatePrev').textContent = ''; $('cDate').focus();
+}
+/* Επιστρέφει μήνυμα λάθους, ή κενό αν καταχωρήθηκε */
+function createCheque(due, last4, note){
+  if (last4 && last4.length < 4) return 'Γράψε ακριβώς 4 ψηφία, ή άφησέ το κενό.';
+  if (last4 && chqOpen().some(c => c.last4 === last4 && c.due === due)) return `Υπάρχει ήδη εκκρεμής επιταγή …${last4} για ${dayLabel(due, true)}.`;
+  const c = { id:uuid(), due, last4:last4 || '', note:note || '' };
   chqMutate(
     () => CHQ.list.push(c),
-    () => api('cheques', { method:'POST', body:{ id:c.id, due_date:c.due, last4:last4 || null, note:note || null }, prefer:'return=minimal' }),
+    () => api('cheques', { method:'POST', body:{ id:c.id, due_date:c.due, last4:c.last4 || null, note:c.note || null }, prefer:'return=minimal' }),
     () => { CHQ.list = CHQ.list.filter(x => x.id !== c.id); },
     'Δεν αποθηκεύτηκε η επιταγή.'
   ).then(() => checkReminders());
   toast(`Μπήκε ${esc(chqLabel(c))}, εξόφληση ${esc(dayLabel(c.due, true))}.`);
+  return '';
 }
 /* Εξόφληση = διαγραφή. Μόλις μπει στο SoftOne, δεν έχει λόγο να μένει τίποτα εδώ. */
 function clearCheque(id, why){
@@ -3578,8 +3839,8 @@ function exportData(){
 document.addEventListener('click', e => {
   const g = e.target.closest('[data-go]');
   if (g){ e.preventDefault(); go(g.dataset.go === 'home' ? homeView() : g.dataset.go); return; }
-  const kb = e.target.closest('[data-kind]');
-  if (kb){ addKind = kb.dataset.kind; $('aKind').innerHTML = kindSeg(addKind, 'kind'); updateHint(); return; }
+  const kb = e.target.closest('[data-akind]');
+  if (kb){ addKind = kb.dataset.akind; $('aKind').innerHTML = kindSeg(addKind, 'akind'); updateHint(); return; }
   const lb = e.target.closest('[data-letter]');
   if (lb){ const L = lb.dataset.letter; letterFilter = (L && letterFilter !== L) ? L : ''; renderMain(); return; }
   const wd = e.target.closest('[data-wd]');
