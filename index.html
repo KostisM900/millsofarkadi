@@ -2319,6 +2319,18 @@ function checkDoneAt(chk, stamps){
   }
   return last;
 }
+/* Ταξινόμηση ελέγχων: με βάση την ημερομηνία των παραστατικών τους, νεότερα πρώτα.
+   Αν δεν είναι γνωστή, διαβάζεται από τον τίτλο· τελευταία επιλογή, πότε ανέβηκε. */
+function checkDate(chk){
+  let best = '';
+  (chk.codes || []).forEach(c => { const d = docDate(c); if (d && d > best) best = d; });
+  if (best) return best;
+  const dates = (String(chk.label || '').match(/(\d{2})\/(\d{2})\/(\d{4})/g) || [])
+    .map(x => { const [d,m,y] = x.split('/'); return `${y}-${m}-${d}`; }).sort();
+  if (dates.length) return dates[dates.length - 1];
+  return chk.created_at ? iso(new Date(chk.created_at)) : '';
+}
+const checksSorted = () => [...ARC.checks].sort((a,b) => checkDate(b).localeCompare(checkDate(a)) || String(b.created_at).localeCompare(String(a.created_at)));
 function checkDeleteIn(chk){
   const done = checkDoneAt(chk, ARC.stamps);
   if (!done) return null;
@@ -2693,7 +2705,7 @@ function renderArchive(){
         ? `<p class="hint wait-sub">Όσα δεν έχεις αρχειοθετήσει ακόμα, από όλους τους ελέγχους, ανά ημέρα παραστατικού${oldest ? `. Το παλιότερο είναι από ${esc(longDate(oldest))}` : ''}.</p><div class="chk-list">${dayListHTML(waitAll)}</div>`
         : `<p class="empty">${ARC.checks.length ? 'Δεν περιμένεις τίποτα, όλα αρχειοθετημένα.' : 'Δεν έχει γίνει ακόμα κανένας έλεγχος. Ανέβασε το πρώτο στιγμιότυπο από πάνω.'}</p>`}
     </div>
-    ${ARC.checks.length ? section('ΠΡΟΗΓΟΥΜΕΝΟΙ ΕΛΕΓΧΟΙ', `<div class="rows">${ARC.checks.map(c => {
+    ${ARC.checks.length ? section('ΠΡΟΗΓΟΥΜΕΝΟΙ ΕΛΕΓΧΟΙ', `<div class="rows">${checksSorted().map(c => {
       const w = c.codes.filter(x => ARC.missing.has(x)), l = w.filter(x => docState(x) === 'late').length;
       const left = w.length ? null : checkDeleteIn(c);
       return `<div class="row chk-hist"><button class="r-main" data-arc="open" data-id="${c.id}"><b>${esc(c.label)}</b><small>Ανέβηκε ${shortDate(iso(new Date(c.created_at)))} στις ${hhmm(c.created_at)}${left != null ? ` · σβήνεται ${left === 0 ? 'σύντομα' : `σε ${ageText(left)}`}` : ''}</small></button>
