@@ -181,7 +181,8 @@ input{font:inherit;color:inherit}
 
 /* ===== ΣΥΝΔΕΣΗ ===== */
 .login{max-width:380px;margin:6vh auto 0;padding:28px 26px;text-align:center}
-.login img{height:64px;width:auto;margin-bottom:10px}
+.login img{height:60px;width:auto;margin-bottom:12px;object-fit:contain}
+.login img[alt]:not([src]),.login img:-moz-broken{display:none}
 .login h1{font-size:22px;font-weight:700;margin-bottom:4px}
 .login > p{color:var(--muted);font-size:13.5px;margin-bottom:20px}
 .login .f{text-align:left;margin-bottom:12px}
@@ -589,6 +590,8 @@ input{font:inherit;color:inherit}
 .cal-ev.today{background:var(--olive-dark);color:#fff}
 .cal-ev.late{background:var(--red-tint);color:var(--red)}
 @media (max-width:640px){.cal-cell{min-height:50px}.cal-ev i{display:none}}
+.login-eyebrow{font-size:11px;font-weight:800;letter-spacing:.16em;color:var(--olive-dark);margin-bottom:6px}
+.login h1{margin-bottom:6px}
 </style>
 </head>
 <body>
@@ -640,6 +643,8 @@ const ACCOUNTS = {
   'sales2@m-m-m.gr': { name:'Ζωή',    voc:'Ζωή' },
   'info@m-m-m.gr':   { name:'Γραφείο', voc:'' }
 };
+/* Το όνομα της πλατφόρμας: εμφανίζεται στη σύνδεση και στον τίτλο της καρτέλας */
+const APP_NAME = 'Εσωτερικό σύστημα οργάνωσης';
 const LOGO_URLS = ['https://m-m-m.gr/wp-content/uploads/2024/04/logo-150.png', 'https://i.imgur.com/oDCFSVE.png'];
 const LOCAL_KEY = 'arkadi-fakeloi-local-v1';   // ρυθμίσεις συσκευής, σύνδεση, προσωρινό αντίγραφο για εκτός σύνδεσης
 const HISTORY_DAYS = 90;
@@ -1165,7 +1170,7 @@ const PAGES = {
   chq:   { slug:'epitages',       sub:'ΕΠΙΤΑΓΕΣ',                     title:'Επιταγές' },
   arc:   { slug:'archeiothetisi', sub:'ΑΡΧΕΙΟΘΕΤΗΣΗ ΠΑΡΑΣΤΑΤΙΚΩΝ',    title:'Αρχειοθέτηση' },
   set:   { slug:'rythmiseis',     sub:'ΡΥΘΜΙΣΕΙΣ',                    title:'Ρυθμίσεις' },
-  login: { slug:'syndesi',        sub:'ΣΥΝΔΕΣΗ',                      title:'Σύνδεση' }
+  login: { slug:'syndesi',        sub:upper(APP_NAME),                title:'Σύνδεση' }
 };
 function parseHash(){
   const path = decodeURIComponent(location.hash.replace(/^#\/?/, ''));
@@ -1289,7 +1294,8 @@ function buildLogin(){
   $('view-login').innerHTML = `
     <div class="card login">
       <img src="${LOGO_URLS[0]}" alt="Μύλοι Αρκαδίου" onerror="this.onerror=null;this.src='${LOGO_URLS[1]}'">
-      <h1>Φάκελοι πελατών</h1>
+      <p class="login-eyebrow">ΜΥΛΟΙ ΑΡΚΑΔΙΟΥ</p>
+      <h1>${esc(APP_NAME)}</h1>
       <p>Σύνδεση με τον λογαριασμό της εταιρείας.</p>
       <label class="f"><span>Email</span><input class="inp" id="lEmail" type="email" autocomplete="username" spellcheck="false"></label>
       <label class="f"><span>Κωδικός</span><input class="inp" id="lPass" type="password" autocomplete="current-password"></label>
