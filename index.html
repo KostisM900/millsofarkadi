@@ -37,7 +37,19 @@ input{font:inherit;color:inherit}
 .bt{line-height:1.2}
 .bt b{display:block;font-size:14.5px;font-weight:700}
 .bt span{font-size:10.5px;letter-spacing:.14em;color:var(--olive-dark);font-weight:700}
-.nav{display:flex;gap:2px;min-width:0;overflow-x:auto;scrollbar-width:none}
+.nav{display:flex;gap:2px;min-width:0;overflow-x:auto;scrollbar-width:none;scroll-snap-type:x proximity}
+.nav.scrolls{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 26px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 26px),transparent)}
+@media (max-width:720px){
+  .topbar-in{height:auto;flex-wrap:wrap;padding:10px 14px 0;gap:8px}
+  .brand{margin-right:auto}
+  .brand img{height:38px}
+  .net{order:2}
+  .nav{order:3;width:100%;flex-wrap:wrap;overflow:visible;gap:2px;border-top:1px solid var(--line-2);padding:3px 0 2px;margin-top:2px}
+  .nav.scrolls{-webkit-mask-image:none;mask-image:none}
+  .nav-btn{padding:8px 9px;font-size:11.5px;letter-spacing:.04em}
+  .nav-btn.icon-only{margin-left:auto}
+}
+.nav-btn{scroll-snap-align:end}
 .nav::-webkit-scrollbar{display:none}
 .nav-btn{flex-shrink:0}
 .nav-btn{position:relative;padding:9px 14px;font-size:12.5px;font-weight:700;letter-spacing:.06em;border-radius:6px;display:inline-flex;align-items:center;gap:7px}
@@ -46,10 +58,11 @@ input{font:inherit;color:inherit}
 .cnt{min-width:18px;height:18px;padding:0 5px;border-radius:99px;background:var(--red);color:#fff;font-size:10.5px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;letter-spacing:0;line-height:1}
 .save-err{font-size:12px;color:var(--red);font-weight:700}
 @media (max-width:600px){
-  .topbar-in{height:58px;padding:0 14px;gap:8px}
+  .topbar-in{padding:10px 14px 0;gap:8px}
   .brand img{height:38px}
-  .bt{display:none}
-  .nav-btn{padding:9px 10px}
+  .bt b{font-size:13px}
+  .bt span{font-size:9.5px;letter-spacing:.1em}
+  .nav-btn{padding:8px 9px}
 }
 
 /* ===== NOTIFICATION BAR ===== */
@@ -173,7 +186,10 @@ input{font:inherit;color:inherit}
 .toast{background:var(--ink);color:#fff;border-radius:10px;padding:12px 8px 12px 14px;display:flex;gap:8px;align-items:flex-start;font-size:13.5px;box-shadow:0 12px 30px -12px rgba(0,0,0,.45);animation:tin .2s ease}
 .toast.alert{background:var(--white);color:var(--ink);border:1px solid var(--line);border-left:4px solid var(--wheat)}
 .t-msg{flex:1;padding-top:1px}
-.t-act{font-weight:700;color:#E8C27E;padding:2px 6px;white-space:nowrap}
+.t-acts{display:flex;flex-direction:column;gap:4px;align-items:stretch;flex:none}
+.t-act{font-weight:700;color:#E8C27E;padding:3px 8px;white-space:nowrap;border-radius:6px}
+.toast.alert .t-act{color:var(--olive-dark);border:1px solid var(--line)}
+.toast.alert .t-act.primary{background:var(--olive-dark);border-color:var(--olive-dark);color:#fff}
 .t-x{opacity:.65;font-size:18px;line-height:1;padding:0 6px}
 @keyframes tin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @media (max-width:600px){.toasts{right:12px;left:12px;bottom:12px;width:auto}}
@@ -317,6 +333,14 @@ input{font:inherit;color:inherit}
   #printArea .p-name{font-weight:700;width:40%}
   #printArea .p-d{white-space:nowrap}
   #printArea .p-chk{width:14pt;text-align:center;font-size:12pt}
+  /* Πίνακες στοκ: σταθερές στήλες, ώστε τα νούμερα να πέφτουν σε ευθεία */
+  #printArea table.p-stock{table-layout:fixed;margin-bottom:10pt}
+  #printArea table.p-stock td{text-align:center;padding:4pt 2pt;font-size:11pt;font-variant-numeric:tabular-nums;vertical-align:middle}
+  #printArea table.p-stock td.c-name{text-align:left;font-weight:700;padding-left:0}
+  #printArea table.p-stock tr.p-head td{font-weight:700;font-size:9.5pt;letter-spacing:.04em;border-bottom:1pt solid #000;text-transform:uppercase;color:#000}
+  #printArea table.p-stock tr.p-sum td{font-weight:700;border-top:1pt solid #000;border-bottom:0}
+  #printArea table.p-stock td.c-blank{border-bottom:1pt solid #000;height:22pt}
+  #printArea table.p-stock .z{color:#aaa}
   #printArea tr{break-inside:avoid}
   .p-spine{width:52mm;height:275mm;border:1pt dashed #999;display:flex;align-items:center;justify-content:center;break-inside:avoid;margin:0 auto}
   .p-spine div{transform:rotate(-90deg);white-space:nowrap;text-align:center}
@@ -564,9 +588,6 @@ input{font:inherit;color:inherit}
 .stk-sw{width:22px;height:22px;border-radius:6px;border:1px solid rgba(0,0,0,.15);display:inline-block;flex:none}
 .stk-sw.sm{width:14px;height:14px;border-radius:4px;margin-right:6px;vertical-align:-2px}
 .stk-sw.tiny{width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
-.stk-sw.big{width:44px;height:44px;border-radius:10px}
-.stk-learn{margin-top:14px;padding:14px 16px}
-.stk-learn b{display:block;margin-bottom:2px}
 .stk-nm{font-weight:800;font-size:15px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .stk-big{width:48px;height:48px;border-radius:12px;border:1px solid var(--line);background:var(--bg);font-size:24px;font-weight:800;line-height:1;color:var(--ink);cursor:pointer;-webkit-tap-highlight-color:transparent}
 .stk-big.plus{background:var(--olive-dark);border-color:var(--olive-dark);color:#fff}
@@ -577,32 +598,22 @@ input{font:inherit;color:inherit}
 .stk-colors summary{font-weight:800;cursor:pointer}
 .stk-add{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-top:10px}
 .stk-add .f-grow{flex:1;min-width:180px}
-.stk-clist,.stk-teach,.stk-log{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
-.stk-teach span{font-size:12.5px;color:var(--muted);font-weight:700}
-.stk-chip{display:inline-flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:4px 6px 4px 9px;font-size:12.5px;font-weight:700}
+.stk-clist{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
+.stk-chip{display:inline-flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:4px 6px 4px 9px;font-size:12.5px;font-weight:700;max-width:100%}
+.stk-chip em{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .stk-chip i{width:14px;height:14px;border-radius:50%;border:1px solid rgba(0,0,0,.15)}
 .stk-chip em{font-style:normal;color:var(--muted);font-weight:600}
 .stk-chip .icon-btn{padding:0 4px;min-width:20px;line-height:1}
+.stk-chip.off{opacity:.45}
+.stk-kindcolors{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:2px 0 12px}
+.stk-kindcolors > span{font-size:12.5px;color:var(--muted);font-weight:700}
+.stk-kindcolors button{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--white);border-radius:999px;padding:5px 11px;font-size:12.5px;font-weight:700;color:var(--ink);cursor:pointer}
+.stk-kindcolors button i{width:13px;height:13px;border-radius:50%;border:1px solid rgba(0,0,0,.15)}
+.stk-kindcolors button.off{opacity:.4;background:var(--bg);text-decoration:line-through}
+.stk-check{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:var(--ink);padding-bottom:9px;white-space:nowrap}
+.stk-check input{width:18px;height:18px}
 .stk-tag{display:inline-block;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:1px 8px;font-size:11.5px;font-weight:700}
-.stk-cam{position:relative;max-width:420px;margin:12px 0 0}
-.stk-video{width:100%;border-radius:var(--radius);background:#000;aspect-ratio:4/3;object-fit:cover;display:block}
-.stk-frame{position:absolute;border:2px dashed rgba(255,255,255,.9);border-radius:10px;pointer-events:none}
-.stk-frame span{position:absolute;top:-9px;left:8px;background:rgba(0,0,0,.6);color:#fff;font-size:9.5px;font-weight:800;letter-spacing:.08em;padding:1px 6px;border-radius:4px}
-.stk-frame.fabric{top:26%;height:48%;width:17%;border-style:solid;border-color:rgba(255,255,255,.5)}
-.stk-frame.fabric.l{left:3%}
-.stk-frame.fabric.r{right:3%}
-.stk-frame.fabric span{left:4px;font-size:8.5px;padding:1px 4px}
-.stk-fallback{margin:14px 0 6px}
-.stk-fallback > span{display:block;font-size:12.5px;color:var(--muted);font-weight:700;margin-bottom:6px}
-.stk-fallback .stk-sizes button{height:46px;min-width:52px}
-.stk-sizes.big button{height:58px;min-width:62px;font-size:19px;flex:1}
-.stk-sizes.big{gap:8px}
 .stk-sizes button:disabled{opacity:.35}
-.stk-camfoot{display:flex;align-items:center;gap:10px;margin:10px 0;max-width:420px}
-.stk-dot{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:#eee;flex:none}
-.stk-guess{flex:1;padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:var(--white);font-weight:800;font-size:15px;text-align:center}
-.stk-guess.on{border-color:transparent}
-.stk-log b{font-size:11.5px;color:var(--muted);letter-spacing:.05em;width:100%}
 .stk-bar{display:flex;justify-content:flex-end;margin-bottom:16px}
 .stk-grid-wrap{overflow-x:auto;background:var(--white);border:1px solid var(--line);border-radius:var(--radius)}
 .stk-grid{border-collapse:collapse;width:100%}
@@ -625,7 +636,6 @@ input{font:inherit;color:inherit}
   .stk-inp{width:48px;padding:7px 2px}
   .stk-big{width:44px;height:44px;font-size:22px}
   .stk-q{min-width:38px;font-size:20px}
-  .stk-cam,.stk-camfoot{max-width:none}
 }
 
 /* ===== ΟΧΗΜΑΤΑ ===== */
@@ -853,7 +863,7 @@ const ENV_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
 
 /* DB = ό,τι έρχεται από τη βάση · LOCAL = μόνο σε αυτή τη συσκευή */
 let DB = { envelopes:[], customers:[] };
-let LOCAL = { settings:{...DEFAULT_SETTINGS}, fired:{}, session:null, cache:null, cleanedOn:'' };
+let LOCAL = { settings:{...DEFAULT_SETTINGS}, fired:{}, session:null, cache:null, cleanedOn:'', snoozed:[] };
 let view = 'main', lastDay = '', notifBarClosed = false, online = true, pendingOps = 0, live = false;
 
 /* ===================== HELPERS ===================== */
@@ -961,7 +971,7 @@ async function loadLocal(){
   if (!raw) return;
   try {
     const d = JSON.parse(raw);
-    LOCAL = { settings:{...DEFAULT_SETTINGS, ...(d.settings || {})}, fired:d.fired || {}, session:d.session || null, cache:d.cache || null, cleanedOn:d.cleanedOn || '', lastSeen:d.lastSeen || 0 };
+    LOCAL = { settings:{...DEFAULT_SETTINGS, ...(d.settings || {})}, fired:d.fired || {}, session:d.session || null, cache:d.cache || null, cleanedOn:d.cleanedOn || '', lastSeen:d.lastSeen || 0, snoozed:d.snoozed || [] };
   } catch(e){}
 }
 let localTimer = null;
@@ -1146,7 +1156,7 @@ let chqTimer = null;
 function scheduleChequeRefresh(){ clearTimeout(chqTimer); chqTimer = setTimeout(() => loadCheques(), 350); }
 function scheduleArchiveRefresh(){ clearTimeout(arcTimer); arcTimer = setTimeout(() => loadArchive(), 350); }
 
-let refreshing = false;
+let refreshing = false, dataLoaded = false;
 async function refresh(){
   if (!LOCAL.session || refreshing || pendingOps) return;
   refreshing = true;
@@ -1159,6 +1169,7 @@ async function refresh(){
     const before = DB.envelopes;
     DB.envelopes = (envs || []).map(fromRow);
     DB.customers = (custs || []).map(c => ({ id:c.id, name:c.name, key:c.name_key }));
+    dataLoaded = true;
     setOnline(true); cacheData();
     announceChanges(before, DB.envelopes);
     renderAll(); checkReminders();
@@ -1203,15 +1214,23 @@ async function cleanupHistory(){
 }
 
 /* ===================== TOASTS ===================== */
-function toast(html, {action=null, sticky=false, kind=''} = {}){
+function toast(html, {action=null, actions=null, sticky=false, kind=''} = {}){
   const box = $('toasts');
   const el = document.createElement('div');
   el.className = 'toast ' + kind;
   el.innerHTML = `<div class="t-msg">${html}</div>`;
-  if (action){
-    const b = document.createElement('button'); b.className = 't-act'; b.textContent = action.label;
-    b.onclick = () => { action.fn(); el.remove(); };
-    el.appendChild(b);
+  const list = actions && actions.length ? actions : (action ? [action] : []);
+  if (list.length){
+    const wrap = document.createElement('div');
+    wrap.className = 't-acts';
+    list.forEach(a => {
+      const b = document.createElement('button');
+      b.className = 't-act' + (a.primary ? ' primary' : '');
+      b.textContent = a.label;
+      b.onclick = () => { a.fn(); el.remove(); };
+      wrap.appendChild(b);
+    });
+    el.appendChild(wrap);
   }
   const x = document.createElement('button'); x.className = 't-x'; x.textContent = '×'; x.setAttribute('aria-label','Κλείσιμο');
   x.onclick = () => el.remove(); el.appendChild(x);
@@ -1234,14 +1253,71 @@ async function enableNotifs(){
   } catch(e){ toast('Ο browser μπλόκαρε το αίτημα για ειδοποιήσεις.'); }
   renderAll();
 }
-function remind(title, body, tag){
+/* Κουμπιά μέσα στην ειδοποίηση του υπολογιστή: τα επιτρέπει ο browser μόνο
+   μέσω service worker (Chrome, Edge, Android). Σε Safari και iPhone δεν
+   υπάρχουν κουμπιά — γι' αυτό τα ίδια κουμπιά μπαίνουν ΚΑΙ στο μήνυμα μέσα
+   στη σελίδα, που δουλεύει παντού. */
+let swReg = null;
+const NOTIF_ACTIONS = ('Notification' in window) && ('actions' in Notification.prototype);
+async function initServiceWorker(){
+  if (IN_FRAME || !('serviceWorker' in navigator) || location.protocol === 'file:') return;
+  try {
+    swReg = await navigator.serviceWorker.register('sw.js');
+    navigator.serviceWorker.addEventListener('message', e => {
+      const d = e.data || {};
+      if (d.type !== 'notif-action') return;
+      if (d.action === 'give' && d.ids) giveGroup(d.ids, null);
+      else if (d.action === 'snooze') snoozeRemind(d.payload);
+      else go(homeView());
+    });
+  } catch(e){ swReg = null; }
+}
+const SNOOZE_MIN = 30;
+function snoozeRemind(payload){
+  if (!payload || !payload.title) return;
+  LOCAL.snoozed = (LOCAL.snoozed || []).filter(x => x.tag !== payload.tag);
+  LOCAL.snoozed.push({ ...payload, at: Date.now() + SNOOZE_MIN * 60000 });
+  saveLocal();
+  toast(`Θα ξαναθυμίσει σε ${SNOOZE_MIN} λεπτά.`);
+}
+/* Όσες υπενθυμίσεις αναβλήθηκαν και ήρθε η ώρα τους */
+function fireSnoozed(){
+  const list = LOCAL.snoozed || [];
+  if (!list.length) return;
+  const now = Date.now();
+  const due = list.filter(x => x.at <= now);
+  if (!due.length) return;
+  LOCAL.snoozed = list.filter(x => x.at > now);
+  saveLocal();
+  due.forEach(x => remind(x.title, x.body, x.tag, { ids:x.ids, canGive:x.canGive }));
+  if (due.length) beep();
+}
+function remind(title, body, tag, opts = {}){
+  const ids = opts.ids || '';
+  const canGive = !!opts.canGive && !!ids;
+  const payload = { title, body, tag, ids, canGive };
   if (notifState() === 'granted'){
-    try {
-      const n = new Notification(title, { body, tag, icon: LOGO_URLS[0], requireInteraction: true });
-      n.onclick = () => { window.focus(); go(homeView()); n.close(); };
-    } catch(e){}
+    const acts = [];
+    if (canGive) acts.push({ action:'give', title:'Δόθηκε' });
+    acts.push({ action:'snooze', title:`Σε ${SNOOZE_MIN}′` });
+    let shown = false;
+    if (swReg && NOTIF_ACTIONS){
+      try {
+        swReg.showNotification(title, { body, tag, icon: LOGO_URLS[0], requireInteraction:true, actions:acts, data:payload });
+        shown = true;
+      } catch(e){}
+    }
+    if (!shown){
+      try {
+        const n = new Notification(title, { body, tag, icon: LOGO_URLS[0], requireInteraction: true });
+        n.onclick = () => { window.focus(); go(homeView()); n.close(); };
+      } catch(e){}
+    }
   }
-  toast(`<b>${esc(title)}</b><br>${esc(body)}`, { sticky:true, kind:'alert' });
+  const actions = [];
+  if (canGive) actions.push({ label:'Δόθηκε', primary:true, fn:() => giveGroup(ids, null) });
+  actions.push({ label:`Σε ${SNOOZE_MIN}′`, fn:() => snoozeRemind(payload) });
+  toast(`<b>${esc(title)}</b><br>${esc(body)}`, { sticky:true, kind:'alert', actions });
 }
 let actx = null;
 function beep(){
@@ -1340,7 +1416,11 @@ function checkReminders(){
   const fire = (kind, one, many) => {
     const list = groupsOf(due.filter(d => d.kind === kind).map(d => d.env)).map(g => groupsOf(envelopeOf(g.name))[0] || g).sort((a,b) => a.name.localeCompare(b.name,'el'));
     if (!list.length) return;
-    if (list.length <= 3 && totalMsgs <= 3) list.forEach(g => { const [a,b] = one(g); remind(a, b, `${kind}-${norm(g.name)}`); });
+    /* «Δόθηκε» μόνο εκεί που βγάζει νόημα: μία συγκεκριμένη παράδοση σήμερα
+       ή μία που έμεινε πίσω. Στην προετοιμασία της προηγούμενης μέρας και
+       στα συγκεντρωτικά δεν μπαίνει, για να μη σημειωθεί κάτι κατά λάθος. */
+    const givable = kind === 'day' || kind === 'miss';
+    if (list.length <= 3 && totalMsgs <= 3) list.forEach(g => { const [a,b] = one(g); remind(a, b, `${kind}-${norm(g.name)}`, { ids:g.ids, canGive:givable }); });
     else { const [a,b] = many(list); remind(a, b, `${kind}-summary`); }
   };
   const inside = g => { const s = docSummary(g.items); return s ? ` (${s})` : ''; };
@@ -1364,7 +1444,7 @@ const PAGES = {
   main:  { slug:'fakeloi',        sub:'ΦΑΚΕΛΟΙ ΠΕΛΑΤΩΝ',              title:'Φάκελοι' },
   binder:{ slug:'fakeloi/fakelos', sub:'ΦΑΚΕΛΟΙ · ΦΑΚΕΛΟΣ Α–Ω',        title:'Φάκελος Α–Ω' },
   veh:   { slug:'ochimata',       sub:'ΟΧΗΜΑΤΑ',                      title:'Οχήματα' },
-  stk:   { slug:'stok',           sub:'ΣΤΟΚ ΡΟΥΧΩΝ',                   title:'Στοκ' },
+  stk:   { slug:'endymasia',      sub:'ΕΝΔΥΜΑΣΙΑ ΠΡΟΣΩΠΙΚΟΥ',          title:'Ενδυμασία' },
   chq:   { slug:'epitages',       sub:'ΕΠΙΤΑΓΕΣ',                     title:'Επιταγές' },
   arc:   { slug:'archeiothetisi', sub:'ΑΡΧΕΙΟΘΕΤΗΣΗ ΠΑΡΑΣΤΑΤΙΚΩΝ',    title:'Αρχειοθέτηση' },
   set:   { slug:'rythmiseis',     sub:'ΡΥΘΜΙΣΕΙΣ',                    title:'Ρυθμίσεις' },
@@ -1424,6 +1504,10 @@ function updateTitle(){
 }
 
 /* ===================== NAV ===================== */
+function markNavScroll(){
+  const n = $('nav');
+  if (n) n.classList.toggle('scrolls', n.scrollWidth - n.clientWidth > 4);
+}
 function renderNav(){
   if (!LOCAL.session){ $('nav').innerHTML = ''; return; }
   const n = groupsOf(pending()).filter(g => g.date && g.date <= todayIso()).length;
@@ -1431,12 +1515,13 @@ function renderNav(){
     ${homeView() === 'home' ? `<button class="nav-btn${view==='home'?' active':''}" data-go="home">ΑΡΧΙΚΗ</button>` : ''}
     <button class="nav-btn${view==='main'||view==='binder'?' active':''}" data-go="main">ΦΑΚΕΛΟΙ${n ? `<span class="cnt">${n}</span>` : ''}</button>
     ${canVehicles() ? `<button class="nav-btn${view==='veh'?' active':''}" data-go="veh">ΟΧΗΜΑΤΑ${VEH.loaded && vehAlertCount() ? `<span class="cnt">${vehAlertCount()}</span>` : ''}</button>` : ''}
-    ${canStock() ? `<button class="nav-btn${view==='stk'?' active':''}" data-go="stk">ΣΤΟΚ</button>` : ''}
+    ${canStock() ? `<button class="nav-btn${view==='stk'?' active':''}" data-go="stk"><span class="nl-long">ΕΝΔΥΜΑΣΙΑ</span><span class="nl-short">ΡΟΥΧΑ</span></button>` : ''}
     ${canCheques() ? `<button class="nav-btn${view==='chq'?' active':''}" data-go="chq">ΕΠΙΤΑΓΕΣ${CHQ.loaded && (chqDueToday() + chqOverdue()) ? `<span class="cnt">${chqDueToday() + chqOverdue()}</span>` : ''}</button>` : ''}
     ${canArchive() ? `<button class="nav-btn${view==='arc'?' active':''}" data-go="arc"><span class="nl-long">ΑΡΧΕΙΟΘΕΤΗΣΗ</span><span class="nl-short">ΑΡΧΕΙΟ</span>${ARC.loaded && lateCount() ? `<span class="cnt">${lateCount()}</span>` : ''}</button>` : ''}
     <button class="nav-btn icon-only${view==='set'?' active':''}" data-go="set" aria-label="Ρυθμίσεις" title="Ρυθμίσεις"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>`;
 }
 let pendingRoute = null;
+window.addEventListener('resize', markNavScroll);
 function go(v, opts = {}){
   if (!LOCAL.session){ if (v !== 'login') pendingRoute = { v, sub: opts.sub || '' }; v = 'login'; }
   if (LOCAL.session && v === 'login') v = 'main';
@@ -1446,7 +1531,6 @@ function go(v, opts = {}){
   if (v === 'veh'){ if (!$('vehBody')) buildVehicles(); renderVehicles(); loadVehicles(); }
   if (v === 'stk' && !canStock()) v = 'main';
   if (v === 'stk'){ if (!$('stkBody')) buildStock(); renderStock(); loadStock(); }
-  if (view === 'stk' && v !== 'stk') stkCamStop();                 // κλείνει η κάμερα φεύγοντας
   if (v === 'chq' && !canCheques()) v = 'main';
   if (v === 'arc' && !canArchive()) v = 'main';
   if (!PAGES[v]) v = 'main';
@@ -1469,7 +1553,7 @@ function go(v, opts = {}){
   window.scrollTo({ top:0 });
 }
 function renderAll(){
-  renderNav(); renderNotifBar(); updateTitle();
+  renderNav(); markNavScroll(); renderNotifBar(); updateTitle();
   $('custList').innerHTML = customerNames().map(n => `<option value="${esc(n)}"></option>`).join('');
   if (view === 'main') renderMain();
   if (view === 'set') renderSettingsState();
@@ -2120,6 +2204,16 @@ function renderMain(){
       + ` Σύνολο: ${allG.length === 1 ? '1 φάκελος' : allG.length + ' φάκελοι'}.`;
   $('sub').innerHTML = `<span class="date">${longDate(t)}.</span> ${sub}`;
 
+  /* Πρώτο άνοιγμα σε συσκευή χωρίς αντίγραφο και η βάση δεν απάντησε:
+     να φαίνεται ότι ΔΕΝ φόρτωσαν, όχι ότι δεν υπάρχουν φάκελοι. */
+  if (!dataLoaded && !DB.envelopes.length){
+    $('qInfo').hidden = true;
+    $('lists').innerHTML = `<div class="card move-card"><b>Δεν φόρτωσαν τα δεδομένα</b>
+      <p class="hint">${online ? 'Η βάση δεν απάντησε ακόμα.' : 'Δεν υπάρχει σύνδεση αυτή τη στιγμή.'}
+      Οι φάκελοι είναι ασφαλείς στη βάση — απλώς δεν κατέβηκαν σε αυτή τη συσκευή.</p>
+      <button class="btn primary sm" data-act="reload">Δοκίμασε ξανά</button></div>`;
+    return;
+  }
   const given = DB.envelopes.filter(e => e.givenAt);
   let html = '';
   if (query){
@@ -3114,7 +3208,7 @@ function homeModules(){
   if (canCheques()) mods.push({ v:'chq', title:'Επιταγές',
     line: !CHQ.loaded ? '—' : chqOpen().length ? `${chqOpen().length === 1 ? '1 εκκρεμής' : chqOpen().length + ' εκκρεμείς'}` : 'Καμία εκκρεμής',
     n: CHQ.loaded ? chqDueToday() + chqOverdue() : 0 });
-  if (canStock()) mods.push({ v:'stk', title:'Στοκ ρούχων',
+  if (canStock()) mods.push({ v:'stk', title:'Ενδυμασία προσωπικού',
     line: !STK.loaded ? '—' : STK.list.length ? `${stkTotal()} τεμάχια · ${STK.colors.length === 1 ? '1 χρώμα' : STK.colors.length + ' χρώματα'}` : 'Κανένα στοκ ακόμα',
     n: 0 });
   if (canArchive()) mods.push({ v:'arc', title:'Αρχειοθέτηση',
@@ -3883,99 +3977,89 @@ document.addEventListener('change', e => {
    και δεν διαβάζεται αξιόπιστα από απόσταση. */
 const STOCK_EMAILS = ['social@m-m-m.gr'];
 const canStock = () => STOCK_EMAILS.includes(String((LOCAL.session && LOCAL.session.email) || '').toLowerCase());
-const STK_KINDS = { short:'Κοντομάνικο', long:'Μακρυμάνικο', apron:'Ποδιά' };
-const STK_KINDS_PL = { short:'Κοντομάνικα', long:'Μακρυμάνικα', apron:'Ποδιές' };
-/* Τα είδη χωρίς νούμερα (ποδιές) κρατούν ένα σταθερό «μέγεθος» στη βάση,
-   ώστε να μη χρειάζεται δεύτερος πίνακας. Στην οθόνη δεν φαίνεται πουθενά. */
+/* Τα είδη («σχέδια») τα ορίζεις εσύ και ζουν στη βάση. Όσα δεν έχουν
+   νούμερα (ποδιές) κρατούν ένα σταθερό «μέγεθος», ώστε να μη χρειάζεται
+   δεύτερος πίνακας· στην οθόνη δεν φαίνεται πουθενά. */
 const STK_ONE = 'ΕΝΑ';
-/* Από πού παίρνει το χρώμα: δύο λωρίδες δεξιά κι αριστερά, ποτέ το κέντρο,
-   γιατί εκεί πέφτει η ετικέτα ή η πτυχή του λαιμού. */
-const COL_BOX = [[0.03, 0.26, 0.20, 0.74], [0.80, 0.26, 0.97, 0.74]];
-const STK_NOSIZE = ['apron'];
-const stkSized = kind => !STK_NOSIZE.includes(kind);
-const stkSizeOf = kind => stkSized(kind) ? STK.size : STK_ONE;
+const stkKind = code => STK.kinds.find(k => k.code === code) || null;
+const stkKindName = code => { const k = stkKind(code); return k ? k.name : code; };
+const stkKindPl = code => { const k = stkKind(code); return k ? k.pl : code; };
+const stkSized = code => { const k = stkKind(code); return k ? k.sized : true; };
+const stkSizeOf = code => stkSized(code) ? STK.size : STK_ONE;
+const stkKindSizes = code => {
+  const k = stkKind(code);
+  const raw = (k && k.sizes) ? k.sizes : STK_SIZES.join(',');
+  const list = raw.split(',').map(x => stkSizeName(x)).filter(Boolean);
+  return list.length ? list : STK_SIZES;
+};
 const STK_SIZES = ['XS','S','M','L','XL','XXL','3XL','4XL'];
-const STK = { loaded:false, loading:false, setupMissing:false, list:[], colors:[], moves:[], movesLoaded:false,
-              mode:'count', kind:'short', size:'M', dir:1,
-              camOn:false, camMsg:'', camColor:null, camRGB:null, camCool:0, camHold:0, lockSize:true,
-              camTeach:'', stream:null, timer:0, log:[] };
+const STK = { loaded:false, loading:false, setupMissing:false, list:[], colors:[], kinds:[], moves:[], movesLoaded:false,
+              mode:'count', kind:'short', size:'M', dir:1 };
 
 const stkRow = r => ({ id:r.id, kind:r.kind || 'short', color:r.color, size:r.size,
                        qty:Number(r.qty) || 0, min:Number(r.min_qty) || 0 });
 const stkBody = v => ({ id:v.id, kind:v.kind, color:v.color, size:v.size, qty:0, min_qty:v.min || 0 });
 const stkColorNames = () => STK.colors.map(c => c.name);
-const stkHex = name => { const c = STK.colors.find(x => x.name === name); return c ? c.hex : '#CCCCCC'; };
+/* Κάθε χρώμα μπορεί να περιορίζεται σε ορισμένα είδη — π.χ. οι ποδιές
+   είναι μόνο λευκές. Κενό «kinds» σημαίνει «σε όλα τα είδη». */
+const stkKindsOf = c => (c.kinds || '').split(',').map(x => x.trim()).filter(Boolean);
+const stkColorOk = (c, kind) => { const k = stkKindsOf(c); return !k.length || k.includes(kind); };
+const stkColorsFor = kind => STK.colors.filter(c => stkColorOk(c, kind));
+const stkHex = name => stkHexFromName(name);
 const stkFind = (kind, color, size) => STK.list.find(v => v.kind === kind && v.color === color && v.size === size);
 const stkQty = (kind, color, size) => { const v = stkFind(kind, color, size); return v ? v.qty : 0; };
 const stkTotal = list => (list || STK.list).reduce((n,v) => n + v.qty, 0);
 const stkSizesUsed = kind => {
   if (!stkSized(kind)) return [STK_ONE];
-  const have = new Set(STK.list.filter(v => !kind || v.kind === kind).filter(v => v.qty > 0).map(v => v.size));
-  const known = STK_SIZES.filter(s => have.has(s));
-  return [...known, ...[...have].filter(s => !STK_SIZES.includes(s) && s !== STK_ONE).sort()];
+  const own = stkKindSizes(kind);
+  const have = new Set(STK.list.filter(v => v.kind === kind && v.qty > 0).map(v => v.size));
+  const known = own.filter(sz => have.has(sz));
+  return [...known, ...[...have].filter(sz => !own.includes(sz) && sz !== STK_ONE).sort()];
 };
 /* Στον πίνακα δείχνουμε και άδειες στήλες, για να γράφεις κατευθείαν μέσα */
 const stkSizeCols = kind => {
   if (!stkSized(kind)) return [STK_ONE];
-  const used = new Set(stkSizesUsed(kind));
-  return [...new Set([...STK_SIZES.slice(0, 6), ...used])].sort((a,b) => {
-    const ia = STK_SIZES.indexOf(a), ib = STK_SIZES.indexOf(b);
-    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.localeCompare(b);
-  });
+  const own = stkKindSizes(kind);
+  const used = stkSizesUsed(kind);
+  return [...own, ...used.filter(sz => !own.includes(sz))];
 };
-const stkName = v => `${STK_KINDS[v.kind] || v.kind} ${v.color}${stkSized(v.kind) ? ' ' + v.size : ''}`;
+const stkName = v => `${stkKindName(v.kind)} ${v.color}${stkSized(v.kind) ? ' ' + v.size : ''}`;
 const stkClean = s => upper(clean(s)).slice(0, 30);
+const stkSizeName = s => upper(clean(s)).replace(/\s+/g, '').slice(0, 6);
 
-/* ---------- Χρώμα από την εικόνα ----------
-   Δείγμα από το κέντρο του καρέ, χωρίς πολύ σκούρα/καμένα σημεία, και
-   σύγκριση στον χώρο Lab. Τα χρώματα «διδάσκονται» μία φορά, στον ίδιο
-   φωτισμό που θα γίνεται και η μέτρηση. */
-function rgb2lab(r, g, b){
-  const f = v => { v /= 255; return v > 0.04045 ? Math.pow((v + 0.055) / 1.055, 2.4) : v / 12.92; };
-  const R = f(r), G = f(g), B = f(b);
-  const x = (R * 0.4124 + G * 0.3576 + B * 0.1805) / 0.95047;
-  const y = (R * 0.2126 + G * 0.7152 + B * 0.0722);
-  const z = (R * 0.0193 + G * 0.1192 + B * 0.9505) / 1.08883;
-  const k = v => v > 0.008856 ? Math.cbrt(v) : (7.787 * v) + 16 / 116;
-  const X = k(x), Y = k(y), Z = k(z);
-  return { l:(116 * Y) - 16, a:500 * (X - Y), b:200 * (Y - Z) };
-}
-const labDist = (p, q) => Math.sqrt((p.l - q.l) ** 2 + (p.a - q.a) ** 2 + (p.b - q.b) ** 2);
-const hex2rgb = h => { const m = /^#?([0-9a-f]{6})$/i.exec(String(h || '')); if (!m) return null;
-  const n = parseInt(m[1], 16); return { r:(n >> 16) & 255, g:(n >> 8) & 255, b:n & 255 }; };
-const rgb2hex = (r, g, b) => '#' + [r, g, b].map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('').toUpperCase();
-/* Μέσος όρος χρώματος από μία ή περισσότερες ζώνες του καρέ (ποσοστά x0,y0,x1,y1).
-   Παίρνουμε τα πλαϊνά, όχι το κέντρο, γιατί στο κέντρο είναι η άσπρη ετικέτα. */
-function stkSample(video, boxes){
-  const cv = stkSample.cv || (stkSample.cv = document.createElement('canvas'));
-  const w = 120, h = 90;
-  cv.width = w; cv.height = h;
-  const ctx = cv.getContext('2d', { willReadFrequently:true });
-  try { ctx.drawImage(video, 0, 0, w, h); } catch(e){ return null; }
-  let r = 0, g = 0, b = 0, n = 0;
-  for (const [x0, y0, x1, y1] of boxes){
-    let d;
-    try { d = ctx.getImageData(Math.round(w * x0), Math.round(h * y0),
-                               Math.max(1, Math.round(w * (x1 - x0))), Math.max(1, Math.round(h * (y1 - y0)))).data; }
-    catch(e){ continue; }
-    for (let i = 0; i < d.length; i += 4){
-      const mx = Math.max(d[i], d[i+1], d[i+2]), mn = Math.min(d[i], d[i+1], d[i+2]);
-      if (mx < 30 || mn > 242) continue;                     // σκοτάδι ή αντανάκλαση
-      r += d[i]; g += d[i+1]; b += d[i+2]; n++;
-    }
+/* ---------- Χρώμα από το όνομα ----------
+   Το χρώμα του τετραγώνου βγαίνει από τη λέξη, όχι από φωτογραφία, ώστε
+   να φαίνεται πάντα σωστά στην πλατφόρμα και στην εκτύπωση. */
+const STK_NAMED = [
+  ['ΑΣΠΡ','#F4F4F1'], ['ΛΕΥΚ','#F4F4F1'], ['ΕΚΡΟΥ','#EDE6D6'], ['ΚΡΕΜ','#F0E4CA'],
+  ['ΜΠΕΖ','#D9BE8E'], ['ΚΑΜΗΛ','#C19A6B'], ['ΧΑΚΙ','#9A9367'], ['ΛΑΔΙ','#6B7A42'],
+  ['ΚΙΤΡΙΝ','#E8C84A'], ['ΜΟΥΣΤΑΡΔ','#CDA434'], ['ΠΟΡΤΟΚΑΛ','#DE7D3A'],
+  ['ΠΡΑΣΙΝ','#4E7D4A'], ['ΤΙΡΚΟΥΑΖ','#3FA8A0'], ['ΣΙΕΛ','#9CC4E4'],
+  ['ΝΑΥΤΙΚ','#1F2F55'], ['ΜΠΛΕ','#2F4E8C'], ['ΜΩΒ','#6B4C8A'], ['ΛΙΛΑ','#B9A3D6'],
+  ['ΦΟΥΞΙΑ','#C2306E'], ['ΡΟΖ','#E2A0B5'], ['ΚΟΚΚΙΝ','#B5322E'], ['ΜΠΟΡΝΤΟ','#6E2230'],
+  ['ΚΑΦΕ','#6B4A33'], ['ΑΝΘΡΑΚ','#3A3D42'], ['ΜΑΥΡ','#26262A'], ['ΑΣΗΜ','#C9CBCE'],
+  ['ΓΚΡΙ','#9A9A98']
+];
+/* Πιάνει και σύνθετα ονόματα: «ΜΠΛΕ ΣΚΟΥΡΟ», «ΑΝΟΙΧΤΟ ΓΚΡΙ». Το πιο
+   συγκεκριμένο ταίριασμα κερδίζει (ΜΠΟΡΝΤΟ πριν από ΜΠΛΕ). */
+function stkHexFromName(name){
+  const t = upper(norm(String(name || ''))).replace(/[^Α-ΩA-Z]/g, '');
+  let best = null;
+  for (const [key, hex] of STK_NAMED){
+    if (t.includes(key) && (!best || key.length > best[0].length)) best = [key, hex];
   }
-  if (n < 60) return null;
-  return { r:r / n, g:g / n, b:b / n };
+  let hex = best ? best[1] : '#B9B7AC';
+  if (/ΣΚΟΥΡ/.test(t)) hex = stkShade(hex, -0.22);
+  else if (/ΑΝΟΙΧΤ|ΑΠΑΛ/.test(t)) hex = stkShade(hex, 0.22);
+  return hex;
 }
-/* Ποιο διδαγμένο χρώμα μοιάζει· null αν δεν είναι αρκετά σίγουρο */
-function stkMatch(rgb){
-  const lab = rgb2lab(rgb.r, rgb.g, rgb.b);
-  const scored = STK.colors.filter(c => c.lab).map(c => ({ name:c.name, d:labDist(lab, c.lab) })).sort((a,b) => a.d - b.d);
-  if (!scored.length) return null;
-  const best = scored[0], second = scored[1];
-  if (best.d > 26) return null;                              // πολύ μακριά από οτιδήποτε ξέρει
-  if (second && second.d - best.d < 7) return null;          // δύο χρώματα το ίδιο κοντά: δεν ρισκάρει
-  return best.name;
+function stkShade(hex, k){
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex);
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  const ch = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(v =>
+    Math.max(0, Math.min(255, Math.round(k >= 0 ? v + (255 - v) * k : v * (1 + k)))));
+  return '#' + ch.map(v => v.toString(16).padStart(2, '0')).join('').toUpperCase();
 }
 
 /* ---------- Φόρτωση ---------- */
@@ -3983,13 +4067,16 @@ async function loadStock(){
   if (STK.loading || !LOCAL.session || !canStock()) return;
   STK.loading = true;
   try {
-    const [vars, cols] = await Promise.all([
+    const [vars, cols, kinds] = await Promise.all([
       api('stock_variants?select=id,kind,color,size,qty,min_qty&order=color.asc,size.asc'),
-      api('stock_colors?select=name,hex,lab_l,lab_a,lab_b&order=name.asc')
+      api('stock_colors?select=name,hex,kinds&order=name.asc'),
+      api('stock_kinds?select=code,name,name_pl,sized,sizes,sort&order=sort.asc')
     ]);
+    STK.kinds = (kinds || []).map(k => ({ code:k.code, name:k.name, pl:k.name_pl || k.name,
+                                          sized:k.sized !== false, sizes:k.sizes || '', sort:Number(k.sort) || 0 }));
+    if (!STK.kinds.some(k => k.code === STK.kind)) STK.kind = STK.kinds.length ? STK.kinds[0].code : '';
     STK.list = (vars || []).map(stkRow);
-    STK.colors = (cols || []).map(c => ({ name:c.name, hex:c.hex || '#CCCCCC',
-      lab: (c.lab_l === null || c.lab_l === undefined) ? null : { l:c.lab_l, a:c.lab_a, b:c.lab_b } }));
+    STK.colors = (cols || []).map(c => ({ name:c.name, hex:stkHexFromName(c.name), kinds:c.kinds || '' }));
     STK.loaded = true; STK.setupMissing = false; setOnline(true);
     renderNav();
   } catch(e){
@@ -4000,8 +4087,8 @@ async function loadStock(){
 async function loadStockMoves(){
   if (!LOCAL.session || !canStock() || STK.setupMissing) return;
   try {
-    const rows = await api('stock_moves?select=id,delta,kind,note,at,by_email,stock_variants(kind,color,size)&order=at.desc&limit=120');
-    STK.moves = (rows || []).map(r => ({ id:r.id, delta:Number(r.delta) || 0, kind:r.kind || 'in', at:r.at, by:r.by_email || '',
+    const rows = await api('stock_moves?select=id,variant_id,delta,kind,note,at,by_email,stock_variants(kind,color,size)&order=at.desc&limit=120');
+    STK.moves = (rows || []).map(r => ({ id:r.id, vid:r.variant_id, delta:Number(r.delta) || 0, kind:r.kind || 'in', at:r.at, by:r.by_email || '',
       label: r.stock_variants ? stkName(r.stock_variants) : '—' }));
     STK.movesLoaded = true;
   } catch(e){ handleError(e, 'Δεν φόρτωσε το ιστορικό.', true); }
@@ -4053,11 +4140,11 @@ function stkSet(id, qty){
     .finally(() => { pendingOps--; });
 }
 /* ---------- Χρώματα ---------- */
-function stkAddColor(nameRaw, hex){
+function stkAddColor(nameRaw){
   const name = stkClean(nameRaw);
   if (!name) return 'Γράψε το χρώμα.';
   if (STK.colors.some(c => c.name === name)) return `Το ${name} υπάρχει ήδη.`;
-  const c = { name, hex:hex || '#CCCCCC', lab:null };
+  const c = { name, hex:stkHexFromName(name), kinds:'' };
   STK.colors.push(c);
   STK.colors.sort((a,b) => a.name.localeCompare(b.name,'el'));
   stkRepaint();
@@ -4068,44 +4155,16 @@ function stkAddColor(nameRaw, hex){
     .finally(() => { pendingOps--; });
   return '';
 }
-/* Νέο χρώμα με το δείγμα της κάμερας μαζί, σε μία κίνηση: δείχνεις τη
-   μπλούζα, γράφεις το όνομα, τέλος. Χωρίς αυτό η καρτέλα της κάμερας
-   ήταν αδιέξοδο όσο δεν υπήρχε κανένα χρώμα. */
-function stkAddColorFromCam(){
-  const hint = $('stkCamAddHint');
-  const name = stkClean(($('stkNewColor') || {}).value || '');
-  const say = t => { if (hint) hint.innerHTML = t; };
-  if (!name) return say('<span class="bad">Γράψε πώς το λέτε.</span>');
-  if (STK.colors.some(c => c.name === name)) return say(`<span class="bad">Το ${esc(name)} υπάρχει ήδη.</span>`);
-  if (!STK.camRGB) return say('<span class="bad">Δεν βλέπει ύφασμα. Φέρε τη μπλούζα να γεμίζει τα πλαϊνά πλαίσια.</span>');
-  const lab = rgb2lab(STK.camRGB.r, STK.camRGB.g, STK.camRGB.b);
-  const hex = rgb2hex(STK.camRGB.r, STK.camRGB.g, STK.camRGB.b);
-  const c = { name, hex, lab };
-  STK.colors.push(c);
-  STK.colors.sort((a,b) => a.name.localeCompare(b.name,'el'));
-  renderStock();
-  pendingOps++;
-  api('stock_colors', { method:'POST', body:{ name, hex, lab_l:lab.l, lab_a:lab.a, lab_b:lab.b }, prefer:'return=minimal' })
-    .then(() => { setOnline(true); toast(`Το <b>${esc(name)}</b> αποθηκεύτηκε.`); })
-    .catch(e => { STK.colors = STK.colors.filter(x => x !== c); renderStock(); handleError(e, 'Το χρώμα δεν αποθηκεύτηκε.'); })
-    .finally(() => { pendingOps--; });
+/* Αναίρεση μιας μέτρησης: γράφει την αντίθετη κίνηση, ώστε να φαίνεται
+   και στο ιστορικό τι διορθώθηκε. */
+function stkUndo(variantId, delta){
+  const v = STK.list.find(x => x.id === variantId);
+  const d = Number(delta) || 0;
+  if (!v || !d) return;
+  STK.log = STK.log.filter(l => !(l.id === variantId && l.dir === Math.sign(d) && !l.undone));
+  stkChange(v, -d, 'undo');
+  toast(`Αναιρέθηκε: <b>${esc(stkName(v))}</b> ${d > 0 ? '−' : '+'}${Math.abs(d)}.`);
 }
-function stkSaveColorSample(name, rgb){
-  const c = STK.colors.find(x => x.name === name);
-  if (!c) return;
-  const lab = rgb2lab(rgb.r, rgb.g, rgb.b);
-  const prev = { hex:c.hex, lab:c.lab };
-  c.hex = rgb2hex(rgb.r, rgb.g, rgb.b); c.lab = lab;
-  stkRepaint();
-  pendingOps++;
-  api(`stock_colors?name=eq.${encodeURIComponent(name)}`, { method:'PATCH',
-      body:{ hex:c.hex, lab_l:lab.l, lab_a:lab.a, lab_b:lab.b }, prefer:'return=minimal' })
-    .then(() => { setOnline(true); toast(`Το <b>${esc(name)}</b> αποθηκεύτηκε.`); })
-    .catch(e => { c.hex = prev.hex; c.lab = prev.lab; stkRepaint(); handleError(e, 'Το δείγμα δεν αποθηκεύτηκε.'); })
-    .finally(() => { pendingOps--; });
-}
-/* Μετονομασία: αλλάζει και το χρώμα σε όλες τις παραλλαγές, ώστε να μη
-   χαθεί το στοκ ούτε το ιστορικό. */
 function stkRenameColor(oldName){
   const c = STK.colors.find(x => x.name === oldName);
   if (!c) return;
@@ -4113,6 +4172,7 @@ function stkRenameColor(oldName){
   if (raw === null) return;
   const name = stkClean(raw);
   if (!name || name === oldName) return;
+  c.hex = stkHexFromName(name);
   if (STK.colors.some(x => x.name === name)){ toast(`Υπάρχει ήδη χρώμα «${esc(name)}».`); return; }
   const rows = STK.list.filter(v => v.color === oldName);
   c.name = name;
@@ -4120,11 +4180,104 @@ function stkRenameColor(oldName){
   STK.colors.sort((a,b) => a.name.localeCompare(b.name,'el'));
   stkRepaint();
   pendingOps++;
-  api('stock_colors', { method:'POST', body:{ name, hex:c.hex, lab_l:c.lab ? c.lab.l : null, lab_a:c.lab ? c.lab.a : null, lab_b:c.lab ? c.lab.b : null }, prefer:'return=minimal' })
+  api('stock_colors', { method:'POST', body:{ name, hex:stkHexFromName(name), kinds:c.kinds || null }, prefer:'return=minimal' })
     .then(() => rows.length ? api(`stock_variants?color=eq.${encodeURIComponent(oldName)}`, { method:'PATCH', body:{ color:name }, prefer:'return=minimal' }) : null)
     .then(() => api(`stock_colors?name=eq.${encodeURIComponent(oldName)}`, { method:'DELETE', prefer:'return=minimal' }))
     .then(() => { setOnline(true); STK.movesLoaded = false; toast(`«${esc(oldName)}» → <b>${esc(name)}</b>.`); })
     .catch(e => { c.name = oldName; rows.forEach(v => v.color = oldName); stkRepaint(); handleError(e, 'Η μετονομασία δεν αποθηκεύτηκε.'); })
+    .finally(() => { pendingOps--; });
+}
+/* Ανοίγει ή κλείνει ένα χρώμα για το τρέχον είδος */
+function stkToggleColorKind(name, kind){
+  const c = STK.colors.find(x => x.name === name);
+  if (!c) return;
+  const all = STK.kinds.map(k => k.code);
+  let list = stkKindsOf(c);
+  if (!list.length) list = [...all];                         // «όλα» → ρητή λίστα, για να αφαιρεθεί ένα
+  list = list.includes(kind) ? list.filter(k => k !== kind) : [...list, kind];
+  if (!list.length){ toast('Πρέπει να ισχύει σε ένα τουλάχιστον είδος.'); return; }
+  const value = all.every(k => list.includes(k)) ? '' : all.filter(k => list.includes(k)).join(',');
+  const prev = c.kinds;
+  c.kinds = value;
+  stkRepaint();
+  pendingOps++;
+  api(`stock_colors?name=eq.${encodeURIComponent(name)}`, { method:'PATCH', body:{ kinds:value || null }, prefer:'return=minimal' })
+    .then(() => setOnline(true))
+    .catch(e => { c.kinds = prev; stkRepaint(); handleError(e, 'Δεν αποθηκεύτηκε.'); })
+    .finally(() => { pendingOps--; });
+}
+/* ---------- Είδη (σχέδια) ---------- */
+const stkKindCode = () => 'k' + Date.now().toString(36) + Math.floor(Math.random() * 46656).toString(36);
+function stkAddKind(){
+  const hint = $('stkKindHint');
+  const name = clean(($('stkKindName') || {}).value || '').slice(0, 30);
+  const pl = clean(($('stkKindPl') || {}).value || '').slice(0, 30) || name;
+  const sized = !!($('stkKindSized') || {}).checked;
+  if (!name){ if (hint) hint.innerHTML = '<span class="bad">Γράψε το όνομα.</span>'; return; }
+  if (STK.kinds.some(k => norm(k.name) === norm(name))){ if (hint) hint.innerHTML = `<span class="bad">Το ${esc(name)} υπάρχει ήδη.</span>`; return; }
+  const k = { code:stkKindCode(), name, pl, sized, sizes:'', sort:(STK.kinds.length ? STK.kinds[STK.kinds.length-1].sort : 0) + 10 };
+  STK.kinds.push(k);
+  if ($('stkKindName')) $('stkKindName').value = '';
+  if ($('stkKindPl')) $('stkKindPl').value = '';
+  if (hint) hint.textContent = `Μπήκε το ${name}.`;
+  stkRepaint();
+  pendingOps++;
+  api('stock_kinds', { method:'POST', body:{ code:k.code, name:k.name, name_pl:k.pl, sized:k.sized, sizes:null, sort:k.sort }, prefer:'return=minimal' })
+    .then(() => setOnline(true))
+    .catch(e => { STK.kinds = STK.kinds.filter(x => x !== k); stkRepaint(); handleError(e, 'Το είδος δεν αποθηκεύτηκε.'); })
+    .finally(() => { pendingOps--; });
+}
+function stkPatchKind(code, body, apply, rollback, msg){
+  apply(); stkRepaint();
+  pendingOps++;
+  api(`stock_kinds?code=eq.${encodeURIComponent(code)}`, { method:'PATCH', body, prefer:'return=minimal' })
+    .then(() => setOnline(true))
+    .catch(e => { rollback(); stkRepaint(); handleError(e, msg); })
+    .finally(() => { pendingOps--; });
+}
+function stkRenameKind(code){
+  const k = stkKind(code); if (!k) return;
+  const name = clean(window.prompt(`Όνομα είδους (ενικός):`, k.name) || '').slice(0, 30);
+  if (!name) return;
+  const pl = clean(window.prompt(`Πληθυντικός (για τους τίτλους):`, k.pl) || '').slice(0, 30) || name;
+  const prev = { name:k.name, pl:k.pl };
+  stkPatchKind(code, { name, name_pl:pl }, () => { k.name = name; k.pl = pl; },
+               () => { k.name = prev.name; k.pl = prev.pl; }, 'Η μετονομασία δεν αποθηκεύτηκε.');
+}
+function stkToggleKindSized(code){
+  const k = stkKind(code); if (!k) return;
+  const held = STK.list.filter(v => v.kind === code).reduce((n,v) => n + v.qty, 0);
+  if (held && !window.confirm(`Το ${k.pl} έχει ${held} τεμάχια καταχωρημένα. Αν αλλάξεις αν έχει νούμερα, οι υπάρχουσες γραμμές μένουν ως έχουν. Συνέχεια;`)) return;
+  const was = k.sized;
+  stkPatchKind(code, { sized:!was }, () => k.sized = !was, () => k.sized = was, 'Δεν αποθηκεύτηκε.');
+}
+function stkEditKindSizes(code){
+  const k = stkKind(code); if (!k) return;
+  const cur = stkKindSizes(code).join(', ');
+  const raw = window.prompt(`Νούμερα για ${k.pl}, χωρισμένα με κόμμα:`, cur);
+  if (raw === null) return;
+  const list = String(raw).split(',').map(x => stkSizeName(x)).filter(Boolean);
+  if (!list.length){ toast('Χρειάζεται τουλάχιστον ένα νούμερο.'); return; }
+  const value = list.join(',');
+  const prev = k.sizes;
+  if (!list.includes(STK.size)) STK.size = list[0];
+  stkPatchKind(code, { sizes:value }, () => k.sizes = value, () => k.sizes = prev, 'Τα νούμερα δεν αποθηκεύτηκαν.');
+}
+function stkRemoveKind(code){
+  const k = stkKind(code); if (!k) return;
+  const rows = STK.list.filter(v => v.kind === code);
+  const held = rows.reduce((n,v) => n + v.qty, 0);
+  if (!window.confirm(held ? `Το ${k.pl} έχει ${held} τεμάχια. Να διαγραφεί μαζί με το ιστορικό του;` : `Να διαγραφεί το ${k.pl};`)) return;
+  STK.kinds = STK.kinds.filter(x => x.code !== code);
+  STK.list = STK.list.filter(v => v.kind !== code);
+  if (STK.kind === code) STK.kind = STK.kinds.length ? STK.kinds[0].code : '';
+  stkRepaint();
+  pendingOps++;
+  Promise.resolve()
+    .then(() => rows.length ? api(`stock_variants?kind=eq.${encodeURIComponent(code)}`, { method:'DELETE', prefer:'return=minimal' }) : null)
+    .then(() => api(`stock_kinds?code=eq.${encodeURIComponent(code)}`, { method:'DELETE', prefer:'return=minimal' }))
+    .then(() => { setOnline(true); STK.movesLoaded = false; toast(`Διαγράφηκε το ${esc(k.pl)}.`); })
+    .catch(e => { STK.kinds.push(k); STK.list.push(...rows); stkRepaint(); handleError(e, 'Η διαγραφή δεν αποθηκεύτηκε.'); })
     .finally(() => { pendingOps--; });
 }
 function stkRemoveColor(name){
@@ -4144,121 +4297,28 @@ function stkRemoveColor(name){
     .finally(() => { pendingOps--; });
 }
 
-/* ---------- Κάμερα: διαβάζει το χρώμα ----------
-   Το νούμερο ΔΕΝ διαβάζεται από την κάμερα. Δοκιμάστηκε σε πραγματικές
-   φωτογραφίες: σε άσπρη μπλούζα μέσα σε σακούλα η ετικέτα δεν ξεχωρίζει
-   από το ύφασμα, από απόσταση το γράμμα γίνεται δυσανάγνωστο, και σε μία
-   δοκιμή διάβασε L σε μπλούζα M. Λάθος μέτρημα είναι χειρότερο από
-   καθόλου, οπότε το νούμερο το ορίζεις εσύ — είτε κλειδωμένο για όλη τη
-   στοίβα, είτε με ένα πάτημα ανά ρούχο. Το χρώμα, που είναι και το
-   κουραστικό, το αναλαμβάνει η κάμερα. */
-const STK_HOLD_FRAMES = 4;                                   // ~0,7 δευτ. σταθερό χρώμα
-async function stkCamStart(){
-  if (STK.camOn) return;
-  STK.camMsg = ''; STK.camColor = null; STK.camHold = 0; STK.camCool = 0;
-  try {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('nocam');
-    STK.stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ ideal:'environment' } }, audio:false });
-    STK.camOn = true;
-    renderStock();
-    const vid = $('stkVideo');
-    if (!vid){ stkCamStop(); return; }
-    vid.srcObject = STK.stream;
-    await vid.play().catch(() => {});
-    stkCamLoop();
-  } catch(e){
-    stkCamStop();
-    STK.camMsg = String(e && e.message) === 'nocam'
-      ? 'Αυτός ο browser δεν δίνει κάμερα. Μέτρα με τα κουμπιά + στη «Μέτρηση».'
-      : 'Δεν άνοιξε η κάμερα. Δώσε άδεια κάμερας στη σελίδα και ξαναδοκίμασε.';
-    renderStock();
-  }
-}
-/* Αυτόματο μέτρημα μόνο όταν το νούμερο είναι κλειδωμένο (ή δεν υπάρχει,
-   όπως στις ποδιές). Στα μεικτά περιμένει να πατήσεις το νούμερο. */
-const stkAuto = () => !stkSized(STK.kind) || STK.lockSize;
-function stkCamLoop(){
-  if (!STK.camOn) return;
-  const vid = $('stkVideo');
-  if (!vid){ stkCamStop(); renderStock(); return; }
-  const rgb = vid.videoWidth ? stkSample(vid, COL_BOX) : null;
-  STK.camRGB = rgb;
-  const color = rgb ? stkMatch(rgb) : null;
-  if (color !== STK.camColor){ STK.camColor = color; STK.camHold = 0; }
-  else if (color) STK.camHold++;
-  if (!STK.camTeach && stkAuto() && color && STK.camHold >= STK_HOLD_FRAMES && Date.now() > STK.camCool){
-    stkCamCount(color, stkSizeOf(STK.kind), 'cam');
-  }
-  stkPaintCam();
-  STK.timer = setTimeout(stkCamLoop, 180);
-}
-function stkCamCount(color, size, how){
-  STK.camCool = Date.now() + 1500;                           // παύση για να περάσεις το επόμενο
-  STK.camHold = 0;
-  stkTouch(STK.kind, color, size, STK.dir, how);
-  STK.log.unshift({ color, size, kind:STK.kind, dir:STK.dir, at:Date.now(), how });
-  STK.log = STK.log.slice(0, 12);
-  beep();
-  renderStock();
-}
-/* Ενημερώνει μόνο τις ενδείξεις, για να μη «σβήνει» το βίντεο σε κάθε καρέ */
-function stkPaintCam(){
-  const c = $('stkGuess');
-  if (c){
-    const g = STK.camColor;
-    c.textContent = g || (STK.camRGB ? 'Άγνωστο χρώμα' : '—');
-    c.className = 'stk-guess' + (g ? ' on' : '');
-    c.style.background = g ? stkHex(g) : '';
-    c.style.color = g ? stkTextOn(stkHex(g)) : '';
-  }
-  const hint = $('stkCamHint');
-  if (hint){
-    hint.textContent = !STK.colors.filter(x => x.lab).length ? 'Μάθε πρώτα τα χρώματα, από κάτω.'
-      : !STK.camColor ? 'Φέρε το ρούχο πιο κοντά, να γεμίζει τα πλαϊνά πλαίσια.'
-      : stkAuto() ? 'Κράτα το σταθερό μια στιγμή.'
-      : 'Πάτα το νούμερο που βλέπεις στην ετικέτα.';
-  }
-  const dot = $('stkDot');
-  if (dot && STK.camRGB) dot.style.background = rgb2hex(STK.camRGB.r, STK.camRGB.g, STK.camRGB.b);
-  document.querySelectorAll('[data-stk="cam-size"]').forEach(btn => { btn.disabled = !STK.camColor; });
-}
-const stkTextOn = hex => { const c = hex2rgb(hex); if (!c) return '#1A1A18';
-  return (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) > 150 ? '#1A1A18' : '#FFFFFF'; };
-function stkCamStop(){
-  STK.camOn = false; STK.camTeach = ''; STK.camColor = null; STK.camHold = 0;
-  clearTimeout(STK.timer); STK.timer = 0;
-  try { if (STK.stream) STK.stream.getTracks().forEach(t => t.stop()); } catch(e){}
-  STK.stream = null;
-}
-function stkTeachNow(){
-  if (!STK.camTeach || !STK.camRGB) return;
-  stkSaveColorSample(STK.camTeach, STK.camRGB);
-  STK.camTeach = '';
-  renderStock();
-}
-
 /* ---------- Οθόνη ---------- */
 function buildStock(){
   $('view-stk').innerHTML = `
-    <div class="page-h"><h1>Στοκ ρούχων</h1><p id="stkSub"></p></div>
+    <div class="page-h"><h1>Ενδυμασία προσωπικού</h1><p id="stkSub"></p></div>
     <div id="stkBody"></div>`;
 }
 function stkModeSeg(){
-  const modes = [['count','Μέτρηση'],['cam','Κάμερα'],['table','Πίνακας'],['moves','Κινήσεις']];
+  const modes = [['count','Μέτρηση'],['table','Πίνακας'],['moves','Κινήσεις']];
   return `<div class="seg stk-modes" role="radiogroup" aria-label="Τρόπος">${modes.map(([m,l]) =>
     `<button type="button" role="radio" aria-checked="${STK.mode === m}" class="${STK.mode === m ? 'on' : ''}" data-stk-mode="${m}">${l}</button>`).join('')}</div>`;
 }
 /* Είδος + μέγεθος: κλειδώνονται από πάνω και μένουν ίδια σε όλη τη μέτρηση */
 function stkKindSeg(){
-  return `<div class="seg stk-kind" role="radiogroup" aria-label="Είδος">${Object.keys(STK_KINDS).map(k =>
-    `<button type="button" role="radio" aria-checked="${STK.kind === k}" class="${STK.kind === k ? 'on' : ''}" data-stk-kind="${k}">${STK_KINDS[k]}</button>`).join('')}</div>`;
+  return `<div class="seg stk-kind" role="radiogroup" aria-label="Είδος">${STK.kinds.map(k =>
+    `<button type="button" role="radio" aria-checked="${STK.kind === k.code}" class="${STK.kind === k.code ? 'on' : ''}" data-stk-kind="${esc(k.code)}">${esc(k.name)}</button>`).join('')}</div>`;
 }
 /* Είδος + μέγεθος: κλειδώνονται από πάνω και μένουν ίδια σε όλη τη μέτρηση.
    Στις ποδιές δεν εμφανίζεται καθόλου γραμμή με νούμερα. */
 function stkPickers(){
   return `<div class="stk-pick">${stkKindSeg()}
-    ${stkSized(STK.kind) ? `<div class="stk-sizes" role="radiogroup" aria-label="Μέγεθος">${STK_SIZES.map(sz =>
-      `<button type="button" role="radio" aria-checked="${STK.size === sz}" class="${STK.size === sz ? 'on' : ''}" data-stk-size="${sz}">${sz}</button>`).join('')}</div>` : ''}
+    ${stkSized(STK.kind) ? `<div class="stk-sizes" role="radiogroup" aria-label="Μέγεθος">${stkKindSizes(STK.kind).map(sz =>
+      `<button type="button" role="radio" aria-checked="${STK.size === sz}" class="${STK.size === sz ? 'on' : ''}" data-stk-size="${esc(sz)}">${esc(sz)}</button>`).join('')}</div>` : ''}
   </div>`;
 }
 function stkDirSeg(){
@@ -4267,10 +4327,40 @@ function stkDirSeg(){
     <button type="button" role="radio" aria-checked="${STK.dir < 0}" class="${STK.dir < 0 ? 'on' : ''}" data-stk-dir="-1">Βγαίνουν −</button>
   </div>`;
 }
+function stkKindColors(){
+  if (STK.colors.length < 2) return '';
+  return `<div class="stk-kindcolors"><span>Χρώματα σε ${esc(stkKindPl(STK.kind).toLowerCase())}:</span>${STK.colors.map(c => {
+    const on = stkColorOk(c, STK.kind);
+    return `<button type="button" class="${on ? '' : 'off'}" aria-pressed="${on}" data-stk="kind-color" data-color="${esc(c.name)}"
+      title="${on ? 'Πάτα για να μη μετράει σε αυτό το είδος' : 'Πάτα για να μετράει'}"><i style="background:${esc(c.hex)}"></i>${esc(c.name)}</button>`;
+  }).join('')}</div>`;
+}
+function stkKindCard(){
+  return `<details class="card add-card stk-colors"${STK.kinds.length ? '' : ' open'}>
+    <summary>Είδη (${STK.kinds.length})</summary>
+    <div class="stk-add">
+      <label class="f f-grow"><span>Νέο είδος</span><input class="inp" id="stkKindName" maxlength="30" autocomplete="off" placeholder="π.χ. Πόλο"></label>
+      <label class="f"><span>Πληθυντικός</span><input class="inp" id="stkKindPl" maxlength="30" autocomplete="off" placeholder="π.χ. Πόλο"></label>
+      <label class="stk-check"><input type="checkbox" id="stkKindSized" checked> έχει νούμερα</label>
+      <button class="btn primary" data-stk="add-kind">Προσθήκη</button>
+    </div>
+    <p class="hint" id="stkKindHint">Ξεχώρισε τα σχέδια που έχετε. Ό,τι δεν έχει νούμερα (ποδιές, σκούφοι) ξετσέκαρέ το και μετριέται σκέτο.</p>
+    ${STK.kinds.length ? `<div class="stk-clist">${STK.kinds.map(k => {
+      const held = STK.list.filter(v => v.kind === k.code).reduce((n,v) => n + v.qty, 0);
+      return `<span class="stk-chip">${esc(k.name)}
+        <em>${held} τεμ. · ${k.sized ? esc(stkKindSizes(k.code).slice(0, 5).join(' ') + (stkKindSizes(k.code).length > 5 ? '…' : '')) : 'ένα νούμερο'}</em>
+        <button class="icon-btn" data-stk="ren-kind" data-code="${esc(k.code)}" aria-label="Μετονομασία ${esc(k.name)}" title="Μετονομασία">✎</button>
+        ${k.sized ? `<button class="icon-btn" data-stk="kind-sizes" data-code="${esc(k.code)}" aria-label="Νούμερα ${esc(k.name)}" title="Ποια νούμερα έχει">#</button>` : ''}
+        <button class="icon-btn" data-stk="kind-sized" data-code="${esc(k.code)}" aria-label="Έχει νούμερα;" title="${k.sized ? 'Κάν' + "'" + ' το χωρίς νούμερα' : 'Δώσ' + "'" + ' του νούμερα'}">${k.sized ? '№' : '1'}</button>
+        <button class="icon-btn" data-stk="del-kind" data-code="${esc(k.code)}" aria-label="Διαγραφή ${esc(k.name)}" title="Διαγραφή είδους">×</button></span>`;
+    }).join('')}</div>` : ''}
+  </details>`;
+}
 function stkCountHTML(){
-  if (!STK.colors.length) return stkColorCard() + `<p class="empty">Πρόσθεσε πρώτα τα χρώματα που έχετε.</p>`;
+  if (!STK.kinds.length) return stkKindCard() + `<p class="empty">Πρόσθεσε πρώτα ένα είδος.</p>`;
+  if (!STK.colors.length) return stkKindCard() + stkColorCard() + `<p class="empty">Πρόσθεσε πρώτα τα χρώματα που έχετε.</p>`;
   const size = stkSizeOf(STK.kind);
-  const rows = STK.colors.map(c => {
+  const rows = stkColorsFor(STK.kind).map(c => {
     const q = stkQty(STK.kind, c.name, size);
     return `<div class="stk-row">
       <span class="stk-sw" style="background:${esc(c.hex)}" aria-hidden="true"></span>
@@ -4282,8 +4372,10 @@ function stkCountHTML(){
   }).join('');
   const sub = STK.list.filter(v => v.kind === STK.kind && v.size === size);
   return `${stkPickers()}
-    <p class="stk-now">${esc(STK_KINDS_PL[STK.kind])}${stkSized(STK.kind) ? ` · <b>${esc(STK.size)}</b>` : ' <span class="stk-tag">ένα νούμερο</span>'} — σύνολο <b>${stkTotal(sub)}</b> τεμάχια</p>
-    <div class="stk-rows">${rows}</div>
+    <p class="stk-now">${esc(stkKindPl(STK.kind))}${stkSized(STK.kind) ? ` · <b>${esc(STK.size)}</b>` : ' <span class="stk-tag">ένα νούμερο</span>'} — σύνολο <b>${stkTotal(sub)}</b> τεμάχια</p>
+    <div class="stk-rows">${rows || '<p class="empty">Δεν έχει χρώματα αυτό το είδος. Άνοιξε ένα από κάτω.</p>'}</div>
+    ${stkKindColors()}
+    ${stkKindCard()}
     ${stkColorCard()}`;
 }
 function stkColorCard(){
@@ -4293,87 +4385,32 @@ function stkColorCard(){
       <label class="f f-grow"><span>Νέο χρώμα</span><input class="inp" id="stkColor" maxlength="30" autocomplete="off" placeholder="π.χ. ΚΙΤΡΙΝΟ"></label>
       <button class="btn primary" data-stk="add-color">Προσθήκη</button>
     </div>
-    <p class="hint" id="stkColorHint">Το χρώμα ισχύει για όλα τα είδη και τα νούμερα. Για να το αναγνωρίζει η κάμερα, μάθε του το χρώμα από την καρτέλα «Κάμερα».</p>
+    <p class="hint" id="stkColorHint">Γράψε το χρώμα με το όνομά του (ΑΣΠΡΟ, ΜΠΕΖ, ΠΡΑΣΙΝΟ…) και το τετραγωνάκι παίρνει μόνο του τη σωστή απόχρωση. Από κάτω ορίζεις σε ποια είδη ισχύει.</p>
     ${STK.colors.length ? `<div class="stk-clist">${STK.colors.map(c => {
       const held = STK.list.filter(v => v.color === c.name).reduce((n,v) => n + v.qty, 0);
       return `<span class="stk-chip"><i style="background:${esc(c.hex)}"></i>${esc(c.name)}
-        <em>${held} τεμ.${c.lab ? '' : ' · χωρίς δείγμα'}</em>
+        <em>${held} τεμ.</em>
         <button class="icon-btn" data-stk="ren-color" data-color="${esc(c.name)}" aria-label="Μετονομασία ${esc(c.name)}" title="Μετονομασία">✎</button>
         <button class="icon-btn" data-stk="del-color" data-color="${esc(c.name)}" aria-label="Διαγραφή ${esc(c.name)}" title="Διαγραφή χρώματος">×</button></span>`;
     }).join('')}</div>` : ''}
   </details>`;
-}
-function stkCamHTML(){
-  const sized = stkSized(STK.kind);
-  const untaught = STK.colors.filter(c => !c.lab);
-  const ready = STK.colors.filter(c => c.lab).length;
-  const swatch = STK.camRGB ? rgb2hex(STK.camRGB.r, STK.camRGB.g, STK.camRGB.b) : '';
-  const auto = stkAuto();
-  return `${stkKindSeg()}
-    ${stkDirSeg()}
-    ${sized ? `<div class="seg" role="radiogroup" aria-label="Νούμερο">
-      <button type="button" role="radio" aria-checked="${STK.lockSize}" class="${STK.lockSize ? 'on' : ''}" data-stk-lock="1">Ίδιο νούμερο</button>
-      <button type="button" role="radio" aria-checked="${!STK.lockSize}" class="${!STK.lockSize ? 'on' : ''}" data-stk-lock="0">Μεικτά νούμερα</button>
-    </div>
-    ${STK.lockSize ? `<div class="stk-sizes" role="radiogroup" aria-label="Μέγεθος">${STK_SIZES.map(sz =>
-      `<button type="button" role="radio" aria-checked="${STK.size === sz}" class="${STK.size === sz ? 'on' : ''}" data-stk-size="${sz}">${sz}</button>`).join('')}</div>` : ''}` : ''}
-    <p class="stk-now">Μετράει <b>${esc(STK_KINDS_PL[STK.kind])}${sized && STK.lockSize ? ' ' + esc(STK.size) : ''}</b>${
-      auto ? ' — η κάμερα βλέπει το χρώμα και μετράει μόνη της.' : ' — η κάμερα βλέπει το χρώμα, εσύ πατάς το νούμερο.'}</p>
-    ${STK.camOn ? `
-      <div class="stk-cam">
-        <video class="stk-video" id="stkVideo" playsinline muted></video>
-        <div class="stk-frame fabric l" aria-hidden="true"><span>ΥΦΑΣΜΑ</span></div>
-        <div class="stk-frame fabric r" aria-hidden="true"></div>
-      </div>
-      <div class="stk-camfoot">
-        <span class="stk-dot" id="stkDot" aria-hidden="true"></span>
-        <span class="stk-guess" id="stkGuess">—</span>
-      </div>
-      <p class="hint" id="stkCamHint" aria-live="polite"></p>
-      ${STK.camTeach
-        ? `<div class="card move-card"><b>Μαθαίνει το ${esc(STK.camTeach)}</b>
-             <p class="hint">Κράτα ένα ρούχο ${esc(STK.camTeach)} να γεμίζει τα πλαϊνά πλαίσια και πάτα αποθήκευση.</p>
-             <button class="btn primary" data-stk="teach-save">Αποθήκευση δείγματος</button>
-             <button class="btn ghost" data-stk="teach-cancel">Άκυρο</button></div>`
-        : `${sized && !STK.lockSize ? `<div class="stk-fallback"><span>Πάτα το νούμερο που γράφει η ετικέτα:</span>
-             <div class="stk-sizes big">${STK_SIZES.slice(0, 6).map(sz =>
-               `<button type="button" data-stk="cam-size" data-size="${sz}" ${STK.camColor ? '' : 'disabled'}>${sz}</button>`).join('')}</div></div>` : ''}
-           <div class="card add-card stk-learn">
-             <b>${ready ? 'Νέο χρώμα' : 'Μάθε το πρώτο χρώμα'}</b>
-             <p class="hint">Κράτα ένα ρούχο να γεμίζει τα πλαϊνά πλαίσια, γράψε πώς το λέτε και αποθήκευσε.</p>
-             <div class="stk-add">
-               ${swatch ? `<span class="stk-sw big" style="background:${esc(swatch)}" aria-hidden="true"></span>` : ''}
-               <label class="f f-grow"><span>Όνομα χρώματος</span><input class="inp" id="stkNewColor" maxlength="30" autocomplete="off" placeholder="π.χ. ΛΕΥΚΟ"></label>
-               <button class="btn primary" data-stk="cam-add-color">Αποθήκευση</button>
-             </div>
-             <p class="hint" id="stkCamAddHint"></p>
-             ${STK.colors.length ? `<div class="stk-teach"><span>Ξαναμάθε:</span>${STK.colors.map(c =>
-               `<button class="btn ghost sm" data-stk="teach" data-color="${esc(c.name)}"><i class="stk-sw tiny" style="background:${esc(c.hex)}"></i>${esc(c.name)}${c.lab ? '' : ' •'}</button>`).join('')}</div>` : ''}
-           </div>`}
-      <button class="btn ghost sm" data-stk="cam-stop">Κλείσιμο κάμερας</button>
-      ${STK.log.length ? `<div class="stk-log"><b>ΤΕΛΕΥΤΑΙΑ</b>${STK.log.map(l =>
-        `<span class="stk-chip"><i style="background:${esc(stkHex(l.color))}"></i>${esc(l.color)}${l.size === STK_ONE ? '' : ' ' + esc(l.size)} ${l.dir > 0 ? '+1' : '−1'}</span>`).join('')}</div>` : ''}`
-    : `<button class="btn primary" data-stk="cam-start">Άνοιγμα κάμερας</button>
-       ${ready ? '' : `<p class="hint">Την πρώτη φορά θα μάθει τα χρώματα: δείχνεις ένα ρούχο κάθε χρώματος και γράφεις το όνομά του.</p>`}`}
-    ${STK.camMsg ? `<p class="hint bad">${esc(STK.camMsg)}</p>` : ''}
-    ${untaught.length && STK.camOn ? `<p class="hint">Χωρίς δείγμα ακόμα: ${untaught.map(c => esc(c.name)).join(', ')}.</p>` : ''}
-    <p class="hint">Το ρούχο στα δύο πλαϊνά πλαίσια. Αν δεν αναγνωρίσει το χρώμα δεν μετράει τίποτα — δεν μαντεύει. Αν μπερδεύει δύο κοντινά χρώματα, μάθε του και τα δύο ώστε να ξέρει τη διαφορά.</p>`;
 }
 function stkTableHTML(){
   let html = `<div class="stk-bar"><div class="btns">
     <button class="btn ghost sm" data-stk="print-blank">Φύλλο απογραφής</button>
     <button class="btn primary sm" data-stk="print">Εκτύπωση στοκ</button></div></div>`;
   if (!STK.colors.length) return html + `<p class="empty">Πρόσθεσε πρώτα χρώματα από τη «Μέτρηση».</p>`;
-  Object.keys(STK_KINDS).forEach(k => {
+  STK.kinds.forEach(K => {
+    const k = K.code;
     const sizes = stkSizeCols(k);
     const tot = stkTotal(STK.list.filter(v => v.kind === k));
-    html += section(`${upper(STK_KINDS_PL[k])} (${tot})`, `<div class="stk-grid-wrap"><table class="stk-grid">
+    html += section(`${upper(K.pl)} (${tot})`, `<div class="stk-grid-wrap"><table class="stk-grid">
       <thead><tr><th>Χρώμα</th>${sizes.map(sz => `<th>${sz === STK_ONE ? 'Τεμάχια' : esc(sz)}</th>`).join('')}${sizes.length > 1 ? '<th>Σύνολο</th>' : ''}</tr></thead>
-      <tbody>${STK.colors.map(c => `<tr><th scope="row"><span class="stk-sw sm" style="background:${esc(c.hex)}"></span>${esc(c.name)}</th>
+      <tbody>${stkColorsFor(k).map(c => `<tr><th scope="row"><span class="stk-sw sm" style="background:${esc(c.hex)}"></span>${esc(c.name)}</th>
         ${sizes.map(sz => { const v = stkFind(k, c.name, sz);
           return `<td><input class="inp stk-inp" type="number" min="0" max="99999" inputmode="numeric" value="${v ? v.qty : 0}"
             ${v ? `data-stk-set="${v.id}"` : `data-stk-new="${k}|${esc(c.name)}|${esc(sz)}"`}
-            aria-label="${esc(STK_KINDS[k])} ${esc(c.name)}${sz === STK_ONE ? '' : ' ' + esc(sz)}"></td>`; }).join('')}
+            aria-label="${esc(K.name)} ${esc(c.name)}${sz === STK_ONE ? '' : ' ' + esc(sz)}"></td>`; }).join('')}
         ${sizes.length > 1 ? `<td class="stk-tot">${STK.list.filter(v => v.kind === k && v.color === c.name).reduce((n,v) => n + v.qty, 0)}</td>` : ''}</tr>`).join('')}</tbody>
       <tfoot><tr><th scope="row">Σύνολο</th>${sizes.map(sz => `<td>${stkTotal(STK.list.filter(v => v.kind === k && v.size === sz))}</td>`).join('')}
         ${sizes.length > 1 ? `<td class="stk-tot">${tot}</td>` : ''}</tr></tfoot></table></div>`);
@@ -4383,12 +4420,13 @@ function stkTableHTML(){
 function stkMovesHTML(){
   if (!STK.movesLoaded){ loadStockMoves(); return `<p class="hint">Φόρτωση…</p>`; }
   if (!STK.moves.length) return `<p class="empty">Καμία κίνηση ακόμα.</p>`;
-  const K = { in:'μπήκαν', out:'βγήκαν', cam:'κάμερα', count:'απογραφή' };
+  const K = { in:'μπήκαν', out:'βγήκαν', cam:'κάμερα', count:'απογραφή', undo:'αναίρεση' };
   return `<div class="rows">${STK.moves.map(m => {
     const d = new Date(m.at);
     return `<div class="row"><div class="r-main"><b>${esc(m.label)}</b>
       <span class="stk-d ${m.delta > 0 ? 'up' : 'dn'}">${m.delta > 0 ? '+' : '−'}${Math.abs(m.delta)}</span>
-      <small>${esc(K[m.kind] || m.kind)} · ${iso(d) === todayIso() ? 'σήμερα' : esc(shortDate(iso(d)))} ${esc(hhmm(m.at))}${m.by ? ' · ' + esc(m.by) : ''}</small></div></div>`;
+      <small>${esc(K[m.kind] || m.kind)} · ${iso(d) === todayIso() ? 'σήμερα' : esc(shortDate(iso(d)))} ${esc(hhmm(m.at))}${m.by ? ' · ' + esc(m.by) : ''}</small></div>
+      ${m.kind === 'undo' ? '' : `<button class="btn ghost sm" data-stk="undo" data-vid="${esc(m.vid || '')}" data-delta="${m.delta}">Αναίρεση</button>`}</div>`;
   }).join('')}</div>`;
 }
 function renderStock(){
@@ -4399,42 +4437,42 @@ function renderStock(){
     : '';
   if (STK.setupMissing){
     body.innerHTML = `<div class="card move-card"><b>Χρειάζεται μία ρύθμιση στη βάση</b>
-      <ol><li>Άνοιξε το Supabase → SQL Editor και τρέξε το <code>supabase-stok.sql</code>.</li>
+      <ol><li>Άνοιξε το Supabase → SQL Editor και τρέξε με τη σειρά τα <code>supabase-stok.sql</code>, <code>-2</code>, <code>-3</code>, <code>-4</code>.</li>
       <li>Μετά ανανέωσε αυτή τη σελίδα.</li></ol></div>`;
     return;
   }
   if (!STK.loaded){ body.innerHTML = `<p class="hint">${STK.loading ? 'Φόρτωση…' : ''}</p>`; if (!STK.loading) loadStock(); return; }
 
-  const keepVideo = STK.mode === 'cam' && STK.camOn && $('stkVideo');
   body.innerHTML = stkModeSeg()
     + (STK.mode === 'count' ? stkCountHTML()
-     : STK.mode === 'cam'   ? stkCamHTML()
      : STK.mode === 'table' ? stkTableHTML()
      : stkMovesHTML());
-  if (STK.mode === 'cam' && STK.camOn){
-    const vid = $('stkVideo');
-    if (vid && STK.stream){ vid.srcObject = STK.stream; vid.play().catch(() => {}); }
-    stkPaintCam();
-  }
-  if (keepVideo && STK.mode !== 'cam') stkCamStop();
 }
 /* ---------- Εκτυπώσεις ---------- */
 function printStock(blank){
   const area = $('printArea'), now = new Date();
-  let html = `<h1>${blank ? 'Φύλλο απογραφής' : 'Στοκ'} · Μύλοι Αρκαδίου</h1>
+  let html = `<h1>${blank ? 'Φύλλο απογραφής' : 'Ενδυμασία προσωπικού'} · Μύλοι Αρκαδίου</h1>
     <p class="p-sub">${longDate(todayIso())}, ${hhmm(now.toISOString())}${blank ? '' : ` · σύνολο ${stkTotal()} τεμάχια`}</p>`;
-  Object.keys(STK_KINDS).forEach(k => {
+  STK.kinds.forEach(K => {
+    const k = K.code;
     const sizes = blank ? stkSizeCols(k) : stkSizesUsed(k);
-    const colors = blank ? STK.colors : STK.colors.filter(c => STK.list.some(v => v.kind === k && v.color === c.name && v.qty > 0));
+    const colors = blank ? stkColorsFor(k) : stkColorsFor(k).filter(c => STK.list.some(v => v.kind === k && v.color === c.name && v.qty > 0));
     if (!colors.length || !sizes.length) return;
     const many = sizes.length > 1;
     const tot = stkTotal(STK.list.filter(v => v.kind === k));
-    html += `<h2>${esc(STK_KINDS_PL[k])}${blank ? '' : ` — ${tot} τεμάχια`}</h2>
-      <table><tr class="p-letter"><td>Χρώμα</td>${sizes.map(sz => `<td>${sz === STK_ONE ? 'Τεμάχια' : esc(sz)}</td>`).join('')}${many && !blank ? '<td>Σύνολο</td>' : ''}</tr>
-      ${colors.map(c => `<tr><td class="p-name">${esc(c.name)}</td>
-        ${sizes.map(sz => blank ? '<td class="p-chk">____</td>' : `<td class="p-chk">${stkQty(k, c.name, sz) || '–'}</td>`).join('')}
-        ${many && !blank ? `<td class="p-chk"><b>${STK.list.filter(v => v.kind === k && v.color === c.name).reduce((n,v) => n + v.qty, 0)}</b></td>` : ''}</tr>`).join('')}
-      ${blank ? '' : `<tr class="p-letter"><td>Σύνολο</td>${sizes.map(sz => `<td>${stkTotal(STK.list.filter(v => v.kind === k && v.size === sz))}</td>`).join('')}${many ? `<td>${tot}</td>` : ''}</tr>`}
+    const cols = sizes.length + (many && !blank ? 1 : 0);
+    const w = Math.floor(62 / Math.max(1, cols));
+    html += `<h2>${esc(K.pl)}${blank ? '' : ` — ${tot} τεμάχια`}</h2>
+      <table class="p-stock">
+        <colgroup><col style="width:${100 - w * cols}%">${Array.from({ length:cols }, () => `<col style="width:${w}%">`).join('')}</colgroup>
+        <tr class="p-head"><td class="c-name">Χρώμα</td>${sizes.map(sz => `<td>${sz === STK_ONE ? 'Τεμάχια' : esc(sz)}</td>`).join('')}${many && !blank ? '<td>Σύνολο</td>' : ''}</tr>
+        ${colors.map(c => `<tr><td class="c-name">${esc(c.name)}</td>
+          ${sizes.map(sz => { if (blank) return '<td class="c-blank"></td>';
+            const q = stkQty(k, c.name, sz);
+            return `<td${q ? '' : ' class="z"'}>${q || '–'}</td>`; }).join('')}
+          ${many && !blank ? `<td><b>${STK.list.filter(v => v.kind === k && v.color === c.name).reduce((n,v) => n + v.qty, 0)}</b></td>` : ''}</tr>`).join('')}
+        ${blank ? '' : `<tr class="p-sum"><td class="c-name">Σύνολο</td>${sizes.map(sz =>
+          `<td>${stkTotal(STK.list.filter(v => v.kind === k && v.size === sz))}</td>`).join('')}${many ? `<td>${tot}</td>` : ''}</tr>`}
       </table>`;
   });
   if (blank) html += `<p class="p-sub">Γράψε τι μέτρησες και πέρασέ το μετά στον «Πίνακα».</p>`;
@@ -4448,8 +4486,7 @@ function printStock(blank){
 document.addEventListener('click', e => {
   const m = e.target.closest('[data-stk-mode]');
   if (m){
-    if (STK.mode === 'cam' && m.dataset.stkMode !== 'cam') stkCamStop();
-    STK.mode = m.dataset.stkMode; STK.camMsg = '';
+    STK.mode = m.dataset.stkMode;
     if (STK.mode === 'moves') STK.movesLoaded = false;
     renderStock(); return;
   }
@@ -4460,8 +4497,6 @@ document.addEventListener('click', e => {
   
   const d = e.target.closest('[data-stk-dir]');
   if (d){ STK.dir = Number(d.dataset.stkDir); renderStock(); return; }
-  const lk = e.target.closest('[data-stk-lock]');
-  if (lk){ STK.lockSize = lk.dataset.stkLock === '1'; renderStock(); return; }
   const a = e.target.closest('[data-stk]');
   if (!a) return;
   switch (a.dataset.stk){
@@ -4469,24 +4504,19 @@ document.addEventListener('click', e => {
     case 'minus': stkTouch(STK.kind, a.dataset.color, STK.size, -1, 'out'); break;
     case 'add-color': {
       const err = stkAddColor($('stkColor').value);
-      $('stkColorHint').innerHTML = err ? `<span class="bad">${esc(err)}</span>` : 'Μπήκε. Μάθε του και το χρώμα από την καρτέλα «Κάμερα».';
+      $('stkColorHint').innerHTML = err ? `<span class="bad">${esc(err)}</span>` : 'Μπήκε. Όρισε από κάτω σε ποια είδη ισχύει.';
       if (!err) $('stkColor').value = '';
       break;
     }
     case 'del-color': stkRemoveColor(a.dataset.color); break;
     case 'ren-color': stkRenameColor(a.dataset.color); break;
-    case 'cam-start': stkCamStart(); break;
-    case 'cam-stop': stkCamStop(); renderStock(); break;
-    case 'cam-size': {
-      if (!STK.camColor){ toast('Δεν έχει αναγνωρίσει χρώμα ακόμα.'); break; }
-      stkCamCount(STK.camColor, a.dataset.size, 'hand');
-      break;
-    }
-    case 'cam-lock': STK.lockSize = !STK.lockSize; renderStock(); break;
-    case 'cam-add-color': stkAddColorFromCam(); break;
-    case 'teach': STK.camTeach = a.dataset.color; renderStock(); break;
-    case 'teach-save': stkTeachNow(); break;
-    case 'teach-cancel': STK.camTeach = ''; renderStock(); break;
+    case 'undo': stkUndo(a.dataset.vid, Number(a.dataset.delta)); break;
+    case 'kind-color': stkToggleColorKind(a.dataset.color, STK.kind); break;
+    case 'add-kind': stkAddKind(); break;
+    case 'ren-kind': stkRenameKind(a.dataset.code); break;
+    case 'del-kind': stkRemoveKind(a.dataset.code); break;
+    case 'kind-sizes': stkEditKindSizes(a.dataset.code); break;
+    case 'kind-sized': stkToggleKindSized(a.dataset.code); break;
     case 'print': printStock(false); break;
     case 'print-blank': printStock(true); break;
   }
@@ -4666,8 +4696,9 @@ document.addEventListener('click', e => {
     case 'set-tmr': $('aDate').value = fmtDate(tomorrowIso()); previewAddDate(); $('aCust').focus(); break;
     case 'forget': forgetCustomer(a.dataset.key); break;
     case 'notif-on': enableNotifs(); break;
-    case 'notif-test': remind('Δοκιμαστική υπενθύμιση', 'Έτσι θα εμφανίζεται η υπενθύμιση για τους φακέλους.', 'test-' + Date.now()); beep(); break;
+    case 'notif-test': remind('Δοκιμαστική υπενθύμιση', 'Έτσι θα εμφανίζεται η υπενθύμιση για τους φακέλους.', 'test-' + Date.now(), {}); beep(); break;
     case 'notif-close': notifBarClosed = true; renderNotifBar(); break;
+    case 'reload': toast('Γίνεται προσπάθεια…'); refresh(); break;
     case 'export': exportData(); break;
     case 'print-list': printBinder('list'); break;
     case 'print-spine': printBinder('spine'); break;
@@ -4692,6 +4723,7 @@ let lastRefresh = 0;
 function tick(){
   checkIdle();
   if (!LOCAL.session) return;
+  fireSnoozed();
   const t = todayIso();
   if (t !== lastDay){ lastDay = t; pruneFired(); saveLocal(); renderAll(); }
   const every = (live ? REFRESH_SEC : LIVE_SEC) * 1000;
@@ -4727,6 +4759,7 @@ window.addEventListener('beforeunload', wsClose);
   } else {
     go(LOCAL.session ? homeView() : 'login', { fromHash:true });
   }
+  initServiceWorker();
   if (LOCAL.session) wsConnect();
   setTimeout(tick, 300);
   setInterval(tick, 10000);
