@@ -582,20 +582,22 @@ input{font:inherit;color:inherit}
 .stk-chip{display:inline-flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:4px 6px 4px 9px;font-size:12.5px;font-weight:700}
 .stk-chip i{width:14px;height:14px;border-radius:50%;border:1px solid rgba(0,0,0,.15)}
 .stk-chip em{font-style:normal;color:var(--muted);font-weight:600}
+.stk-chip .icon-btn{padding:0 4px;min-width:20px;line-height:1}
+.stk-tag{display:inline-block;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:1px 8px;font-size:11.5px;font-weight:700}
 .stk-cam{position:relative;max-width:420px;margin:12px 0 0}
 .stk-video{width:100%;border-radius:var(--radius);background:#000;aspect-ratio:4/3;object-fit:cover;display:block}
 .stk-frame{position:absolute;border:2px dashed rgba(255,255,255,.9);border-radius:10px;pointer-events:none}
 .stk-frame span{position:absolute;top:-9px;left:8px;background:rgba(0,0,0,.6);color:#fff;font-size:9.5px;font-weight:800;letter-spacing:.08em;padding:1px 6px;border-radius:4px}
-.stk-frame.label{left:30%;top:12%;width:40%;height:76%}
 .stk-frame.fabric{top:26%;height:48%;width:17%;border-style:solid;border-color:rgba(255,255,255,.5)}
 .stk-frame.fabric.l{left:3%}
 .stk-frame.fabric.r{right:3%}
 .stk-frame.fabric span{left:4px;font-size:8.5px;padding:1px 4px}
-.stk-guess.size{flex:0 0 68px;font-size:19px}
-.stk-peek{flex:none;width:72px;height:44px;border-radius:8px;border:1px solid var(--line);background:var(--bg)}
 .stk-fallback{margin:14px 0 6px}
 .stk-fallback > span{display:block;font-size:12.5px;color:var(--muted);font-weight:700;margin-bottom:6px}
 .stk-fallback .stk-sizes button{height:46px;min-width:52px}
+.stk-sizes.big button{height:58px;min-width:62px;font-size:19px;flex:1}
+.stk-sizes.big{gap:8px}
+.stk-sizes button:disabled{opacity:.35}
 .stk-camfoot{display:flex;align-items:center;gap:10px;margin:10px 0;max-width:420px}
 .stk-dot{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:#eee;flex:none}
 .stk-guess{flex:1;padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:var(--white);font-weight:800;font-size:15px;text-align:center}
@@ -1362,7 +1364,7 @@ const PAGES = {
   main:  { slug:'fakeloi',        sub:'ΦΑΚΕΛΟΙ ΠΕΛΑΤΩΝ',              title:'Φάκελοι' },
   binder:{ slug:'fakeloi/fakelos', sub:'ΦΑΚΕΛΟΙ · ΦΑΚΕΛΟΣ Α–Ω',        title:'Φάκελος Α–Ω' },
   veh:   { slug:'ochimata',       sub:'ΟΧΗΜΑΤΑ',                      title:'Οχήματα' },
-  stk:   { slug:'stok',           sub:'ΣΤΟΚ ΜΠΛΟΥΖΩΝ',                title:'Στοκ' },
+  stk:   { slug:'stok',           sub:'ΣΤΟΚ ΡΟΥΧΩΝ',                   title:'Στοκ' },
   chq:   { slug:'epitages',       sub:'ΕΠΙΤΑΓΕΣ',                     title:'Επιταγές' },
   arc:   { slug:'archeiothetisi', sub:'ΑΡΧΕΙΟΘΕΤΗΣΗ ΠΑΡΑΣΤΑΤΙΚΩΝ',    title:'Αρχειοθέτηση' },
   set:   { slug:'rythmiseis',     sub:'ΡΥΘΜΙΣΕΙΣ',                    title:'Ρυθμίσεις' },
@@ -3112,7 +3114,7 @@ function homeModules(){
   if (canCheques()) mods.push({ v:'chq', title:'Επιταγές',
     line: !CHQ.loaded ? '—' : chqOpen().length ? `${chqOpen().length === 1 ? '1 εκκρεμής' : chqOpen().length + ' εκκρεμείς'}` : 'Καμία εκκρεμής',
     n: CHQ.loaded ? chqDueToday() + chqOverdue() : 0 });
-  if (canStock()) mods.push({ v:'stk', title:'Στοκ μπλουζών',
+  if (canStock()) mods.push({ v:'stk', title:'Στοκ ρούχων',
     line: !STK.loaded ? '—' : STK.list.length ? `${stkTotal()} τεμάχια · ${STK.colors.length === 1 ? '1 χρώμα' : STK.colors.length + ' χρώματα'}` : 'Κανένα στοκ ακόμα',
     n: 0 });
   if (canArchive()) mods.push({ v:'arc', title:'Αρχειοθέτηση',
@@ -3881,12 +3883,22 @@ document.addEventListener('change', e => {
    και δεν διαβάζεται αξιόπιστα από απόσταση. */
 const STOCK_EMAILS = ['social@m-m-m.gr'];
 const canStock = () => STOCK_EMAILS.includes(String((LOCAL.session && LOCAL.session.email) || '').toLowerCase());
-const STK_KINDS = { short:'Κοντομάνικο', long:'Μακρυμάνικο' };
+const STK_KINDS = { short:'Κοντομάνικο', long:'Μακρυμάνικο', apron:'Ποδιά' };
+const STK_KINDS_PL = { short:'Κοντομάνικα', long:'Μακρυμάνικα', apron:'Ποδιές' };
+/* Τα είδη χωρίς νούμερα (ποδιές) κρατούν ένα σταθερό «μέγεθος» στη βάση,
+   ώστε να μη χρειάζεται δεύτερος πίνακας. Στην οθόνη δεν φαίνεται πουθενά. */
+const STK_ONE = 'ΕΝΑ';
+/* Από πού παίρνει το χρώμα: δύο λωρίδες δεξιά κι αριστερά, ποτέ το κέντρο,
+   γιατί εκεί πέφτει η ετικέτα ή η πτυχή του λαιμού. */
+const COL_BOX = [[0.03, 0.26, 0.20, 0.74], [0.80, 0.26, 0.97, 0.74]];
+const STK_NOSIZE = ['apron'];
+const stkSized = kind => !STK_NOSIZE.includes(kind);
+const stkSizeOf = kind => stkSized(kind) ? STK.size : STK_ONE;
 const STK_SIZES = ['XS','S','M','L','XL','XXL','3XL','4XL'];
 const STK = { loaded:false, loading:false, setupMissing:false, list:[], colors:[], moves:[], movesLoaded:false,
               mode:'count', kind:'short', size:'M', dir:1,
-              camOn:false, camMsg:'', camColor:null, camSize:'', camRGB:null, camVotes:{}, camVoteAt:0, camCool:0,
-              camTeach:'', ocrBusy:false, ocrAt:0, stream:null, timer:0, log:[] };
+              camOn:false, camMsg:'', camColor:null, camRGB:null, camCool:0, camHold:0, lockSize:true,
+              camTeach:'', stream:null, timer:0, log:[] };
 
 const stkRow = r => ({ id:r.id, kind:r.kind || 'short', color:r.color, size:r.size,
                        qty:Number(r.qty) || 0, min:Number(r.min_qty) || 0 });
@@ -3897,11 +3909,21 @@ const stkFind = (kind, color, size) => STK.list.find(v => v.kind === kind && v.c
 const stkQty = (kind, color, size) => { const v = stkFind(kind, color, size); return v ? v.qty : 0; };
 const stkTotal = list => (list || STK.list).reduce((n,v) => n + v.qty, 0);
 const stkSizesUsed = kind => {
+  if (!stkSized(kind)) return [STK_ONE];
   const have = new Set(STK.list.filter(v => !kind || v.kind === kind).filter(v => v.qty > 0).map(v => v.size));
   const known = STK_SIZES.filter(s => have.has(s));
-  return [...known, ...[...have].filter(s => !STK_SIZES.includes(s)).sort()];
+  return [...known, ...[...have].filter(s => !STK_SIZES.includes(s) && s !== STK_ONE).sort()];
 };
-const stkName = v => `${STK_KINDS[v.kind] || v.kind} ${v.color} ${v.size}`;
+/* Στον πίνακα δείχνουμε και άδειες στήλες, για να γράφεις κατευθείαν μέσα */
+const stkSizeCols = kind => {
+  if (!stkSized(kind)) return [STK_ONE];
+  const used = new Set(stkSizesUsed(kind));
+  return [...new Set([...STK_SIZES.slice(0, 6), ...used])].sort((a,b) => {
+    const ia = STK_SIZES.indexOf(a), ib = STK_SIZES.indexOf(b);
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.localeCompare(b);
+  });
+};
+const stkName = v => `${STK_KINDS[v.kind] || v.kind} ${v.color}${stkSized(v.kind) ? ' ' + v.size : ''}`;
 const stkClean = s => upper(clean(s)).slice(0, 30);
 
 /* ---------- Χρώμα από την εικόνα ----------
@@ -4082,6 +4104,29 @@ function stkSaveColorSample(name, rgb){
     .catch(e => { c.hex = prev.hex; c.lab = prev.lab; stkRepaint(); handleError(e, 'Το δείγμα δεν αποθηκεύτηκε.'); })
     .finally(() => { pendingOps--; });
 }
+/* Μετονομασία: αλλάζει και το χρώμα σε όλες τις παραλλαγές, ώστε να μη
+   χαθεί το στοκ ούτε το ιστορικό. */
+function stkRenameColor(oldName){
+  const c = STK.colors.find(x => x.name === oldName);
+  if (!c) return;
+  const raw = window.prompt(`Νέο όνομα για το «${oldName}»:`, oldName);
+  if (raw === null) return;
+  const name = stkClean(raw);
+  if (!name || name === oldName) return;
+  if (STK.colors.some(x => x.name === name)){ toast(`Υπάρχει ήδη χρώμα «${esc(name)}».`); return; }
+  const rows = STK.list.filter(v => v.color === oldName);
+  c.name = name;
+  rows.forEach(v => v.color = name);
+  STK.colors.sort((a,b) => a.name.localeCompare(b.name,'el'));
+  stkRepaint();
+  pendingOps++;
+  api('stock_colors', { method:'POST', body:{ name, hex:c.hex, lab_l:c.lab ? c.lab.l : null, lab_a:c.lab ? c.lab.a : null, lab_b:c.lab ? c.lab.b : null }, prefer:'return=minimal' })
+    .then(() => rows.length ? api(`stock_variants?color=eq.${encodeURIComponent(oldName)}`, { method:'PATCH', body:{ color:name }, prefer:'return=minimal' }) : null)
+    .then(() => api(`stock_colors?name=eq.${encodeURIComponent(oldName)}`, { method:'DELETE', prefer:'return=minimal' }))
+    .then(() => { setOnline(true); STK.movesLoaded = false; toast(`«${esc(oldName)}» → <b>${esc(name)}</b>.`); })
+    .catch(e => { c.name = oldName; rows.forEach(v => v.color = oldName); stkRepaint(); handleError(e, 'Η μετονομασία δεν αποθηκεύτηκε.'); })
+    .finally(() => { pendingOps--; });
+}
 function stkRemoveColor(name){
   const rows = STK.list.filter(v => v.color === name);
   const held = rows.reduce((n,v) => n + v.qty, 0);
@@ -4099,241 +4144,18 @@ function stkRemoveColor(name){
     .finally(() => { pendingOps--; });
 }
 
-/* ---------- Κάμερα: χρώμα από το ύφασμα, νούμερο από την ετικέτα ----------
-   Στο κέντρο του καρέ μπαίνει η ετικέτα του λαιμού (εκεί διαβάζεται το
-   νούμερο), και από τη ζώνη πιο κάτω παίρνει το χρώμα του υφάσματος.
-   Μετράει ΜΟΝΟ όταν είναι σίγουρο και για τα δύο· αλλιώς δεν μετράει
-   τίποτα και πατάς εσύ το νούμερο. Ποτέ δεν μαντεύει. */
-const OCR_BOX = [0.30, 0.12, 0.70, 0.88];                    // ετικέτα: x0,y0,x1,y1 (ψηλή και στενή, όπως είναι)
-const COL_BOX = [[0.03, 0.26, 0.20, 0.74], [0.80, 0.26, 0.97, 0.74]];   // ύφασμα, δεξιά κι αριστερά
-let stkOcr = null, stkOcrLoading = false;
-async function stkOcrWorker(){
-  if (stkOcr) return stkOcr;
-  if (stkOcrLoading) return null;
-  stkOcrLoading = true;
-  try {
-    if (!window.Tesseract) await loadScript(TESSERACT_URL);
-    const w = await Tesseract.createWorker('eng', 1);
-    await w.setParameters({ tessedit_pageseg_mode:'10' });
-    stkOcrPsm = '10';
-    stkOcr = w;
-  } catch(e){ STK.camMsg = 'Δεν φόρτωσε η ανάγνωση νούμερου. Πάτα εσύ το νούμερο από κάτω.'; }
-  finally { stkOcrLoading = false; if (view === 'stk') renderStock(); }
-  return stkOcr;
-}
-/* Δέχεται ΜΟΝΟ ολόκληρο, πραγματικό νούμερο. Χωρίς αυτό, το «SOL'S Imperial»
-   της ετικέτας θα περνούσε για S ή L και θα μετρούσε λάθος μπλούζα. */
-const STK_SIZE_SET = { XS:'XS', S:'S', M:'M', L:'L', XL:'XL', XXL:'XXL', '2XL':'XXL', '3XL':'3XL', '4XL':'4XL' };
-function stkNormSize(raw){
-  const t = String(raw || '').toUpperCase().replace(/[^SMLX234]/g, '');
-  return STK_SIZE_SET[t] || '';
-}
-/* Βρίσκει την άσπρη ετικέτα μέσα στο πλαίσιο, κρατάει την πρώτη σειρά
-   γραμμάτων της — εκεί είναι το νούμερο, πάνω από τη γραμμούλα και το
-   λογότυπο — και τη δίνει καθαρή για ανάγνωση. Έτσι το «SOL'S Imperial»
-   και το «11500» δεν φτάνουν ποτέ στον αναγνώστη. */
-function stkLabelCanvas(video){
-  const vw = video.videoWidth, vh = video.videoHeight;
-  if (!vw || !vh) return null;
-  const src = stkLabelCanvas.a || (stkLabelCanvas.a = document.createElement('canvas'));
-  const sw = vw * (OCR_BOX[2] - OCR_BOX[0]), sh = vh * (OCR_BOX[3] - OCR_BOX[1]);
-  const W = Math.max(120, Math.min(340, Math.round(sw))), H = Math.max(90, Math.round(sh * W / sw));
-  src.width = W; src.height = H;
-  const sctx = src.getContext('2d', { willReadFrequently:true });
-  sctx.imageSmoothingEnabled = true; sctx.imageSmoothingQuality = 'high';
-  try { sctx.drawImage(video, vw * OCR_BOX[0], vh * OCR_BOX[1], sw, sh, 0, 0, W, H); } catch(e){ return null; }
-  let d;
-  try { d = sctx.getImageData(0, 0, W, H).data; } catch(e){ return null; }
-  const N = W * H;
-  /* Η ετικέτα είναι το πιο φωτεινό ΚΑΙ άχρωμο κομμάτι. Το μπεζ και το γκρι
-     ύφασμα κόβονται: το μπεζ έχει απόχρωση, το γκρι είναι πιο σκούρο από
-     το άσπρο ύφασμα της ετικέτας. */
-  const lum = new Uint8Array(N), hist = new Int32Array(256);
-  for (let k = 0, i = 0; k < N; k++, i += 4){
-    const g = Math.round(0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2]);
-    lum[k] = g; hist[g]++;
-  }
-  /* Κατώφλι Otsu: χωρίζει μόνο του «ετικέτα» από «ύφασμα», όποιος κι αν
-     είναι ο φωτισμός. Δεν κοιτάμε απόχρωση: με ζεστό φως η κάμερα κάνει
-     την άσπρη ετικέτα να φαίνεται γαλάζια, και το «άχρωμο» δεν πιάνει. */
-  let total = 0;
-  for (let v = 0; v < 256; v++) total += v * hist[v];
-  let sumB = 0, wB = 0, bestVar = -1, thr = 128;
-  for (let v = 0; v < 256; v++){
-    wB += hist[v]; if (!wB) continue;
-    const wF = N - wB; if (!wF) break;
-    sumB += v * hist[v];
-    const mB = sumB / wB, mF = (total - sumB) / wF;
-    const between = wB * wF * (mB - mF) * (mB - mF);
-    if (between > bestVar){ bestVar = between; thr = v; }
-  }
-  let acc = 0, p99 = 255;
-  for (let v = 255; v >= 0; v--){ acc += hist[v]; if (acc > N * 0.01){ p99 = v; break; } }
-  const cutoff = Math.max(thr, p99 * 0.74);
-  const mask = new Uint8Array(N);
-  for (let k = 0, i = 0; k < N; k++, i += 4){
-    const mx = Math.max(d[i], d[i+1], d[i+2]), mn = Math.min(d[i], d[i+1], d[i+2]);
-    if (lum[k] > cutoff && mx - mn < 70) mask[k] = 1;
-  }
-  /* Το μεγαλύτερο ενιαίο κομμάτι: η ετικέτα, όχι σκόρπιες λάμψεις στο ύφασμα */
-  const seen = new Uint8Array(N), stack = new Int32Array(N);
-  let bx0 = 0, by0 = 0, bx1 = -1, by1 = -1, best = 0;
-  for (let start = 0; start < N; start++){
-    if (!mask[start] || seen[start]) continue;
-    let top = 0, size = 0, x0 = W, y0 = H, x1 = -1, y1 = -1;
-    stack[top++] = start; seen[start] = 1;
-    while (top){
-      const k = stack[--top], x = k % W, y = (k - x) / W;
-      size++;
-      if (x < x0) x0 = x; if (x > x1) x1 = x;
-      if (y < y0) y0 = y; if (y > y1) y1 = y;
-      if (x > 0     && mask[k-1] && !seen[k-1]){ seen[k-1] = 1; stack[top++] = k-1; }
-      if (x < W - 1 && mask[k+1] && !seen[k+1]){ seen[k+1] = 1; stack[top++] = k+1; }
-      if (y > 0     && mask[k-W] && !seen[k-W]){ seen[k-W] = 1; stack[top++] = k-W; }
-      if (y < H - 1 && mask[k+W] && !seen[k+W]){ seen[k+W] = 1; stack[top++] = k+W; }
-    }
-    if (size > best){ best = size; bx0 = x0; by0 = y0; bx1 = x1; by1 = y1; }
-  }
-  const lw = bx1 - bx0 + 1, lh = by1 - by0 + 1;
-  if (best < N * 0.015 || lw < W * 0.10 || lh < H * 0.15) return null;        // δεν φαίνεται ετικέτα
-  if (lw > W * 0.92 && lh > H * 0.92) return null;                            // γεμάτο άσπρο: δεν είναι ετικέτα
-  /* Πάνω ζώνη της ετικέτας, λίγο μαζεμένη από τα πλάγια ώστε να μη μπει
-     ύφασμα, μεγεθυσμένη και ασπρόμαυρη */
-  const inset = Math.round(lw * 0.06);
-  const zx = bx0 + inset, zw = Math.max(8, lw - inset * 2);
-  const bh = Math.max(10, Math.round(lh * 0.42));
-  const scale = Math.max(2, Math.min(10, Math.round(420 / Math.max(1, zw))));
-  const bw = zw * scale, bhs = bh * scale;
-  const out = stkLabelCanvas.b || (stkLabelCanvas.b = document.createElement('canvas'));
-  out.width = bw; out.height = bhs;
-  const octx = out.getContext('2d', { willReadFrequently:true });
-  octx.imageSmoothingEnabled = true; octx.imageSmoothingQuality = 'high';
-  octx.drawImage(src, zx, by0, zw, bh, 0, 0, bw, bhs);
-  const od = octx.getImageData(0, 0, bw, bhs), q = od.data;
-  let sum = 0;
-  for (let i = 0; i < q.length; i += 4){ const g = 0.299*q[i] + 0.587*q[i+1] + 0.114*q[i+2]; q[i] = q[i+1] = q[i+2] = g; sum += g; }
-  /* Το γκρι αντίγραφο πάει στον αναγνώστη — διαβάζει καλύτερα σε γκρι παρά
-     σε καθαρό ασπρόμαυρο. Το κατώφλι το χρησιμοποιούμε μόνο για να ΒΡΟΥΜΕ
-     πού είναι τα γράμματα. */
-  const gray = stkLabelCanvas.g || (stkLabelCanvas.g = document.createElement('canvas'));
-  gray.width = bw; gray.height = bhs;
-  gray.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(q), bw, bhs), 0, 0);
-  const mid = (sum / (q.length / 4)) * 0.74;
-  const ink = new Uint8Array(bw * bhs);
-  for (let i = 0, k = 0; i < q.length; i += 4, k++){
-    const v = q[i] > mid ? 255 : 0;
-    q[i] = q[i+1] = q[i+2] = v;
-    ink[k] = v ? 0 : 1;
-  }
-  octx.putImageData(od, 0, 0);
-  /* Ψάχνουμε γράμματα, όχι σειρές: κάθε ενιαίο μαύρο σχήμα ξεχωριστά.
-     Έτσι δεν μπερδεύονται οι ραφές του λαιμού, η γραμμούλα κάτω από το
-     νούμερο και το ύφασμα που περισσεύει στις άκρες της ετικέτας. */
-  const cseen = new Uint8Array(bw * bhs), cst = new Int32Array(bw * bhs);
-  const glyphs = [];
-  for (let start = 0; start < bw * bhs; start++){
-    if (!ink[start] || cseen[start]) continue;
-    let top = 0, size = 0, x0 = bw, y0 = bhs, x1 = -1, y1 = -1;
-    cst[top++] = start; cseen[start] = 1;
-    while (top){
-      const k = cst[--top], x = k % bw, y = (k - x) / bw;
-      size++;
-      if (x < x0) x0 = x; if (x > x1) x1 = x;
-      if (y < y0) y0 = y; if (y > y1) y1 = y;
-      if (x > 0      && ink[k-1]  && !cseen[k-1]){  cseen[k-1] = 1;  cst[top++] = k-1; }
-      if (x < bw - 1 && ink[k+1]  && !cseen[k+1]){  cseen[k+1] = 1;  cst[top++] = k+1; }
-      if (y > 0      && ink[k-bw] && !cseen[k-bw]){ cseen[k-bw] = 1; cst[top++] = k-bw; }
-      if (y < bhs-1  && ink[k+bw] && !cseen[k+bw]){ cseen[k+bw] = 1; cst[top++] = k+bw; }
-    }
-    const w = x1 - x0 + 1, h = y1 - y0 + 1;
-    if (h < bhs * 0.09 || h > bhs * 0.5) continue;                  // ραφές και λογότυπο έξω
-    if (w < bw * 0.02 || w > bw * 0.45) continue;
-    if (x0 < bw * 0.03 || x1 > bw * 0.97 || y0 === 0 || y1 === bhs - 1) continue;   // ακουμπάει άκρη
-    if (size < w * h * 0.08) continue;                              // σκόρπια στίγματα
-    glyphs.push({ x0, y0, x1, y1, w, h });
-  }
-  if (!glyphs.length) return null;
-  glyphs.sort((p1, p2) => p1.y0 - p2.y0 || p1.x0 - p2.x0);
-  /* Το νούμερο μπορεί να έχει ένα ώς τρία γράμματα (M, XL, XXL): μαζεύουμε
-     όσα είναι στην ίδια σειρά και δίπλα δίπλα */
-  const first = glyphs[0];
-  let rx0 = first.x0, ry0 = first.y0, rx1 = first.x1, ry1 = first.y1;
-  for (const g of glyphs.slice(1)){
-    const over = Math.min(ry1, g.y1) - Math.max(ry0, g.y0);
-    if (over < Math.min(g.h, ry1 - ry0 + 1) * 0.5) continue;
-    if (g.x0 - rx1 > first.h * 1.2 || rx0 - g.x1 > first.h * 1.2) continue;
-    rx0 = Math.min(rx0, g.x0); rx1 = Math.max(rx1, g.x1);
-    ry0 = Math.min(ry0, g.y0); ry1 = Math.max(ry1, g.y1);
-  }
-  const gh = ry1 - ry0 + 1;
-  if (rx1 - rx0 + 1 > bw * 0.75) return null;
-  /* Από πάνω πρέπει να είναι καθαρό άσπρο ετικέτας, όχι ύφασμα */
-  let white = 0, tot = 0;
-  for (let y = Math.max(0, ry0 - Math.round(gh * 0.6)); y < ry0; y++)
-    for (let x = rx0; x <= rx1; x++){ tot++; if (!ink[y * bw + x]) white++; }
-  if (tot && white / tot < 0.92) return null;
-  let chars = 0;
-  for (const g of glyphs) if (g.y0 <= ry1 && g.y1 >= ry0 && g.x0 >= rx0 && g.x1 <= rx1) chars++;
-  const zoom = Math.max(1, Math.min(4, Math.round(150 / gh)));
-  const pad = Math.round(gh * 0.55) * zoom;
-  const gw = rx1 - rx0 + 1;
-  const cw = gw * zoom + pad * 2, ch = gh * zoom + pad * 2;
-  const fin = stkLabelCanvas.c || (stkLabelCanvas.c = document.createElement('canvas'));
-  fin.width = cw; fin.height = ch;
-  const fctx = fin.getContext('2d', { willReadFrequently:true });
-  fctx.imageSmoothingEnabled = true; fctx.imageSmoothingQuality = 'high';
-  fctx.fillStyle = '#fff'; fctx.fillRect(0, 0, cw, ch);
-  fctx.drawImage(gray, rx0, ry0, gw, gh, pad, pad, gw * zoom, gh * zoom);
-  /* Τέντωμα αντίθεσης: σε θολές ή χλωμές λήψεις τα γράμματα ξεχωρίζουν πολύ καλύτερα */
-  try {
-    const fd = fctx.getImageData(0, 0, cw, ch), fq = fd.data;
-    const fh = new Int32Array(256);
-    for (let i = 0; i < fq.length; i += 4) fh[fq[i]]++;
-    const px = fq.length / 4;
-    let lo = 0, hi = 255, a2 = 0, a98 = 0;
-    for (let v = 0; v < 256; v++){ a2 += fh[v]; if (a2 > px * 0.03){ lo = v; break; } }
-    for (let v = 255; v >= 0; v--){ a98 += fh[v]; if (a98 > px * 0.03){ hi = v; break; } }
-    if (hi - lo > 12){
-      const k = 255 / (hi - lo);
-      for (let i = 0; i < fq.length; i += 4){
-        const v = Math.max(0, Math.min(255, (fq[i] - lo) * k));
-        fq[i] = fq[i+1] = fq[i+2] = v;
-      }
-      fctx.putImageData(fd, 0, 0);
-    }
-  } catch(e){}
-  /* Αν τα γράμματα έχουν κολλήσει μεταξύ τους (θολή λήψη), το καταλαβαίνουμε
-     από το σχήμα: ένα γράμμα είναι ψηλό και στενό, δύο-τρία είναι πλατιά. */
-  const wide = gw > gh * 0.9;
-  stkLabelCanvas.dbg = { bw, bhs, glyphs:glyphs.length, chars, wide, box:[rx0, ry0, rx1, ry1] };
-  return { canvas:fin, chars, wide };
-}
-let stkOcrPsm = '';
-async function stkReadSize(video){
-  const w = await stkOcrWorker();
-  if (!w) return '';
-  const got = stkLabelCanvas(video);
-  if (!got) return '';
-  /* Ένα γράμμα (S, M, L) διαβάζεται σωστά μόνο σε «ένας χαρακτήρας»,
-     δύο-τρία (XL, XXL) μόνο σε «μία γραμμή». Ξέρουμε ποιο είναι, γιατί
-     τα μετρήσαμε παραπάνω. */
-  const psm = (got.chars > 1 || got.wide) ? '7' : '10';
-  try {
-    if (psm !== stkOcrPsm){ await w.setParameters({ tessedit_pageseg_mode:psm }); stkOcrPsm = psm; }
-    const d = (await w.recognize(got.canvas)).data;
-    if (Number(d.confidence) < 8) return '';
-    const size = stkNormSize(d.text);
-    if (!size) return '';
-    /* Να ταιριάζει με το πόσα γράμματα μετρήσαμε: ένα γράμμα δεν γίνεται
-       να είναι XL, και δύο γράμματα δεν γίνεται να είναι M. */
-    if (size.length === 1 && got.chars > 1) return '';            // δύο γράμματα δεν γίνεται να είναι M
-    if (size.length > 1 && got.chars < 2 && !got.wide) return '';  // ένα στενό γράμμα δεν γίνεται να είναι XL
-    return size;
-  } catch(e){ return ''; }
-}
+/* ---------- Κάμερα: διαβάζει το χρώμα ----------
+   Το νούμερο ΔΕΝ διαβάζεται από την κάμερα. Δοκιμάστηκε σε πραγματικές
+   φωτογραφίες: σε άσπρη μπλούζα μέσα σε σακούλα η ετικέτα δεν ξεχωρίζει
+   από το ύφασμα, από απόσταση το γράμμα γίνεται δυσανάγνωστο, και σε μία
+   δοκιμή διάβασε L σε μπλούζα M. Λάθος μέτρημα είναι χειρότερο από
+   καθόλου, οπότε το νούμερο το ορίζεις εσύ — είτε κλειδωμένο για όλη τη
+   στοίβα, είτε με ένα πάτημα ανά ρούχο. Το χρώμα, που είναι και το
+   κουραστικό, το αναλαμβάνει η κάμερα. */
+const STK_HOLD_FRAMES = 4;                                   // ~0,7 δευτ. σταθερό χρώμα
 async function stkCamStart(){
   if (STK.camOn) return;
-  STK.camMsg = ''; STK.camColor = null; STK.camSize = ''; STK.camVotes = {}; STK.camVoteAt = 0; STK.camCool = 0;
+  STK.camMsg = ''; STK.camColor = null; STK.camHold = 0; STK.camCool = 0;
   try {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('nocam');
     STK.stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ ideal:'environment' } }, audio:false });
@@ -4343,7 +4165,6 @@ async function stkCamStart(){
     if (!vid){ stkCamStop(); return; }
     vid.srcObject = STK.stream;
     await vid.play().catch(() => {});
-    stkOcrWorker();                                          // ζεσταίνει την ανάγνωση από τώρα
     stkCamLoop();
   } catch(e){
     stkCamStop();
@@ -4353,6 +4174,9 @@ async function stkCamStart(){
     renderStock();
   }
 }
+/* Αυτόματο μέτρημα μόνο όταν το νούμερο είναι κλειδωμένο (ή δεν υπάρχει,
+   όπως στις ποδιές). Στα μεικτά περιμένει να πατήσεις το νούμερο. */
+const stkAuto = () => !stkSized(STK.kind) || STK.lockSize;
 function stkCamLoop(){
   if (!STK.camOn) return;
   const vid = $('stkVideo');
@@ -4360,44 +4184,17 @@ function stkCamLoop(){
   const rgb = vid.videoWidth ? stkSample(vid, COL_BOX) : null;
   STK.camRGB = rgb;
   const color = rgb ? stkMatch(rgb) : null;
-  if (STK.camTeach){                                         // εκμάθηση χρώματος: μόνο δείχνει
-    STK.camColor = color;
-    stkPaintCam();
-    STK.timer = setTimeout(stkCamLoop, 180);
-    return;
-  }
-  if (color !== STK.camColor){ STK.camColor = color; STK.camVotes = {}; STK.camSize = ''; }
-  if (STK.camVoteAt && Date.now() - STK.camVoteAt > 3500){ STK.camVotes = {}; STK.camSize = ''; }
-  const now = Date.now();
-  /* Το νούμερο διαβάζεται πιο αραιά — είναι το ακριβό κομμάτι */
-  if (color && !STK.ocrBusy && now > STK.ocrAt && now > STK.camCool){
-    STK.ocrBusy = true; STK.ocrAt = now + 450;
-    stkReadSize(vid).then(size => {
-      STK.ocrBusy = false;
-      if (!STK.camOn || STK.camTeach) return;
-      /* Δύο συμφωνίες, χωρίς άλλο νούμερο να διεκδικεί: τότε μόνο μετράει.
-         Μία καθαρή ανάγνωση δεν αρκεί, δύο διαφορετικές ακυρώνουν η μία
-         την άλλη και περιμένουμε. */
-      if (size){
-        STK.camVotes[size] = (STK.camVotes[size] || 0) + 1;
-        STK.camVoteAt = Date.now();
-      }
-      const tally = Object.keys(STK.camVotes).map(k => [k, STK.camVotes[k]]).sort((a,b) => b[1] - a[1]);
-      STK.camSize = tally.length ? tally[0][0] : '';
-      const lead = tally.length ? tally[0][1] : 0;
-      const rival = tally.length > 1 ? tally[1][1] : 0;
-      if (STK.camColor && STK.camSize && lead >= 2 && lead >= rival + 2 && Date.now() > STK.camCool){
-        stkCamCount(STK.camColor, STK.camSize, 'cam');
-      }
-      stkPaintCam();
-    }).catch(() => { STK.ocrBusy = false; });
+  if (color !== STK.camColor){ STK.camColor = color; STK.camHold = 0; }
+  else if (color) STK.camHold++;
+  if (!STK.camTeach && stkAuto() && color && STK.camHold >= STK_HOLD_FRAMES && Date.now() > STK.camCool){
+    stkCamCount(color, stkSizeOf(STK.kind), 'cam');
   }
   stkPaintCam();
   STK.timer = setTimeout(stkCamLoop, 180);
 }
 function stkCamCount(color, size, how){
-  STK.camCool = Date.now() + 1600;                           // παύση για να φύγει η μπλούζα
-  STK.camVotes = {}; STK.camVoteAt = 0; STK.camSize = '';
+  STK.camCool = Date.now() + 1500;                           // παύση για να περάσεις το επόμενο
+  STK.camHold = 0;
   stkTouch(STK.kind, color, size, STK.dir, how);
   STK.log.unshift({ color, size, kind:STK.kind, dir:STK.dir, at:Date.now(), how });
   STK.log = STK.log.slice(0, 12);
@@ -4414,38 +4211,21 @@ function stkPaintCam(){
     c.style.background = g ? stkHex(g) : '';
     c.style.color = g ? stkTextOn(stkHex(g)) : '';
   }
-  const sz = $('stkGuessSize');
-  if (sz){
-    sz.textContent = STK.camSize || (STK.ocrBusy ? '…' : '—');
-    sz.className = 'stk-guess size' + (STK.camSize ? ' on' : '');
-  }
   const hint = $('stkCamHint');
   if (hint){
-    hint.textContent = !STK.colors.filter(c => c.lab).length ? 'Μάθε πρώτα τα χρώματα, από κάτω.'
-      : !STK.camColor ? 'Φέρε τη μπλούζα πιο κοντά, να γεμίζει τα πλαϊνά πλαίσια.'
-      : !STK.camSize ? 'Βάλε την ετικέτα του λαιμού μέσα στο μεσαίο πλαίσιο, πιο κοντά.'
-      : 'Έτοιμο.';
+    hint.textContent = !STK.colors.filter(x => x.lab).length ? 'Μάθε πρώτα τα χρώματα, από κάτω.'
+      : !STK.camColor ? 'Φέρε το ρούχο πιο κοντά, να γεμίζει τα πλαϊνά πλαίσια.'
+      : stkAuto() ? 'Κράτα το σταθερό μια στιγμή.'
+      : 'Πάτα το νούμερο που βλέπεις στην ετικέτα.';
   }
   const dot = $('stkDot');
   if (dot && STK.camRGB) dot.style.background = rgb2hex(STK.camRGB.r, STK.camRGB.g, STK.camRGB.b);
-  /* Δείχνει το κομμάτι της ετικέτας που πάει για ανάγνωση: αν είναι θολό ή
-     κομμένο, το βλέπεις αμέσως και πλησιάζεις. */
-  const peek = $('stkPeek'), lab = stkLabelCanvas.c;
-  if (peek){
-    const px = peek.getContext('2d');
-    px.fillStyle = '#F2F1EA'; px.fillRect(0, 0, peek.width, peek.height);
-    if (lab && lab.width){
-      const k = Math.min(peek.width / lab.width, peek.height / lab.height);
-      const w = lab.width * k, h = lab.height * k;
-      px.imageSmoothingEnabled = true;
-      px.drawImage(lab, (peek.width - w) / 2, (peek.height - h) / 2, w, h);
-    }
-  }
+  document.querySelectorAll('[data-stk="cam-size"]').forEach(btn => { btn.disabled = !STK.camColor; });
 }
 const stkTextOn = hex => { const c = hex2rgb(hex); if (!c) return '#1A1A18';
   return (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) > 150 ? '#1A1A18' : '#FFFFFF'; };
 function stkCamStop(){
-  STK.camOn = false; STK.camTeach = ''; STK.camColor = null; STK.camSize = ''; STK.ocrBusy = false;
+  STK.camOn = false; STK.camTeach = ''; STK.camColor = null; STK.camHold = 0;
   clearTimeout(STK.timer); STK.timer = 0;
   try { if (STK.stream) STK.stream.getTracks().forEach(t => t.stop()); } catch(e){}
   STK.stream = null;
@@ -4456,10 +4236,11 @@ function stkTeachNow(){
   STK.camTeach = '';
   renderStock();
 }
+
 /* ---------- Οθόνη ---------- */
 function buildStock(){
   $('view-stk').innerHTML = `
-    <div class="page-h"><h1>Στοκ μπλουζών</h1><p id="stkSub"></p></div>
+    <div class="page-h"><h1>Στοκ ρούχων</h1><p id="stkSub"></p></div>
     <div id="stkBody"></div>`;
 }
 function stkModeSeg(){
@@ -4468,12 +4249,16 @@ function stkModeSeg(){
     `<button type="button" role="radio" aria-checked="${STK.mode === m}" class="${STK.mode === m ? 'on' : ''}" data-stk-mode="${m}">${l}</button>`).join('')}</div>`;
 }
 /* Είδος + μέγεθος: κλειδώνονται από πάνω και μένουν ίδια σε όλη τη μέτρηση */
+function stkKindSeg(){
+  return `<div class="seg stk-kind" role="radiogroup" aria-label="Είδος">${Object.keys(STK_KINDS).map(k =>
+    `<button type="button" role="radio" aria-checked="${STK.kind === k}" class="${STK.kind === k ? 'on' : ''}" data-stk-kind="${k}">${STK_KINDS[k]}</button>`).join('')}</div>`;
+}
+/* Είδος + μέγεθος: κλειδώνονται από πάνω και μένουν ίδια σε όλη τη μέτρηση.
+   Στις ποδιές δεν εμφανίζεται καθόλου γραμμή με νούμερα. */
 function stkPickers(){
-  return `<div class="stk-pick">
-    <div class="seg stk-kind" role="radiogroup" aria-label="Είδος">${Object.keys(STK_KINDS).map(k =>
-      `<button type="button" role="radio" aria-checked="${STK.kind === k}" class="${STK.kind === k ? 'on' : ''}" data-stk-kind="${k}">${STK_KINDS[k]}</button>`).join('')}</div>
-    <div class="stk-sizes" role="radiogroup" aria-label="Μέγεθος">${STK_SIZES.map(s =>
-      `<button type="button" role="radio" aria-checked="${STK.size === s}" class="${STK.size === s ? 'on' : ''}" data-stk-size="${s}">${s}</button>`).join('')}</div>
+  return `<div class="stk-pick">${stkKindSeg()}
+    ${stkSized(STK.kind) ? `<div class="stk-sizes" role="radiogroup" aria-label="Μέγεθος">${STK_SIZES.map(sz =>
+      `<button type="button" role="radio" aria-checked="${STK.size === sz}" class="${STK.size === sz ? 'on' : ''}" data-stk-size="${sz}">${sz}</button>`).join('')}</div>` : ''}
   </div>`;
 }
 function stkDirSeg(){
@@ -4484,20 +4269,20 @@ function stkDirSeg(){
 }
 function stkCountHTML(){
   if (!STK.colors.length) return stkColorCard() + `<p class="empty">Πρόσθεσε πρώτα τα χρώματα που έχετε.</p>`;
+  const size = stkSizeOf(STK.kind);
   const rows = STK.colors.map(c => {
-    const q = stkQty(STK.kind, c.name, STK.size);
-    const name = c.name;
+    const q = stkQty(STK.kind, c.name, size);
     return `<div class="stk-row">
       <span class="stk-sw" style="background:${esc(c.hex)}" aria-hidden="true"></span>
-      <b class="stk-nm">${esc(name)}</b>
-      <button class="stk-big minus" data-stk="minus" data-color="${esc(name)}" aria-label="Μείον ένα ${esc(name)}" ${q ? '' : 'disabled'}>−</button>
+      <b class="stk-nm">${esc(c.name)}</b>
+      <button class="stk-big minus" data-stk="minus" data-color="${esc(c.name)}" aria-label="Μείον ένα ${esc(c.name)}" ${q ? '' : 'disabled'}>−</button>
       <span class="stk-q" aria-live="polite">${q}</span>
-      <button class="stk-big plus" data-stk="plus" data-color="${esc(name)}" aria-label="Συν ένα ${esc(name)}">+</button>
+      <button class="stk-big plus" data-stk="plus" data-color="${esc(c.name)}" aria-label="Συν ένα ${esc(c.name)}">+</button>
     </div>`;
   }).join('');
-  const sub = STK.list.filter(v => v.kind === STK.kind && v.size === STK.size);
+  const sub = STK.list.filter(v => v.kind === STK.kind && v.size === size);
   return `${stkPickers()}
-    <p class="stk-now">${esc(STK_KINDS[STK.kind])} · <b>${esc(STK.size)}</b> — σύνολο <b>${stkTotal(sub)}</b> τεμάχια</p>
+    <p class="stk-now">${esc(STK_KINDS_PL[STK.kind])}${stkSized(STK.kind) ? ` · <b>${esc(STK.size)}</b>` : ' <span class="stk-tag">ένα νούμερο</span>'} — σύνολο <b>${stkTotal(sub)}</b> τεμάχια</p>
     <div class="stk-rows">${rows}</div>
     ${stkColorCard()}`;
 }
@@ -4508,48 +4293,57 @@ function stkColorCard(){
       <label class="f f-grow"><span>Νέο χρώμα</span><input class="inp" id="stkColor" maxlength="30" autocomplete="off" placeholder="π.χ. ΚΙΤΡΙΝΟ"></label>
       <button class="btn primary" data-stk="add-color">Προσθήκη</button>
     </div>
-    <p class="hint" id="stkColorHint">Μπαίνει σε όλα τα είδη και τα νούμερα. Για να το αναγνωρίζει η κάμερα, μάθε του το χρώμα μία φορά από την καρτέλα «Κάμερα».</p>
-    ${STK.colors.length ? `<div class="stk-clist">${STK.colors.map(c => `
-      <span class="stk-chip"><i style="background:${esc(c.hex)}"></i>${esc(c.name)}${c.lab ? '' : ' <em>χωρίς δείγμα</em>'}
-        <button class="icon-btn" data-stk="del-color" data-color="${esc(c.name)}" aria-label="Διαγραφή ${esc(c.name)}" title="Διαγραφή χρώματος">×</button></span>`).join('')}</div>` : ''}
+    <p class="hint" id="stkColorHint">Το χρώμα ισχύει για όλα τα είδη και τα νούμερα. Για να το αναγνωρίζει η κάμερα, μάθε του το χρώμα από την καρτέλα «Κάμερα».</p>
+    ${STK.colors.length ? `<div class="stk-clist">${STK.colors.map(c => {
+      const held = STK.list.filter(v => v.color === c.name).reduce((n,v) => n + v.qty, 0);
+      return `<span class="stk-chip"><i style="background:${esc(c.hex)}"></i>${esc(c.name)}
+        <em>${held} τεμ.${c.lab ? '' : ' · χωρίς δείγμα'}</em>
+        <button class="icon-btn" data-stk="ren-color" data-color="${esc(c.name)}" aria-label="Μετονομασία ${esc(c.name)}" title="Μετονομασία">✎</button>
+        <button class="icon-btn" data-stk="del-color" data-color="${esc(c.name)}" aria-label="Διαγραφή ${esc(c.name)}" title="Διαγραφή χρώματος">×</button></span>`;
+    }).join('')}</div>` : ''}
   </details>`;
 }
 function stkCamHTML(){
+  const sized = stkSized(STK.kind);
   const untaught = STK.colors.filter(c => !c.lab);
   const ready = STK.colors.filter(c => c.lab).length;
   const swatch = STK.camRGB ? rgb2hex(STK.camRGB.r, STK.camRGB.g, STK.camRGB.b) : '';
-  return `<div class="seg stk-kind" role="radiogroup" aria-label="Είδος">${Object.keys(STK_KINDS).map(k =>
-      `<button type="button" role="radio" aria-checked="${STK.kind === k}" class="${STK.kind === k ? 'on' : ''}" data-stk-kind="${k}">${STK_KINDS[k]}</button>`).join('')}</div>
+  const auto = stkAuto();
+  return `${stkKindSeg()}
     ${stkDirSeg()}
-    <p class="stk-now">Μετράει <b>${esc(STK_KINDS[STK.kind])}</b>. Το χρώμα και το νούμερο τα διαβάζει η κάμερα.</p>
+    ${sized ? `<div class="seg" role="radiogroup" aria-label="Νούμερο">
+      <button type="button" role="radio" aria-checked="${STK.lockSize}" class="${STK.lockSize ? 'on' : ''}" data-stk-lock="1">Ίδιο νούμερο</button>
+      <button type="button" role="radio" aria-checked="${!STK.lockSize}" class="${!STK.lockSize ? 'on' : ''}" data-stk-lock="0">Μεικτά νούμερα</button>
+    </div>
+    ${STK.lockSize ? `<div class="stk-sizes" role="radiogroup" aria-label="Μέγεθος">${STK_SIZES.map(sz =>
+      `<button type="button" role="radio" aria-checked="${STK.size === sz}" class="${STK.size === sz ? 'on' : ''}" data-stk-size="${sz}">${sz}</button>`).join('')}</div>` : ''}` : ''}
+    <p class="stk-now">Μετράει <b>${esc(STK_KINDS_PL[STK.kind])}${sized && STK.lockSize ? ' ' + esc(STK.size) : ''}</b>${
+      auto ? ' — η κάμερα βλέπει το χρώμα και μετράει μόνη της.' : ' — η κάμερα βλέπει το χρώμα, εσύ πατάς το νούμερο.'}</p>
     ${STK.camOn ? `
       <div class="stk-cam">
         <video class="stk-video" id="stkVideo" playsinline muted></video>
-        <div class="stk-frame label" aria-hidden="true"><span>ΕΤΙΚΕΤΑ</span></div>
         <div class="stk-frame fabric l" aria-hidden="true"><span>ΥΦΑΣΜΑ</span></div>
         <div class="stk-frame fabric r" aria-hidden="true"></div>
       </div>
       <div class="stk-camfoot">
         <span class="stk-dot" id="stkDot" aria-hidden="true"></span>
         <span class="stk-guess" id="stkGuess">—</span>
-        <canvas class="stk-peek" id="stkPeek" width="72" height="44" aria-hidden="true" title="Τι διαβάζει"></canvas>
-        <span class="stk-guess size" id="stkGuessSize">—</span>
       </div>
       <p class="hint" id="stkCamHint" aria-live="polite"></p>
       ${STK.camTeach
         ? `<div class="card move-card"><b>Μαθαίνει το ${esc(STK.camTeach)}</b>
-             <p class="hint">Κράτα μια μπλούζα ${esc(STK.camTeach)} να γεμίζει τα πλαϊνά πλαίσια και πάτα αποθήκευση.</p>
+             <p class="hint">Κράτα ένα ρούχο ${esc(STK.camTeach)} να γεμίζει τα πλαϊνά πλαίσια και πάτα αποθήκευση.</p>
              <button class="btn primary" data-stk="teach-save">Αποθήκευση δείγματος</button>
              <button class="btn ghost" data-stk="teach-cancel">Άκυρο</button></div>`
-        : `<div class="stk-fallback"><span>Δεν διάβασε το νούμερο; Πάτα το εσύ:</span>
-             <div class="stk-sizes">${STK_SIZES.slice(0, 6).map(sz =>
-               `<button type="button" data-stk="cam-size" data-size="${sz}">${sz}</button>`).join('')}</div></div>
+        : `${sized && !STK.lockSize ? `<div class="stk-fallback"><span>Πάτα το νούμερο που γράφει η ετικέτα:</span>
+             <div class="stk-sizes big">${STK_SIZES.slice(0, 6).map(sz =>
+               `<button type="button" data-stk="cam-size" data-size="${sz}" ${STK.camColor ? '' : 'disabled'}>${sz}</button>`).join('')}</div></div>` : ''}
            <div class="card add-card stk-learn">
              <b>${ready ? 'Νέο χρώμα' : 'Μάθε το πρώτο χρώμα'}</b>
-             <p class="hint">Κράτα μια μπλούζα να γεμίζει τα πλαϊνά πλαίσια, γράψε πώς τη λέτε και αποθήκευσε.</p>
+             <p class="hint">Κράτα ένα ρούχο να γεμίζει τα πλαϊνά πλαίσια, γράψε πώς το λέτε και αποθήκευσε.</p>
              <div class="stk-add">
                ${swatch ? `<span class="stk-sw big" style="background:${esc(swatch)}" aria-hidden="true"></span>` : ''}
-               <label class="f f-grow"><span>Όνομα χρώματος</span><input class="inp" id="stkNewColor" maxlength="30" autocomplete="off" placeholder="π.χ. ΚΙΤΡΙΝΟ"></label>
+               <label class="f f-grow"><span>Όνομα χρώματος</span><input class="inp" id="stkNewColor" maxlength="30" autocomplete="off" placeholder="π.χ. ΛΕΥΚΟ"></label>
                <button class="btn primary" data-stk="cam-add-color">Αποθήκευση</button>
              </div>
              <p class="hint" id="stkCamAddHint"></p>
@@ -4558,37 +4352,33 @@ function stkCamHTML(){
            </div>`}
       <button class="btn ghost sm" data-stk="cam-stop">Κλείσιμο κάμερας</button>
       ${STK.log.length ? `<div class="stk-log"><b>ΤΕΛΕΥΤΑΙΑ</b>${STK.log.map(l =>
-        `<span class="stk-chip"><i style="background:${esc(stkHex(l.color))}"></i>${esc(l.color)} ${esc(l.size)} ${l.dir > 0 ? '+1' : '−1'}${l.how === 'cam' ? '' : ' ✋'}</span>`).join('')}</div>` : ''}`
+        `<span class="stk-chip"><i style="background:${esc(stkHex(l.color))}"></i>${esc(l.color)}${l.size === STK_ONE ? '' : ' ' + esc(l.size)} ${l.dir > 0 ? '+1' : '−1'}</span>`).join('')}</div>` : ''}`
     : `<button class="btn primary" data-stk="cam-start">Άνοιγμα κάμερας</button>
-       ${ready ? '' : `<p class="hint">Την πρώτη φορά θα σου ζητήσει να μάθει τα χρώματα: δείχνεις μια μπλούζα κάθε χρώματος και γράφεις το όνομά του.</p>`}`}
+       ${ready ? '' : `<p class="hint">Την πρώτη φορά θα μάθει τα χρώματα: δείχνεις ένα ρούχο κάθε χρώματος και γράφεις το όνομά του.</p>`}`}
     ${STK.camMsg ? `<p class="hint bad">${esc(STK.camMsg)}</p>` : ''}
     ${untaught.length && STK.camOn ? `<p class="hint">Χωρίς δείγμα ακόμα: ${untaught.map(c => esc(c.name)).join(', ')}.</p>` : ''}
-    <p class="hint">Η ετικέτα του λαιμού στο μεσαίο πλαίσιο, το ύφασμα στα δύο πλαϊνά. Μετράει μόνο όταν είναι σίγουρο και για τα δύο — αν δεν διαβάσει κάτι, δεν μετράει τίποτα.</p>`;
+    <p class="hint">Το ρούχο στα δύο πλαϊνά πλαίσια. Αν δεν αναγνωρίσει το χρώμα δεν μετράει τίποτα — δεν μαντεύει. Αν μπερδεύει δύο κοντινά χρώματα, μάθε του και τα δύο ώστε να ξέρει τη διαφορά.</p>`;
 }
 function stkTableHTML(){
-  const kinds = Object.keys(STK_KINDS);
   let html = `<div class="stk-bar"><div class="btns">
     <button class="btn ghost sm" data-stk="print-blank">Φύλλο απογραφής</button>
     <button class="btn primary sm" data-stk="print">Εκτύπωση στοκ</button></div></div>`;
-  kinds.forEach(k => {
-    const sizes = stkSizesUsed(k);
-    const colors = STK.colors.filter(c => STK.list.some(v => v.kind === k && v.color === c.name && v.qty > 0));
-    if (!sizes.length || !colors.length){
-      html += section(upper(STK_KINDS[k]), `<p class="empty">Χωρίς στοκ.</p>`);
-      return;
-    }
-    html += section(`${upper(STK_KINDS[k])} (${stkTotal(STK.list.filter(v => v.kind === k))})`, `<div class="stk-grid-wrap"><table class="stk-grid">
-      <thead><tr><th>Χρώμα</th>${sizes.map(s => `<th>${esc(s)}</th>`).join('')}<th>Σύνολο</th></tr></thead>
-      <tbody>${colors.map(c => `<tr><th scope="row"><span class="stk-sw sm" style="background:${esc(c.hex)}"></span>${esc(c.name)}</th>
-        ${sizes.map(s => { const v = stkFind(k, c.name, s);
+  if (!STK.colors.length) return html + `<p class="empty">Πρόσθεσε πρώτα χρώματα από τη «Μέτρηση».</p>`;
+  Object.keys(STK_KINDS).forEach(k => {
+    const sizes = stkSizeCols(k);
+    const tot = stkTotal(STK.list.filter(v => v.kind === k));
+    html += section(`${upper(STK_KINDS_PL[k])} (${tot})`, `<div class="stk-grid-wrap"><table class="stk-grid">
+      <thead><tr><th>Χρώμα</th>${sizes.map(sz => `<th>${sz === STK_ONE ? 'Τεμάχια' : esc(sz)}</th>`).join('')}${sizes.length > 1 ? '<th>Σύνολο</th>' : ''}</tr></thead>
+      <tbody>${STK.colors.map(c => `<tr><th scope="row"><span class="stk-sw sm" style="background:${esc(c.hex)}"></span>${esc(c.name)}</th>
+        ${sizes.map(sz => { const v = stkFind(k, c.name, sz);
           return `<td><input class="inp stk-inp" type="number" min="0" max="99999" inputmode="numeric" value="${v ? v.qty : 0}"
-            ${v ? `data-stk-set="${v.id}"` : `data-stk-new="${k}|${esc(c.name)}|${esc(s)}"`}
-            aria-label="${esc(STK_KINDS[k])} ${esc(c.name)} ${esc(s)}"></td>`; }).join('')}
-        <td class="stk-tot">${STK.list.filter(v => v.kind === k && v.color === c.name).reduce((n,v) => n + v.qty, 0)}</td></tr>`).join('')}</tbody>
-      <tfoot><tr><th scope="row">Σύνολο</th>${sizes.map(s => `<td>${stkTotal(STK.list.filter(v => v.kind === k && v.size === s))}</td>`).join('')}
-        <td class="stk-tot">${stkTotal(STK.list.filter(v => v.kind === k))}</td></tr></tfoot></table></div>`);
+            ${v ? `data-stk-set="${v.id}"` : `data-stk-new="${k}|${esc(c.name)}|${esc(sz)}"`}
+            aria-label="${esc(STK_KINDS[k])} ${esc(c.name)}${sz === STK_ONE ? '' : ' ' + esc(sz)}"></td>`; }).join('')}
+        ${sizes.length > 1 ? `<td class="stk-tot">${STK.list.filter(v => v.kind === k && v.color === c.name).reduce((n,v) => n + v.qty, 0)}</td>` : ''}</tr>`).join('')}</tbody>
+      <tfoot><tr><th scope="row">Σύνολο</th>${sizes.map(sz => `<td>${stkTotal(STK.list.filter(v => v.kind === k && v.size === sz))}</td>`).join('')}
+        ${sizes.length > 1 ? `<td class="stk-tot">${tot}</td>` : ''}</tr></tfoot></table></div>`);
   });
-  return html + `<p class="hint">Γράψε απευθείας μέσα στα κουτάκια για απογραφή· η διαφορά καταγράφεται στις κινήσεις.</p>`;
+  return html + `<p class="hint">Γράψε απευθείας μέσα στα κουτάκια για να διορθώσεις ποσότητες· η διαφορά καταγράφεται στις κινήσεις. Τα χρώματα (μετονομασία, διαγραφή) είναι στη «Μέτρηση», κάτω κάτω.</p>`;
 }
 function stkMovesHTML(){
   if (!STK.movesLoaded){ loadStockMoves(); return `<p class="hint">Φόρτωση…</p>`; }
@@ -4631,18 +4421,20 @@ function renderStock(){
 /* ---------- Εκτυπώσεις ---------- */
 function printStock(blank){
   const area = $('printArea'), now = new Date();
-  let html = `<h1>${blank ? 'Φύλλο απογραφής' : 'Στοκ μπλουζών'} · Μύλοι Αρκαδίου</h1>
+  let html = `<h1>${blank ? 'Φύλλο απογραφής' : 'Στοκ'} · Μύλοι Αρκαδίου</h1>
     <p class="p-sub">${longDate(todayIso())}, ${hhmm(now.toISOString())}${blank ? '' : ` · σύνολο ${stkTotal()} τεμάχια`}</p>`;
   Object.keys(STK_KINDS).forEach(k => {
-    const sizes = blank ? STK_SIZES.filter(s => STK.list.some(v => v.kind === k && v.size === s) || STK_SIZES.indexOf(s) < 5) : stkSizesUsed(k);
+    const sizes = blank ? stkSizeCols(k) : stkSizesUsed(k);
     const colors = blank ? STK.colors : STK.colors.filter(c => STK.list.some(v => v.kind === k && v.color === c.name && v.qty > 0));
     if (!colors.length || !sizes.length) return;
-    html += `<h2>${esc(STK_KINDS[k])}${blank ? '' : ` — ${stkTotal(STK.list.filter(v => v.kind === k))} τεμάχια`}</h2>
-      <table><tr class="p-letter"><td>Χρώμα</td>${sizes.map(s => `<td>${esc(s)}</td>`).join('')}${blank ? '' : '<td>Σύνολο</td>'}</tr>
+    const many = sizes.length > 1;
+    const tot = stkTotal(STK.list.filter(v => v.kind === k));
+    html += `<h2>${esc(STK_KINDS_PL[k])}${blank ? '' : ` — ${tot} τεμάχια`}</h2>
+      <table><tr class="p-letter"><td>Χρώμα</td>${sizes.map(sz => `<td>${sz === STK_ONE ? 'Τεμάχια' : esc(sz)}</td>`).join('')}${many && !blank ? '<td>Σύνολο</td>' : ''}</tr>
       ${colors.map(c => `<tr><td class="p-name">${esc(c.name)}</td>
-        ${sizes.map(s => blank ? '<td class="p-chk">____</td>' : `<td class="p-chk">${stkQty(k, c.name, s) || '–'}</td>`).join('')}
-        ${blank ? '' : `<td class="p-chk"><b>${STK.list.filter(v => v.kind === k && v.color === c.name).reduce((n,v) => n + v.qty, 0)}</b></td>`}</tr>`).join('')}
-      ${blank ? '' : `<tr class="p-letter"><td>Σύνολο</td>${sizes.map(s2 => `<td>${stkTotal(STK.list.filter(v => v.kind === k && v.size === s2))}</td>`).join('')}<td>${stkTotal(STK.list.filter(v => v.kind === k))}</td></tr>`}
+        ${sizes.map(sz => blank ? '<td class="p-chk">____</td>' : `<td class="p-chk">${stkQty(k, c.name, sz) || '–'}</td>`).join('')}
+        ${many && !blank ? `<td class="p-chk"><b>${STK.list.filter(v => v.kind === k && v.color === c.name).reduce((n,v) => n + v.qty, 0)}</b></td>` : ''}</tr>`).join('')}
+      ${blank ? '' : `<tr class="p-letter"><td>Σύνολο</td>${sizes.map(sz => `<td>${stkTotal(STK.list.filter(v => v.kind === k && v.size === sz))}</td>`).join('')}${many ? `<td>${tot}</td>` : ''}</tr>`}
       </table>`;
   });
   if (blank) html += `<p class="p-sub">Γράψε τι μέτρησες και πέρασέ το μετά στον «Πίνακα».</p>`;
@@ -4668,6 +4460,8 @@ document.addEventListener('click', e => {
   
   const d = e.target.closest('[data-stk-dir]');
   if (d){ STK.dir = Number(d.dataset.stkDir); renderStock(); return; }
+  const lk = e.target.closest('[data-stk-lock]');
+  if (lk){ STK.lockSize = lk.dataset.stkLock === '1'; renderStock(); return; }
   const a = e.target.closest('[data-stk]');
   if (!a) return;
   switch (a.dataset.stk){
@@ -4680,6 +4474,7 @@ document.addEventListener('click', e => {
       break;
     }
     case 'del-color': stkRemoveColor(a.dataset.color); break;
+    case 'ren-color': stkRenameColor(a.dataset.color); break;
     case 'cam-start': stkCamStart(); break;
     case 'cam-stop': stkCamStop(); renderStock(); break;
     case 'cam-size': {
@@ -4687,6 +4482,7 @@ document.addEventListener('click', e => {
       stkCamCount(STK.camColor, a.dataset.size, 'hand');
       break;
     }
+    case 'cam-lock': STK.lockSize = !STK.lockSize; renderStock(); break;
     case 'cam-add-color': stkAddColorFromCam(); break;
     case 'teach': STK.camTeach = a.dataset.color; renderStock(); break;
     case 'teach-save': stkTeachNow(); break;
