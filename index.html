@@ -725,7 +725,30 @@ input{font:inherit;color:inherit}
 .mod-l{display:block;font-size:11.5px;color:var(--muted);line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* ===== ΑΡΧΙΚΗ: ΜΠΛΟΚ ΜΕ ΔΕΔΟΜΕΝΑ ===== */
+.home-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;align-items:start}
 .home-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:12px;align-items:start}
+/* Σε οθόνη υπολογιστή: τα μπλοκ σε δύο στήλες που «γεμίζουν» χωρίς κενά,
+   και οι ενότητες σε δική τους στήλη στο πλάι αντί για σειρά στο κάτω
+   μέρος. Έτσι χωράνε όλα σε μία οθόνη, χωρίς σκρολ. */
+@media (min-width:980px){
+  body.wide-home .main{max-width:1180px;padding-bottom:22px}
+  body.wide-home .greet{margin-bottom:11px}
+  body.wide-home .home-actions{margin-bottom:11px}
+  .home-grid{grid-template-columns:minmax(0,1fr) 248px;gap:14px}
+  .home-cols{display:block;columns:2;column-gap:12px}
+  .home-cols > .hb{break-inside:avoid;-webkit-column-break-inside:avoid;margin:0 0 12px;display:block}
+  .mod-grid{display:flex;flex-direction:column;gap:8px;margin-top:0}
+  .mod{padding:11px 13px}
+}
+/* Σε φαρδιά οθόνη ο χαιρετισμός και οι γρήγορες ενέργειες στην ίδια σειρά:
+   μία σειρά λιγότερη, άρα περισσότερος χώρος για τα μπλοκ. */
+@media (min-width:1180px){
+  body.wide-home #view-home{display:grid;grid-template-columns:max-content minmax(0,1fr);align-items:end;column-gap:18px}
+  body.wide-home #view-home > .greet{grid-column:1}
+  body.wide-home #view-home > .home-actions{grid-column:2;justify-content:flex-end;margin:0 0 11px}
+  body.wide-home #view-home > .home-actions .home-act{padding:8px 12px;font-size:12.5px}
+  body.wide-home #view-home > .home-grid{grid-column:1 / -1}
+}
 .hb{background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:12px 15px 13px}
 .hb.bad{border-color:#EBD3D1}
 .hb-h{display:flex;align-items:center;gap:10px;margin-bottom:10px}
@@ -1584,6 +1607,7 @@ function go(v, opts = {}){
   if (!PAGES[v]) v = 'main';
   view = v;
   document.querySelectorAll('.view').forEach(el => el.classList.toggle('active', el.id === 'view-' + v));
+  document.body.classList.toggle('wide-home', v === 'home');
   $('brandSub').textContent = PAGES[v].sub;
   if (v === 'chq' && !$('chqBody')) buildCheques();
   if (v === 'set') buildSettings();
@@ -3367,21 +3391,23 @@ function renderHome(){
       <p><span class="date">${longDate(t)}.</span> ${alerts.length ? `${alerts.length === 1 ? 'Ένα θέμα θέλει' : alerts.length + ' θέματα θέλουν'} προσοχή.` : 'Τίποτα δεν εκκρεμεί σήμερα.'}</p>
     </div>
     <div class="home-actions">${actions.map(x => `<button class="btn ghost home-act" data-home="${x.act}">${x.sign || '+'} ${esc(x.label)}</button>`).join('')}</div>
-    <div class="home-cols">
-      ${homeBlock('ΦΑΚΕΛΟΙ ΓΙΑ ΣΗΜΕΡΑ', 'main', envItems, G.length ? 'Κανένας φάκελος δεν φεύγει σήμερα.' : 'Κανένας φάκελος σε εκκρεμότητα.', !!envLate.length)}
-      ${arcBlock}
-      ${canCheques() ? homeBlock('ΕΠΙΤΑΓΕΣ ΓΙΑ ΣΗΜΕΡΑ', 'chq', chqItems, 'Καμία επιταγή για σήμερα.', chqItems.length && chqOverdue() > 0) : ''}
-      ${canVehicles() ? homeBlock('ΟΧΗΜΑΤΑ', 'veh', vehItems, 'Καμία λήξη δεν πλησιάζει.', vehItems.length && vehDeadlines().some(x => vehState(x.due) === 'late')) : ''}
-      ${stkBlock}
-    </div>
-    <div class="mod-grid">${mods.map(m => `
-      <button class="mod" data-go="${m.v}">
-        <span class="mod-ic">${HOME_ICONS[m.v]}</span>
-        <span class="mod-txt">
-          <span class="mod-t">${esc(m.title)}${m.n ? `<span class="cnt">${m.n}</span>` : ''}</span>
-          <span class="mod-l">${esc(m.line)}</span>
-        </span>
-      </button>`).join('')}</div>`;
+    <div class="home-grid">
+      <div class="home-cols">
+        ${homeBlock('ΦΑΚΕΛΟΙ ΓΙΑ ΣΗΜΕΡΑ', 'main', envItems, G.length ? 'Κανένας φάκελος δεν φεύγει σήμερα.' : 'Κανένας φάκελος σε εκκρεμότητα.', !!envLate.length)}
+        ${arcBlock}
+        ${canCheques() ? homeBlock('ΕΠΙΤΑΓΕΣ ΓΙΑ ΣΗΜΕΡΑ', 'chq', chqItems, 'Καμία επιταγή για σήμερα.', chqItems.length && chqOverdue() > 0) : ''}
+        ${canVehicles() ? homeBlock('ΟΧΗΜΑΤΑ', 'veh', vehItems, 'Καμία λήξη δεν πλησιάζει.', vehItems.length && vehDeadlines().some(x => vehState(x.due) === 'late')) : ''}
+        ${stkBlock}
+      </div>
+      <aside class="mod-grid">${mods.map(m => `
+        <button class="mod" data-go="${m.v}">
+          <span class="mod-ic">${HOME_ICONS[m.v]}</span>
+          <span class="mod-txt">
+            <span class="mod-t">${esc(m.title)}${m.n ? `<span class="cnt">${m.n}</span>` : ''}</span>
+            <span class="mod-l">${esc(m.line)}</span>
+          </span>
+        </button>`).join('')}</aside>
+    </div>`;
   if ($('hArcQ')){
     const q = $('hArcQ');
     upperInput(q);
