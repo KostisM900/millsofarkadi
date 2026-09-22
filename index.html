@@ -4094,12 +4094,13 @@ const stkKindSizes = code => {
   const list = raw.split(',').map(x => stkSizeName(x)).filter(Boolean);
   return list.length ? list : STK_SIZES;
 };
-const STK_SIZES = ['XS','S','M','L','XL','XXL','3XL','4XL'];
+const STK_SIZES = ['XS','S','M','L','XL','2XL','3XL','4XL','5XL'];
 const STK = { loaded:false, loading:false, setupMissing:false, list:[], colors:[], kinds:[], staff:[],
               moves:[], movesLoaded:false, bags:[], bagsLoaded:false,
               mode:'count', kind:'short', size:'M', dir:1 };
 
-const stkRow = r => ({ id:r.id, kind:r.kind || 'short', color:r.color, size:r.size,
+const stkRow = r => ({ id:r.id, kind:r.kind || 'short', color:r.color,
+                       size: r.size === STK_ONE ? STK_ONE : stkSizeName(r.size),
                        qty:Number(r.qty) || 0, min:Number(r.min_qty) || 0 });
 const stkBody = v => ({ id:v.id, kind:v.kind, color:v.color, size:v.size, qty:0, min_qty:v.min || 0 });
 const stkColorNames = () => STK.colors.map(c => c.name);
@@ -4128,7 +4129,19 @@ const stkSizeCols = kind => {
 };
 const stkName = v => `${stkKindName(v.kind)} ${v.color}${stkSized(v.kind) ? ' ' + v.size : ''}`;
 const stkClean = s => upper(clean(s)).slice(0, 30);
-const stkSizeName = s => upper(clean(s)).replace(/\s+/g, '').slice(0, 6);
+/* Ένας τρόπος γραφής για κάθε νούμερο: ό,τι κι αν γράψεις (XXL, xxl, 2 XL,
+   ακόμα και με ελληνικό Χ ή Μ που μοιάζουν ίδια) γίνεται 2XL. Έτσι δεν
+   ανοίγουν δύο στήλες για το ίδιο πράγμα. */
+function stkSizeName(raw){
+  let t = upper(clean(raw)).replace(/[\s.\-_]+/g, '');
+  /* Ελληνικό πληκτρολόγιο ξεχασμένο ανοιχτό: το L βγαίνει Λ, το S Σ, το X Χ */
+  t = t.replace(/Χ/g, 'X').replace(/Λ/g, 'L').replace(/Σ/g, 'S').replace(/Μ/g, 'M').replace(/Ο/g, 'O');
+  const many = /^(X{2,6})(S|L)$/.exec(t);                            // XXL, XXXL, XXS…
+  if (many) t = many[1].length + many[2];
+  const num = /^(\d{1,2})X?(S|L)$/.exec(t);                          // 2L, 2XL, 3XL…
+  if (num) t = num[1] + 'X' + num[2];
+  return t.slice(0, 6);
+}
 
 /* ---------- Χρώμα από το όνομα ----------
    Το χρώμα του τετραγώνου βγαίνει από τη λέξη, όχι από φωτογραφία, ώστε
@@ -4207,7 +4220,7 @@ const stkStaffSizes = st => {
   const out = {};
   String((st && st.sizes) || '').split(',').forEach(part => {
     const [k, v] = part.split('=');
-    if (k && v) out[k.trim()] = v.trim();
+    if (k && v) out[k.trim()] = stkSizeName(v);
   });
   return out;
 };
