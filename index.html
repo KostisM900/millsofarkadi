@@ -756,6 +756,21 @@ input{font:inherit;color:inherit}
 .g-chip.on em{color:rgba(255,255,255,.75)}
 .g-chip.sz{min-width:52px;justify-content:center}
 .g-none{color:var(--muted);font-style:normal;font-size:13px}
+.st-list{display:flex;flex-direction:column;gap:8px}
+.st-row{display:flex;align-items:center;gap:10px;background:var(--white);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.st-main{flex:1;min-width:0}
+.st-main b{font-size:15px;font-weight:800}
+.st-main small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+.st-role{display:inline-block;margin-left:7px;background:var(--olive-tint);color:var(--olive-deep);border-radius:999px;padding:1px 9px;font-size:11px;font-weight:700;vertical-align:1px}
+.bag-list{display:flex;flex-direction:column;gap:8px;margin:12px 0 6px;max-height:52vh;overflow:auto}
+.bag-row{border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:var(--white)}
+.bag-row.on{border-color:var(--olive);background:#FCFDF9}
+.bag-head{display:flex;align-items:center;gap:9px;cursor:pointer;font-size:14px}
+.bag-head input{width:18px;height:18px}
+.bag-opts{display:flex;flex-direction:column;gap:7px;margin-top:9px}
+.bag-qty{display:flex;align-items:center;gap:8px;font-weight:800}
+.bag-qty small{font-weight:600;color:var(--muted);font-size:12px}
+@media (max-width:600px){.st-row{flex-wrap:wrap}.st-main{flex:1 0 100%}}
 .q-body{margin-top:14px}
 .modal .m-err{margin:4px 0 0}
 .modal .m-err:empty{display:none}
@@ -4076,7 +4091,8 @@ const stkKindSizes = code => {
   return list.length ? list : STK_SIZES;
 };
 const STK_SIZES = ['XS','S','M','L','XL','XXL','3XL','4XL'];
-const STK = { loaded:false, loading:false, setupMissing:false, list:[], colors:[], kinds:[], moves:[], movesLoaded:false,
+const STK = { loaded:false, loading:false, setupMissing:false, list:[], colors:[], kinds:[], staff:[],
+              moves:[], movesLoaded:false, bags:[], bagsLoaded:false,
               mode:'count', kind:'short', size:'M', dir:1 };
 
 const stkRow = r => ({ id:r.id, kind:r.kind || 'short', color:r.color, size:r.size,
@@ -4150,14 +4166,16 @@ async function loadStock(){
   if (STK.loading || !LOCAL.session || !canStock()) return;
   STK.loading = true;
   try {
-    const [vars, cols, kinds] = await Promise.all([
+    const [vars, cols, kinds, staff] = await Promise.all([
       api('stock_variants?select=id,kind,color,size,qty,min_qty&order=color.asc,size.asc'),
       api('stock_colors?select=name,hex,kinds&order=name.asc'),
-      api('stock_kinds?select=code,name,name_pl,sized,sizes,sort&order=sort.asc')
+      api('stock_kinds?select=code,name,name_pl,sized,sizes,sort&order=sort.asc'),
+      api('stock_staff?select=id,name,role,sizes,active&order=name.asc')
     ]);
     STK.kinds = (kinds || []).map(k => ({ code:k.code, name:k.name, pl:k.name_pl || k.name,
                                           sized:k.sized !== false, sizes:k.sizes || '', sort:Number(k.sort) || 0 }));
     if (!STK.kinds.some(k => k.code === STK.kind)) STK.kind = STK.kinds.length ? STK.kinds[0].code : '';
+    STK.staff = (staff || []).map(x => ({ id:x.id, name:x.name, role:x.role || '', sizes:x.sizes || '', active:x.active !== false }));
     STK.list = (vars || []).map(stkRow);
     STK.colors = (cols || []).map(c => ({ name:c.name, hex:stkHexFromName(c.name), kinds:c.kinds || '' }));
     STK.loaded = true; STK.setupMissing = false; setOnline(true);
@@ -4177,6 +4195,42 @@ async function loadStockMoves(){
   } catch(e){ handleError(e, 'Δεν φόρτωσε το ιστορικό.', true); }
   finally { if (view === 'stk' && STK.mode === 'moves') renderStock(); }
 }
+
+/* ---------- Προσωπικό και τσάντες ---------- */
+/* Τα νούμερα κάθε ατόμου κρατιούνται σαν 'short=M,long=M', ώστε την επόμενη
+   φορά να είναι ήδη διαλεγμένα και να μη ρωτάει κανείς ξανά. */
+const stkStaffSizes = st => {
+  const out = {};
+  String((st && st.sizes) || '').split(',').forEach(part => {
+    const [k, v] = part.split('=');
+    if (k && v) out[k.trim()] = v.trim();
+  });
+  return out;
+};
+const stkStaffSize = (st, kind) => stkStaffSizes(st)[kind] || '';
+const stkSizesToText = map => Object.keys(map).filter(k => map[k]).map(k => `${k}=${map[k]}`).join(',');
+const stkStaffLine = st => {
+  const m = stkStaffSizes(st);
+  return STK.kinds.filter(k => k.sized && m[k.code]).map(k => `${k.name.slice(0,3)}. ${m[k.code]}`).join(' · ');
+};
+async function loadHandouts(){
+  if (!LOCAL.session || !canStock() || STK.setupMissing) return;
+  try {
+    const rows = await api('stock_moves?select=id,batch,staff,delta,at,by_email,variant_id,stock_variants(kind,color,size)&kind=eq.handout&order=at.desc&limit=400');
+    const byBatch = new Map();
+    (rows || []).forEach(r => {
+      const key = r.batch || r.id;
+      if (!byBatch.has(key)) byBatch.set(key, { batch:r.batch, staff:r.staff || '', at:r.at, by:r.by_email || '', items:[] });
+      const b = byBatch.get(key);
+      if (r.at < b.at) b.at = r.at;
+      b.items.push({ n:Math.abs(Number(r.delta) || 0), label: r.stock_variants ? stkName(r.stock_variants) : '—' });
+    });
+    STK.bags = [...byBatch.values()].sort((a,b) => String(b.at).localeCompare(String(a.at)));
+    STK.bagsLoaded = true;
+  } catch(e){ handleError(e, 'Δεν φόρτωσαν οι παραλαβές.', true); }
+  finally { if (view === 'stk' && STK.mode === 'staff') renderStock(); }
+}
+const stkBagsOf = name => STK.bags.filter(b => norm(b.staff) === norm(name));
 
 /* ---------- Αλλαγές ---------- */
 function stkRepaint(){ if (view === 'stk') renderStock(); if (view === 'home') renderHome(); renderNav(); }
@@ -4289,6 +4343,66 @@ function stkToggleColorKind(name, kind){
     .catch(e => { c.kinds = prev; stkRepaint(); handleError(e, 'Δεν αποθηκεύτηκε.'); })
     .finally(() => { pendingOps--; });
 }
+/* ---------- Προσωπικό ---------- */
+function stkAddStaff(){
+  const hint = $('stkStaffHint');
+  const name = clean(($('stkStaffName') || {}).value || '').slice(0, 40);
+  const role = clean(($('stkStaffRole') || {}).value || '').slice(0, 40);
+  if (!name){ if (hint) hint.innerHTML = '<span class="bad">Γράψε το όνομα.</span>'; return; }
+  if (STK.staff.some(x => norm(x.name) === norm(name))){ if (hint) hint.innerHTML = `<span class="bad">Υπάρχει ήδη ${esc(name)}.</span>`; return; }
+  const st = { id:uuid(), name, role, sizes:'', active:true };
+  STK.staff.push(st);
+  STK.staff.sort((a,b) => a.name.localeCompare(b.name,'el'));
+  if ($('stkStaffName')) $('stkStaffName').value = '';
+  if ($('stkStaffRole')) $('stkStaffRole').value = '';
+  if (hint) hint.textContent = `Μπήκε ο/η ${name}.`;
+  stkRepaint();
+  pendingOps++;
+  api('stock_staff', { method:'POST', body:{ id:st.id, name, role, sizes:'', active:true }, prefer:'return=minimal' })
+    .then(() => setOnline(true))
+    .catch(e => { STK.staff = STK.staff.filter(x => x !== st); stkRepaint(); handleError(e, 'Δεν αποθηκεύτηκε.'); })
+    .finally(() => { pendingOps--; });
+}
+function stkPatchStaff(st, body, apply, rollback, msg){
+  apply(); stkRepaint();
+  pendingOps++;
+  api(`stock_staff?id=eq.${encodeURIComponent(st.id)}`, { method:'PATCH', body, prefer:'return=minimal' })
+    .then(() => setOnline(true))
+    .catch(e => { rollback(); stkRepaint(); handleError(e, msg); })
+    .finally(() => { pendingOps--; });
+}
+function stkRenameStaff(id){
+  const st = STK.staff.find(x => x.id === id); if (!st) return;
+  const name = clean(window.prompt('Όνομα:', st.name) || '').slice(0, 40);
+  if (!name) return;
+  const role = clean(window.prompt('Θέση ή τμήμα (προαιρετικό):', st.role) || '').slice(0, 40);
+  const prev = { name:st.name, role:st.role };
+  stkPatchStaff(st, { name, role }, () => { st.name = name; st.role = role; },
+                () => { st.name = prev.name; st.role = prev.role; }, 'Η αλλαγή δεν αποθηκεύτηκε.');
+}
+function stkRemoveStaff(id){
+  const st = STK.staff.find(x => x.id === id); if (!st) return;
+  if (!window.confirm(`Να διαγραφεί ο/η ${st.name}; Οι παραλαβές του μένουν στο ιστορικό.`)) return;
+  STK.staff = STK.staff.filter(x => x.id !== id);
+  stkRepaint();
+  pendingOps++;
+  api(`stock_staff?id=eq.${encodeURIComponent(id)}`, { method:'DELETE', prefer:'return=minimal' })
+    .then(() => setOnline(true))
+    .catch(e => { STK.staff.push(st); stkRepaint(); handleError(e, 'Η διαγραφή δεν αποθηκεύτηκε.'); })
+    .finally(() => { pendingOps--; });
+}
+function stkUndoBag(batch){
+  const bag = STK.bags.find(b => b.batch === batch);
+  if (!bag) return;
+  if (!window.confirm(`Να επιστρέψουν στο απόθεμα τα ${bag.items.reduce((n,i) => n + i.n, 0)} τεμάχια του/της ${bag.staff};`)) return;
+  STK.bags = STK.bags.filter(b => b !== bag);
+  stkRepaint();
+  pendingOps++;
+  api('rpc/stock_handout_undo', { method:'POST', body:{ p_batch:batch } })
+    .then(() => { setOnline(true); STK.movesLoaded = false; toast('Η τσάντα επιστράφηκε στο απόθεμα.'); return loadStock(); })
+    .catch(e => { STK.bags.push(bag); stkRepaint(); handleError(e, 'Η αναίρεση δεν αποθηκεύτηκε.'); })
+    .finally(() => { pendingOps--; });
+}
 /* ---------- Είδη (σχέδια) ---------- */
 const stkKindCode = () => 'k' + Date.now().toString(36) + Math.floor(Math.random() * 46656).toString(36);
 function stkAddKind(){
@@ -4387,7 +4501,7 @@ function buildStock(){
     <div id="stkBody"></div>`;
 }
 function stkModeSeg(){
-  const modes = [['count','Μέτρηση'],['table','Πίνακας'],['moves','Κινήσεις']];
+  const modes = [['count','Μέτρηση'],['table','Πίνακας'],['staff','Παραλαβές'],['moves','Κινήσεις']];
   return `<div class="seg stk-modes" role="radiogroup" aria-label="Τρόπος">${modes.map(([m,l]) =>
     `<button type="button" role="radio" aria-checked="${STK.mode === m}" class="${STK.mode === m ? 'on' : ''}" data-stk-mode="${m}">${l}</button>`).join('')}</div>`;
 }
@@ -4500,6 +4614,46 @@ function stkTableHTML(){
   });
   return html + `<p class="hint">Γράψε απευθείας μέσα στα κουτάκια για να διορθώσεις ποσότητες· η διαφορά καταγράφεται στις κινήσεις. Τα χρώματα (μετονομασία, διαγραφή) είναι στη «Μέτρηση», κάτω κάτω.</p>`;
 }
+function stkStaffHTML(){
+  if (!STK.bagsLoaded) loadHandouts();
+  const add = `<details class="card add-card stk-colors"${STK.staff.length ? '' : ' open'}>
+    <summary>Προσωπικό (${STK.staff.length})</summary>
+    <div class="stk-add">
+      <label class="f f-grow"><span>Όνομα</span><input class="inp" id="stkStaffName" maxlength="40" autocomplete="off" placeholder="π.χ. ΓΙΩΡΓΟΣ Π."></label>
+      <label class="f"><span>Θέση</span><input class="inp" id="stkStaffRole" maxlength="40" autocomplete="off" placeholder="π.χ. φούρνος"></label>
+      <button class="btn primary" data-stk="add-staff">Προσθήκη</button>
+    </div>
+    <p class="hint" id="stkStaffHint">Τα νούμερα του καθενός τα μαθαίνει μόνο του, την πρώτη φορά που του ετοιμάζεις τσάντα.</p>
+  </details>`;
+  if (!STK.staff.length) return add + `<p class="empty">Πρόσθεσε πρώτα τους εργαζόμενους.</p>`;
+  const rows = STK.staff.map(st => {
+    const bags = stkBagsOf(st.name);
+    const total = bags.reduce((n,b) => n + b.items.reduce((m,i) => m + i.n, 0), 0);
+    const last = bags[0];
+    const line = stkStaffLine(st);
+    return `<div class="st-row">
+      <div class="st-main">
+        <b>${esc(st.name)}</b>${st.role ? `<span class="st-role">${esc(st.role)}</span>` : ''}
+        <small>${line ? esc(line) + ' · ' : ''}${last ? `τελευταία ${esc(shortDate(iso(new Date(last.at))))} · ${total} τεμ. συνολικά` : 'καμία παραλαβή ακόμα'}</small>
+      </div>
+      <button class="btn primary sm" data-stk="bag" data-id="${esc(st.id)}">Τσάντα</button>
+      <button class="icon-btn" data-stk="ren-staff" data-id="${esc(st.id)}" aria-label="Επεξεργασία" title="Όνομα και θέση">✎</button>
+      <button class="icon-btn" data-stk="del-staff" data-id="${esc(st.id)}" aria-label="Διαγραφή" title="Διαγραφή">×</button>
+    </div>`;
+  }).join('');
+  const recent = STK.bags.slice(0, 12).map(b => `<div class="row"><div class="r-main">
+      <b>${esc(b.staff || '—')}</b> <span class="stk-d dn">${b.items.reduce((n,i) => n + i.n, 0)} τεμ.</span>
+      <small>${esc(b.items.map(i => (i.n > 1 ? i.n + '× ' : '') + i.label).join(' · '))}</small>
+      <small>${iso(new Date(b.at)) === todayIso() ? 'σήμερα' : esc(shortDate(iso(new Date(b.at))))} ${esc(hhmm(b.at))}</small></div>
+      ${b.batch ? `<button class="btn ghost sm" data-stk="undo-bag" data-batch="${esc(b.batch)}">Αναίρεση</button>` : ''}</div>`).join('');
+  return `<div class="stk-bar"><div class="btns">
+      <button class="btn ghost sm" data-stk="print-staff">Λίστα παραλαβής</button></div></div>
+    <div class="st-list">${rows}</div>
+    ${add}
+    ${STK.bagsLoaded
+      ? (recent ? section('ΤΕΛΕΥΤΑΙΕΣ ΤΣΑΝΤΕΣ', `<div class="rows">${recent}</div>`) : '')
+      : '<p class="hint">Φόρτωση ιστορικού…</p>'}`;
+}
 function stkMovesHTML(){
   if (!STK.movesLoaded){ loadStockMoves(); return `<p class="hint">Φόρτωση…</p>`; }
   if (!STK.moves.length) return `<p class="empty">Καμία κίνηση ακόμα.</p>`;
@@ -4529,9 +4683,144 @@ function renderStock(){
   body.innerHTML = stkModeSeg()
     + (STK.mode === 'count' ? stkCountHTML()
      : STK.mode === 'table' ? stkTableHTML()
+     : STK.mode === 'staff' ? stkStaffHTML()
      : stkMovesHTML());
 }
+/* ---------- Τσάντα εργαζομένου ---------- */
+/* Τσεκάρεις τι μπαίνει, τα νούμερα έρχονται από την καρτέλα του ατόμου,
+   και όλα φεύγουν από το απόθεμα με μία κίνηση — ώστε να μπορεί να
+   αναιρεθεί ολόκληρη η τσάντα αν κάτι πάει στραβά. */
+function openBag(staffId){
+  const st = STK.staff.find(x => x.id === staffId);
+  if (!st) return;
+  const box = $('modalBox');
+  const mine = stkStaffSizes(st);
+  const tpl = LOCAL.settings.bagTemplate;
+  const pick = {};
+  STK.kinds.forEach(k => {
+    const sizes = stkSized(k.code) ? stkSizeCols(k.code) : [STK_ONE];
+    const hasStock = STK.list.some(v => v.kind === k.code && v.qty > 0);
+    pick[k.code] = {
+      on: tpl ? (tpl[k.code] > 0) : hasStock,
+      qty: Math.max(1, Number(tpl && tpl[k.code]) || 1),
+      size: (mine[k.code] && sizes.includes(mine[k.code])) ? mine[k.code] : (sizes[0] || ''),
+      color: ''
+    };
+  });
+  const draw = () => {
+    const keep = $('bagList') ? $('bagList').scrollTop : 0;
+    const rows = STK.kinds.map(k => {
+      const st2 = pick[k.code];
+      const colors = stkColorsFor(k.code).filter(c => STK.list.some(v => v.kind === k.code && v.color === c.name && v.qty > 0));
+      if (!colors.some(c => c.name === st2.color)) st2.color = colors.length ? colors[0].name : '';
+      const sizes = stkSized(k.code) ? stkSizeCols(k.code).filter(sz => stkQty(k.code, st2.color, sz) > 0) : [STK_ONE];
+      if (!sizes.includes(st2.size)) st2.size = sizes[0] || '';
+      const have = stkQty(k.code, st2.color, st2.size);
+      return `<div class="bag-row${st2.on ? ' on' : ''}">
+        <label class="bag-head"><input type="checkbox" data-bk="${esc(k.code)}" ${st2.on ? 'checked' : ''}><b>${esc(k.name)}</b></label>
+        ${st2.on ? `<div class="bag-opts">
+          <div class="g-chips">${colors.map(c => `<button type="button" class="g-chip${st2.color === c.name ? ' on' : ''}" data-bc="${esc(k.code)}|${esc(c.name)}"><i style="background:${esc(c.hex)}"></i>${esc(c.name)}</button>`).join('') || '<em class="g-none">χωρίς απόθεμα</em>'}</div>
+          ${stkSized(k.code) ? `<div class="g-chips">${sizes.map(sz => `<button type="button" class="g-chip sz${st2.size === sz ? ' on' : ''}" data-bs="${esc(k.code)}|${esc(sz)}">${esc(sz)}<em>${stkQty(k.code, st2.color, sz)}</em></button>`).join('') || '<em class="g-none">—</em>'}</div>` : ''}
+          <div class="bag-qty">
+            <button type="button" class="stk-b" data-bq="${esc(k.code)}|-1" ${st2.qty > 1 ? '' : 'disabled'}>−</button>
+            <span>${st2.qty}</span>
+            <button type="button" class="stk-b" data-bq="${esc(k.code)}|1" ${st2.qty < have ? '' : 'disabled'}>+</button>
+            <small>${have ? `από ${have}` : 'δεν υπάρχει'}</small>
+          </div>
+        </div>` : ''}
+      </div>`;
+    }).join('');
+    const chosen = STK.kinds.filter(k => pick[k.code].on && stkQty(k.code, pick[k.code].color, pick[k.code].size) >= pick[k.code].qty);
+    const total = chosen.reduce((n,k) => n + pick[k.code].qty, 0);
+    box.innerHTML = `
+      <button class="icon-btn m-x" data-m="cancel" aria-label="Κλείσιμο">×</button>
+      <p class="m-eyebrow">Τσάντα εργαζομένου</p>
+      <h2>${esc(st.name)}${st.role ? ` <span class="st-role">${esc(st.role)}</span>` : ''}</h2>
+      <div class="bag-list" id="bagList">${rows}</div>
+      <p class="hint">${total ? `Θα φύγουν <b>${total}</b> τεμάχια από το απόθεμα.` : 'Διάλεξε τι μπαίνει στην τσάντα.'}</p>
+      <div class="m-f"><span class="m-sp"></span>
+        <button class="btn ghost" data-m="cancel">Άκυρο</button>
+        <button class="btn primary" data-m="save" ${total ? '' : 'disabled'}>Δόθηκε η τσάντα</button></div>`;
+    if ($('bagList')) $('bagList').scrollTop = keep;
+  };
+  const close = () => { $('modal').hidden = true; box.innerHTML = ''; document.removeEventListener('keydown', onKey); };
+  const onKey = e => { if (e.key === 'Escape') close(); };
+  box.onclick = e => {
+    const c = e.target.closest('[data-bc]');
+    if (c){ const [k, v] = c.dataset.bc.split('|'); pick[k].color = v; draw(); return; }
+    const z = e.target.closest('[data-bs]');
+    if (z){ const [k, v] = z.dataset.bs.split('|'); pick[k].size = v; draw(); return; }
+    const q = e.target.closest('[data-bq]');
+    if (q){ const [k, d] = q.dataset.bq.split('|'); pick[k].qty = Math.max(1, pick[k].qty + Number(d)); draw(); return; }
+    const b = e.target.closest('[data-m]'); if (!b) return;
+    if (b.dataset.m === 'cancel') close();
+    if (b.dataset.m === 'save') save();
+  };
+  box.onchange = e => {
+    const k = e.target.closest('[data-bk]');
+    if (k){ pick[k.dataset.bk].on = k.checked; draw(); }
+  };
+  const save = () => {
+    const items = [], moved = [];
+    STK.kinds.forEach(k => {
+      const st2 = pick[k.code];
+      if (!st2.on) return;
+      const v = stkFind(k.code, st2.color, st2.size);
+      if (!v || v.qty < st2.qty) return;
+      items.push({ variant:v.id, qty:st2.qty });
+      moved.push({ v, qty:st2.qty });
+    });
+    if (!items.length) return;
+    close();
+    /* Τα νούμερα που διάλεξες μένουν στην καρτέλα του ατόμου για την επόμενη φορά */
+    const map = stkStaffSizes(st);
+    let changed = false;
+    STK.kinds.forEach(k => { const x = pick[k.code]; if (x.on && stkSized(k.code) && x.size && map[k.code] !== x.size){ map[k.code] = x.size; changed = true; } });
+    const tplNew = {};
+    STK.kinds.forEach(k => { if (pick[k.code].on) tplNew[k.code] = pick[k.code].qty; });
+    LOCAL.settings.bagTemplate = tplNew; saveLocal();
+    if (changed){
+      const prev = st.sizes;
+      const text = stkSizesToText(map);
+      stkPatchStaff(st, { sizes:text }, () => st.sizes = text, () => st.sizes = prev, 'Τα νούμερα δεν αποθηκεύτηκαν.');
+    }
+    const before = moved.map(m => m.v.qty);
+    moved.forEach(m => m.v.qty = Math.max(0, m.v.qty - m.qty));
+    stkRepaint();
+    pendingOps++;
+    api('rpc/stock_handout', { method:'POST', body:{ p_staff:st.name, p_items:items, p_note:'τσάντα' } })
+      .then(() => { setOnline(true); STK.movesLoaded = false; STK.bagsLoaded = false; stkRepaint();
+        toast(`Δόθηκε η τσάντα στον/στην <b>${esc(st.name)}</b> — ${moved.reduce((n,m) => n + m.qty, 0)} τεμάχια.`); })
+      .catch(e => { moved.forEach((m,i) => m.v.qty = before[i]); stkRepaint(); handleError(e, 'Η τσάντα δεν αποθηκεύτηκε.'); })
+      .finally(() => { pendingOps--; });
+  };
+  $('modal').onclick = e => { if (e.target === $('modal')) close(); };
+  document.addEventListener('keydown', onKey);
+  draw();
+  $('modal').hidden = false;
+}
 /* ---------- Εκτυπώσεις ---------- */
+/* Λίστα για υπογραφή: ποιος, τι νούμερα, τι πήρε, κενό για υπογραφή */
+function printStaff(){
+  const area = $('printArea'), now = new Date();
+  const sized = STK.kinds.filter(k => k.sized);
+  let html = `<h1>Λίστα παραλαβής · Μύλοι Αρκαδίου</h1>
+    <p class="p-sub">${longDate(todayIso())}, ${hhmm(now.toISOString())}</p>
+    <table class="p-stock">
+      <colgroup><col style="width:26%">${sized.map(() => '<col style="width:9%">').join('')}<col style="width:${Math.max(20, 46 - sized.length * 9)}%"><col style="width:20%"></colgroup>
+      <tr class="p-head"><td class="c-name">Όνομα</td>${sized.map(k => `<td>${esc(k.name.slice(0,4))}.</td>`).join('')}<td>Τι πήρε</td><td>Υπογραφή</td></tr>
+      ${STK.staff.map(st => { const m = stkStaffSizes(st); return `<tr>
+        <td class="c-name">${esc(st.name)}${st.role ? `<br><small>${esc(st.role)}</small>` : ''}</td>
+        ${sized.map(k => `<td>${esc(m[k.code] || '–')}</td>`).join('')}
+        <td class="c-blank"></td><td class="c-blank"></td></tr>`; }).join('')}
+    </table>
+    <p class="p-sub">Συμπλήρωσε τι πήρε ο καθένας και πέρασέ το μετά στις «Παραλαβές».</p>`;
+  area.innerHTML = html;
+  document.body.classList.add('print-mode');
+  const done = () => { document.body.classList.remove('print-mode'); area.innerHTML = ''; window.removeEventListener('afterprint', done); };
+  window.addEventListener('afterprint', done);
+  try { window.print(); } catch(e){ toast('Η εκτύπωση δεν επιτρέπεται εδώ. Άνοιξε την εφαρμογή από το δικό σας link.'); done(); }
+}
 function printStock(blank){
   const area = $('printArea'), now = new Date();
   let html = `<h1>${blank ? 'Φύλλο απογραφής' : 'Ενδυμασία προσωπικού'} · Μύλοι Αρκαδίου</h1>
@@ -4571,6 +4860,7 @@ document.addEventListener('click', e => {
   if (m){
     STK.mode = m.dataset.stkMode;
     if (STK.mode === 'moves') STK.movesLoaded = false;
+    if (STK.mode === 'staff') STK.bagsLoaded = false;
     renderStock(); return;
   }
   const k = e.target.closest('[data-stk-kind]');
@@ -4600,6 +4890,12 @@ document.addEventListener('click', e => {
     case 'del-kind': stkRemoveKind(a.dataset.code); break;
     case 'kind-sizes': stkEditKindSizes(a.dataset.code); break;
     case 'kind-sized': stkToggleKindSized(a.dataset.code); break;
+    case 'add-staff': stkAddStaff(); break;
+    case 'ren-staff': stkRenameStaff(a.dataset.id); break;
+    case 'del-staff': stkRemoveStaff(a.dataset.id); break;
+    case 'bag': openBag(a.dataset.id); break;
+    case 'undo-bag': stkUndoBag(a.dataset.batch); break;
+    case 'print-staff': printStaff(); break;
     case 'print': printStock(false); break;
     case 'print-blank': printStock(true); break;
   }
