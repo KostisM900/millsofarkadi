@@ -581,6 +581,10 @@ input{font:inherit;color:inherit}
 /* ===== ΣΤΟΚ ΜΠΛΟΥΖΩΝ ===== */
 .stk-modes{margin-bottom:16px;flex-wrap:wrap}
 .stk-pick{display:flex;flex-direction:column;gap:10px;margin-bottom:10px}
+.stk-kinds{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:2px}
+.stk-kinds button{padding:10px 15px;border-radius:9px;border:1px solid var(--line);background:var(--white);font-size:13.5px;font-weight:700;color:var(--ink);cursor:pointer}
+.stk-kinds button:hover{border-color:var(--olive)}
+.stk-kinds button.on{background:var(--olive-dark);border-color:var(--olive-dark);color:#fff}
 .stk-sizes{display:flex;flex-wrap:wrap;gap:6px}
 .stk-sizes button{min-width:46px;height:42px;padding:0 10px;border-radius:9px;border:1px solid var(--line);background:var(--white);font-weight:800;font-size:15px;color:var(--ink);cursor:pointer}
 .stk-sizes button.on{background:var(--olive-dark);border-color:var(--olive-dark);color:#fff}
@@ -3530,7 +3534,7 @@ function openGarmentOut(){
       <p class="m-eyebrow">Ενδυμασία προσωπικού</p>
       <h2>Δόθηκε ρούχο</h2>
       <div class="f m-field"><span>Είδος</span>
-        <div class="seg">${STK.kinds.filter(k => STK.list.some(v => v.kind === k.code && v.qty > 0)).map(k =>
+        <div class="stk-kinds">${STK.kinds.filter(k => STK.list.some(v => v.kind === k.code && v.qty > 0)).map(k =>
           `<button type="button" class="${kind === k.code ? 'on' : ''}" data-gk="${esc(k.code)}">${esc(k.name)}</button>`).join('')}</div>
       </div>
       <div class="f m-field"><span>Χρώμα</span>
@@ -4507,7 +4511,7 @@ function stkModeSeg(){
 }
 /* Είδος + μέγεθος: κλειδώνονται από πάνω και μένουν ίδια σε όλη τη μέτρηση */
 function stkKindSeg(){
-  return `<div class="seg stk-kind" role="radiogroup" aria-label="Είδος">${STK.kinds.map(k =>
+  return `<div class="stk-kinds" role="radiogroup" aria-label="Είδος">${STK.kinds.map(k =>
     `<button type="button" role="radio" aria-checked="${STK.kind === k.code}" class="${STK.kind === k.code ? 'on' : ''}" data-stk-kind="${esc(k.code)}">${esc(k.name)}</button>`).join('')}</div>`;
 }
 /* Είδος + μέγεθος: κλειδώνονται από πάνω και μένουν ίδια σε όλη τη μέτρηση.
@@ -4570,7 +4574,7 @@ function stkCountHTML(){
   const sub = STK.list.filter(v => v.kind === STK.kind && v.size === size);
   return `${stkPickers()}
     <p class="stk-now">${esc(stkKindPl(STK.kind))}${stkSized(STK.kind) ? ` · <b>${esc(STK.size)}</b>` : ' <span class="stk-tag">ένα νούμερο</span>'} — σύνολο <b>${stkTotal(sub)}</b> τεμάχια</p>
-    <div class="stk-rows">${rows || '<p class="empty">Δεν έχει χρώματα αυτό το είδος. Άνοιξε ένα από κάτω.</p>'}</div>
+    <div class="stk-rows">${rows || `<p class="empty">Τα ${esc(stkKindPl(STK.kind).toLowerCase())} δεν έχουν χρώμα ακόμα. Πάτα παρακάτω ποιο ισχύει — ή πρόσθεσε νέο από την κάρτα «Χρώματα».</p>`}</div>
     ${stkKindColors()}
     ${stkKindCard()}
     ${stkColorCard()}`;
