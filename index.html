@@ -30,7 +30,7 @@ input{font:inherit;color:inherit}
 
 /* ===== HEADER ===== */
 .topbar{background:var(--white);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:40}
-.topbar-in{max-width:980px;margin:0 auto;height:66px;padding:0 24px;display:flex;align-items:center;gap:16px}
+.topbar-in{max-width:1180px;margin:0 auto;height:66px;padding:0 24px;display:flex;align-items:center;gap:16px}
 .brand{display:flex;align-items:center;gap:12px;margin-right:auto;text-decoration:none;color:inherit}
 .brand img{height:46px;width:auto;max-width:120px;object-fit:contain}
 .brand-fallback{width:40px;height:40px;border-radius:50%;background:var(--olive-dark);color:#fff;display:grid;place-items:center;font-weight:800;font-size:14px}
@@ -39,7 +39,7 @@ input{font:inherit;color:inherit}
 .bt span{font-size:10.5px;letter-spacing:.14em;color:var(--olive-dark);font-weight:700}
 .nav{display:flex;gap:2px;min-width:0;overflow-x:auto;scrollbar-width:none;scroll-snap-type:x proximity}
 .nav.scrolls{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 26px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 26px),transparent)}
-@media (max-width:720px){
+@media (max-width:940px){
   .topbar-in{height:auto;flex-wrap:wrap;padding:10px 14px 0;gap:8px}
   .brand{margin-right:auto}
   .brand img{height:38px}
@@ -72,12 +72,12 @@ input{font:inherit;color:inherit}
 .notif-in p{flex:1}
 
 /* ===== LAYOUT ===== */
-.main{max-width:980px;margin:0 auto;padding:34px 24px 90px}
-@media (max-width:600px){.main{padding:22px 14px 80px}.notif-in{padding:10px 14px}}
+.main{max-width:980px;margin:0 auto;padding:28px 24px 44px}
+@media (max-width:600px){.main{padding:20px 14px 70px}.notif-in{padding:10px 14px}}
 .view{display:none}
 .view.active{display:block}
-.greet{margin-bottom:22px}
-.greet h1{font-size:clamp(26px,3.6vw,34px);font-weight:700;letter-spacing:-.015em;line-height:1.15}
+.greet{margin-bottom:16px}
+.greet h1{font-size:clamp(24px,3vw,30px);font-weight:700;letter-spacing:-.015em;line-height:1.15}
 .greet p{margin-top:8px;font-size:15.5px}
 .greet .date{color:var(--muted)}
 .sec{margin-bottom:34px}
@@ -391,7 +391,10 @@ input{font:inherit;color:inherit}
 
 /* ===== ΑΡΧΕΙΟΘΕΤΗΣΗ ===== */
 .nl-short{display:none}
-@media (max-width:600px){ .nl-long{display:none} .nl-short{display:inline} .nav-btn{padding:9px 8px;font-size:11.5px} svg.nl-short{width:19px;height:19px;vertical-align:-4px} }
+/* Σε στενότερες οθόνες τα μεγάλα ονόματα γίνονται σύντομα, ώστε να μη
+   βγαίνει καμία ενότητα έξω από τη γραμμή. */
+@media (max-width:1150px){ .nl-long{display:none} .nl-short{display:inline} .nav-btn{padding:9px 11px} }
+@media (max-width:600px){ .nav-btn{padding:9px 8px;font-size:11.5px} svg.nl-short{width:19px;height:19px;vertical-align:-4px} }
 .drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:26px 20px;border:2px dashed #D6D3C5;border-radius:14px;background:var(--white);cursor:pointer;margin-bottom:24px;transition:border-color .15s,background .15s}
 .drop:hover,.drop.over{border-color:var(--olive);background:var(--olive-tint)}
 .drop svg{width:34px;height:34px;color:var(--olive-dark);margin-bottom:4px}
@@ -685,7 +688,7 @@ input{font:inherit;color:inherit}
 .login-eyebrow{font-size:10.5px;font-weight:800;letter-spacing:.18em;color:var(--olive-dark);margin:0 0 8px}
 
 /* ===== ΑΡΧΙΚΗ ===== */
-.home-actions{display:flex;gap:8px;flex-wrap:wrap;margin:-6px 0 22px}
+.home-actions{display:flex;gap:8px;flex-wrap:wrap;margin:-8px 0 16px}
 .home-act{font-weight:700}
 .alerts{display:flex;flex-direction:column;gap:8px}
 .alert-row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--white);border:1px solid var(--line);border-left:4px solid var(--line);border-radius:10px;padding:13px 16px;font-size:14.5px;font-weight:600}
@@ -706,17 +709,18 @@ input{font:inherit;color:inherit}
 .all-clear svg{width:26px;height:26px;color:var(--olive)}
 .all-clear b{display:block;font-size:15px}
 .all-clear small{color:var(--muted);font-size:13px}
-.mod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
-.mod{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;background:var(--white);border:1px solid var(--line);border-radius:10px;padding:16px 16px 18px;transition:border-color .15s,transform .15s}
+.mod-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(163px,1fr));gap:10px;margin-top:14px}
+.mod{display:flex;align-items:center;gap:11px;text-align:left;background:var(--white);border:1px solid var(--line);border-radius:10px;padding:10px 13px;transition:border-color .15s,transform .15s}
 .mod:hover{border-color:var(--olive);transform:translateY(-1px)}
-.mod-ic{display:grid;place-items:center;width:34px;height:34px;border-radius:8px;background:var(--olive-tint);color:var(--olive-deep);margin-bottom:6px}
-.mod-ic svg{width:19px;height:19px}
-.mod-t{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700}
-.mod-l{font-size:12.5px;color:var(--muted);line-height:1.4}
+.mod-ic{display:grid;place-items:center;width:32px;height:32px;border-radius:8px;background:var(--olive-tint);color:var(--olive-deep);flex:none}
+.mod-ic svg{width:18px;height:18px}
+.mod-txt{min-width:0}
+.mod-t{display:flex;align-items:center;gap:7px;font-size:13.5px;font-weight:700;line-height:1.25}
+.mod-l{display:block;font-size:11.5px;color:var(--muted);line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* ===== ΑΡΧΙΚΗ: ΜΠΛΟΚ ΜΕ ΔΕΔΟΜΕΝΑ ===== */
-.home-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px;align-items:start}
-.hb{background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px 16px}
+.home-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:12px;align-items:start}
+.hb{background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:12px 15px 13px}
 .hb.bad{border-color:#EBD3D1}
 .hb-h{display:flex;align-items:center;gap:10px;margin-bottom:10px}
 .hb-h h3{font-size:12px;font-weight:800;letter-spacing:.1em;white-space:nowrap}
@@ -726,7 +730,7 @@ input{font:inherit;color:inherit}
 .hb-h .rule{flex:1;height:1px;background:var(--line-2)}
 .hb-h .btn{padding:5px 10px;font-size:11.5px}
 .hb-list{display:flex;flex-direction:column}
-.hb-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line-2)}
+.hb-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--line-2)}
 .hb-list > .hb-row:first-child{border-top:0}
 .hb-main{flex:1;min-width:0}
 .hb-main b{font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -744,6 +748,14 @@ input{font:inherit;color:inherit}
 .hb-search .inp{width:100%;padding:8px 11px;font-size:13px}
 .hb-empty{color:var(--muted);font-size:13px;padding:6px 0}
 .hb .slot{margin-left:0}
+.g-chips{display:flex;flex-wrap:wrap;gap:6px}
+.g-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--white);border-radius:999px;padding:8px 13px;font-size:13px;font-weight:700;color:var(--ink);cursor:pointer}
+.g-chip i{width:13px;height:13px;border-radius:50%;border:1px solid rgba(0,0,0,.15)}
+.g-chip em{font-style:normal;font-weight:700;color:var(--muted);font-size:11.5px}
+.g-chip.on{background:var(--olive-dark);border-color:var(--olive-dark);color:#fff}
+.g-chip.on em{color:rgba(255,255,255,.75)}
+.g-chip.sz{min-width:52px;justify-content:center}
+.g-none{color:var(--muted);font-style:normal;font-size:13px}
 .q-body{margin-top:14px}
 .modal .m-err{margin:4px 0 0}
 .modal .m-err:empty{display:none}
@@ -3233,14 +3245,15 @@ function renderHome(){
     { act:'new-envelope', label:'Νέος φάκελος' },
     canVehicles() ? { act:'new-vehicle', label:'Νέο όχημα' } : null,
     canCheques()  ? { act:'new-cheque', label:'Νέα επιταγή' } : null,
-    canArchive()  ? { act:'new-check', label:'Έλεγχος παραστατικών' } : null
+    canArchive()  ? { act:'new-check', label:'Έλεγχος παραστατικών' } : null,
+    canStock()    ? { act:'give-garment', label:'Δόθηκε ρούχο', sign:'−' } : null
   ].filter(Boolean);
 
   /* Φάκελοι: τι φεύγει σήμερα και τι έμεινε */
   const G = groupsOf(pending());
   const envToday = G.filter(g => g.date === t).sort((x,y) => x.name.localeCompare(y.name,'el'));
   const envLate = G.filter(g => g.date && g.date < t).sort((x,y) => x.name.localeCompare(y.name,'el'));
-  const envItems = [...envLate, ...envToday].slice(0, 8).map(g => homeRow(
+  const envItems = [...envLate, ...envToday].slice(0, 4).map(g => homeRow(
     esc(g.name) + `<span class="slot">${esc(letterOf(g.name))}</span>`,
     `${esc(docSummary(g.items))}${g.date < t ? ` · <span class="w-late">έμεινε από ${esc(shortDate(g.date))}</span>` : ' · φεύγει σήμερα'}`,
     `<button class="btn primary sm" data-act="give" data-ids="${g.ids}">Δόθηκε</button>`,
@@ -3250,7 +3263,7 @@ function renderHome(){
   let arcBlock = '';
   if (canArchive()){
     const waiting = ARC.loaded ? [...ARC.missing.keys()].sort((x,y) => (docState(y) === 'late') - (docState(x) === 'late') || byCode(x,y)) : [];
-    const shown = waiting.slice(0, 8).map(c => {
+    const shown = waiting.slice(0, 4).map(c => {
       const st = docState(c), d = docDate(c), age = ageDays(d);
       return `<label class="hb-row chk ${st}">
         <input type="checkbox" data-arc-code="${esc(c)}">
@@ -3267,12 +3280,12 @@ function renderHome(){
   }
 
   /* Επιταγές και οχήματα: μόνο ό,τι θέλει κίνηση */
-  const chqItems = (canCheques() && CHQ.loaded ? chqOpen().filter(c => c.due <= t) : []).slice(0, 6).map(c => homeRow(
+  const chqItems = (canCheques() && CHQ.loaded ? chqOpen().filter(c => c.due <= t) : []).slice(0, 3).map(c => homeRow(
     (c.last4 ? `…${esc(c.last4)}` : 'επιταγή'),
     `${esc(fmtDate(c.due))}${c.due < t ? ' · <span class="w-late">πέρασε</span>' : ' · εξοφλείται σήμερα'}${c.note ? ' · ' + esc(c.note) : ''}`,
     `<button class="btn primary sm" data-chq="cleared" data-id="${c.id}">Εξοφλήθηκε</button>`,
     c.due < t ? 'late' : 'today'));
-  const vehItems = (canVehicles() && VEH.loaded ? vehDeadlines().filter(x => vehState(x.due) !== 'ok') : []).slice(0, 6).map(x => homeRow(
+  const vehItems = (canVehicles() && VEH.loaded ? vehDeadlines().filter(x => vehState(x.due) !== 'ok') : []).slice(0, 3).map(x => homeRow(
     esc(x.v.plate) + `<span class="ktag ${x.kind}">${esc(VEH_KINDS[x.kind])}</span>`,
     `${esc(fmtDate(x.due))} · ${vehState(x.due) === 'late' ? `<span class="w-late">έληξε πριν ${esc(ageText(-vehDaysLeft(x.due)))}</span>` : vehDaysLeft(x.due) === 0 ? 'λήγει σήμερα' : `σε ${esc(ageText(vehDaysLeft(x.due)))}`}`,
     `<button class="btn ghost sm" data-veh="renew" data-id="${x.v.id}" data-kind="${x.kind}">Ανανεώθηκε</button>`,
@@ -3283,19 +3296,20 @@ function renderHome(){
       <h1>${now.getHours() < 12 ? 'Καλημέρα' : 'Καλησπέρα'}${a && a.voc ? ', ' + a.voc : ''}</h1>
       <p><span class="date">${longDate(t)}.</span> ${alerts.length ? `${alerts.length === 1 ? 'Ένα θέμα θέλει' : alerts.length + ' θέματα θέλουν'} προσοχή.` : 'Τίποτα δεν εκκρεμεί σήμερα.'}</p>
     </div>
-    <div class="home-actions">${actions.map(x => `<button class="btn ghost home-act" data-home="${x.act}">+ ${esc(x.label)}</button>`).join('')}</div>
+    <div class="home-actions">${actions.map(x => `<button class="btn ghost home-act" data-home="${x.act}">${x.sign || '+'} ${esc(x.label)}</button>`).join('')}</div>
     <div class="home-cols">
       ${homeBlock('ΦΑΚΕΛΟΙ ΓΙΑ ΣΗΜΕΡΑ', 'main', envItems, G.length ? 'Κανένας φάκελος δεν φεύγει σήμερα.' : 'Κανένας φάκελος σε εκκρεμότητα.', !!envLate.length)}
       ${arcBlock}
       ${canCheques() ? homeBlock('ΕΠΙΤΑΓΕΣ ΓΙΑ ΣΗΜΕΡΑ', 'chq', chqItems, 'Καμία επιταγή για σήμερα.', chqItems.length && chqOverdue() > 0) : ''}
       ${canVehicles() ? homeBlock('ΟΧΗΜΑΤΑ', 'veh', vehItems, 'Καμία λήξη δεν πλησιάζει.', vehItems.length && vehDeadlines().some(x => vehState(x.due) === 'late')) : ''}
     </div>
-    <div class="sec-h" style="margin-top:30px"><h2>ΕΝΟΤΗΤΕΣ</h2><span class="rule"></span></div>
     <div class="mod-grid">${mods.map(m => `
       <button class="mod" data-go="${m.v}">
         <span class="mod-ic">${HOME_ICONS[m.v]}</span>
-        <span class="mod-t">${esc(m.title)}${m.n ? `<span class="cnt">${m.n}</span>` : ''}</span>
-        <span class="mod-l">${esc(m.line)}</span>
+        <span class="mod-txt">
+          <span class="mod-t">${esc(m.title)}${m.n ? `<span class="cnt">${m.n}</span>` : ''}</span>
+          <span class="mod-l">${esc(m.line)}</span>
+        </span>
       </button>`).join('')}</div>`;
   if ($('hArcQ')){
     const q = $('hArcQ');
@@ -3469,7 +3483,76 @@ document.addEventListener('click', e => {
   const quick = { 'new-envelope':'env', 'new-cheque':'chq', 'new-vehicle':'veh' };
   if (quick[b.dataset.home]) return openQuickForm(quick[b.dataset.home]);
   if (b.dataset.home === 'new-check'){ go('arc'); setTimeout(() => $('arcFile') && $('arcFile').click(), 150); }
+  if (b.dataset.home === 'give-garment') openGarmentOut();
 });
+
+/* ---------- Δόθηκε ρούχο: αφαίρεση ενός τεμαχίου με τρία πατήματα ---------- */
+function openGarmentOut(){
+  if (!canStock()) return;
+  if (!STK.loaded){
+    if (STK.setupMissing){ go('stk'); return; }
+    toast('Φόρτωση αποθέματος…');
+    loadStock().then(() => { if (STK.loaded) openGarmentOut(); });
+    return;
+  }
+  if (!STK.list.some(v => v.qty > 0)){ toast('Δεν υπάρχει καταχωρημένο απόθεμα.'); go('stk'); return; }
+  const box = $('modalBox');
+  const has = (k, c, sz) => stkQty(k, c, sz) > 0;
+  let kind = STK.kinds.some(k => k.code === STK.kind && STK.list.some(v => v.kind === k.code && v.qty > 0))
+    ? STK.kind
+    : (STK.kinds.find(k => STK.list.some(v => v.kind === k.code && v.qty > 0)) || STK.kinds[0] || {}).code;
+  let color = '', size = '';
+  const draw = () => {
+    const colors = stkColorsFor(kind).filter(c => STK.list.some(v => v.kind === kind && v.color === c.name && v.qty > 0));
+    if (!colors.some(c => c.name === color)) color = colors.length ? colors[0].name : '';
+    const sizes = stkSized(kind)
+      ? stkSizeCols(kind).filter(sz => has(kind, color, sz))
+      : (has(kind, color, STK_ONE) ? [STK_ONE] : []);
+    if (!sizes.includes(size)) size = sizes[0] || '';
+    const q = stkQty(kind, color, size);
+    box.innerHTML = `
+      <button class="icon-btn m-x" data-m="cancel" aria-label="Κλείσιμο">×</button>
+      <p class="m-eyebrow">Ενδυμασία προσωπικού</p>
+      <h2>Δόθηκε ρούχο</h2>
+      <div class="f m-field"><span>Είδος</span>
+        <div class="seg">${STK.kinds.filter(k => STK.list.some(v => v.kind === k.code && v.qty > 0)).map(k =>
+          `<button type="button" class="${kind === k.code ? 'on' : ''}" data-gk="${esc(k.code)}">${esc(k.name)}</button>`).join('')}</div>
+      </div>
+      <div class="f m-field"><span>Χρώμα</span>
+        <div class="g-chips">${colors.map(c =>
+          `<button type="button" class="g-chip${color === c.name ? ' on' : ''}" data-gc="${esc(c.name)}"><i style="background:${esc(c.hex)}"></i>${esc(c.name)}</button>`).join('') || '<em class="g-none">—</em>'}</div>
+      </div>
+      ${stkSized(kind) ? `<div class="f m-field"><span>Νούμερο</span>
+        <div class="g-chips">${sizes.map(sz =>
+          `<button type="button" class="g-chip sz${size === sz ? ' on' : ''}" data-gs="${esc(sz)}">${esc(sz)}<em>${stkQty(kind, color, sz)}</em></button>`).join('') || '<em class="g-none">—</em>'}</div>
+      </div>` : ''}
+      <p class="hint">${q ? `Υπάρχουν <b>${q}</b> τεμάχια. Μετά την αφαίρεση θα μείνουν <b>${q - 1}</b>.` : 'Δεν υπάρχει απόθεμα σε αυτόν τον συνδυασμό.'}</p>
+      <div class="m-f"><span class="m-sp"></span>
+        <button class="btn ghost" data-m="cancel">Άκυρο</button>
+        <button class="btn primary" data-m="save" ${q ? '' : 'disabled'}>Αφαίρεση 1</button></div>`;
+  };
+  const close = () => { $('modal').hidden = true; box.innerHTML = ''; document.removeEventListener('keydown', onKey); };
+  const onKey = e => { if (e.key === 'Escape') close(); };
+  box.onclick = e => {
+    const k = e.target.closest('[data-gk]'); if (k){ kind = k.dataset.gk; draw(); return; }
+    const c = e.target.closest('[data-gc]'); if (c){ color = c.dataset.gc; draw(); return; }
+    const z = e.target.closest('[data-gs]'); if (z){ size = z.dataset.gs; draw(); return; }
+    const b = e.target.closest('[data-m]'); if (!b) return;
+    if (b.dataset.m === 'cancel') close();
+    if (b.dataset.m === 'save'){
+      const v = stkFind(kind, color, size);
+      close();
+      if (!v || !v.qty) return;
+      stkChange(v, -1, 'out');
+      toast(`Αφαιρέθηκε: <b>${esc(stkName(v))}</b>. Μένουν ${Math.max(0, v.qty)}.`,
+            { action:{ label:'Αναίρεση', fn:() => stkChange(v, 1, 'undo') } });
+    }
+  };
+  $('modal').onclick = e => { if (e.target === $('modal')) close(); };
+  document.addEventListener('keydown', onKey);
+  draw();
+  $('modal').hidden = false;
+}
 
 /* ===================== ΟΧΗΜΑΤΑ: ΚΤΕΟ & ΚΑΡΤΑ ΚΑΥΣΑΕΡΙΩΝ ===================== */
 /* Πρόσβαση: info@m-m-m.gr και social@m-m-m.gr (επιβάλλεται από τους κανόνες RLS στη βάση).
