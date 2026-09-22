@@ -1,8 +1,9 @@
 /* =====================================================================
    Φάκελοι πελατών · Μύλοι Αρκαδίου
    Service worker ΜΟΝΟ για τα κουμπιά μέσα στην ειδοποίηση του υπολογιστή
-   («Δόθηκε», «Σε 30′»). Ο browser δεν επιτρέπει κουμπιά σε ειδοποίηση
-   που φτιάχνεται απευθείας από τη σελίδα — χρειάζεται αυτό το αρχείο.
+   («Δόθηκε», «Σε 30′», «Κλείσιμο»). Ο browser δεν επιτρέπει κουμπιά σε
+   ειδοποίηση που φτιάχνεται απευθείας από τη σελίδα — χρειάζεται αυτό το
+   αρχείο.
 
    Ανέβασέ το ΔΙΠΛΑ στο index.html, στον ίδιο φάκελο.
 
@@ -19,6 +20,10 @@ self.addEventListener('notificationclick', event => {
   const action = event.action || 'open';
   const data = event.notification.data || {};
   event.notification.close();
+
+  /* «Κλείσιμο»: μόνο φεύγει η ειδοποίηση. Δεν ανοίγει και δεν φέρνει
+     μπροστά την εφαρμογή. */
+  if (action === 'close') return;
 
   event.waitUntil((async () => {
     const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
