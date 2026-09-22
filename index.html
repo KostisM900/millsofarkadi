@@ -581,7 +581,22 @@ input{font:inherit;color:inherit}
 .nav-btn.icon-only.active::after{left:10px;right:10px}
 
 /* ===== ΣΤΟΚ ΜΠΛΟΥΖΩΝ ===== */
-.stk-modes{margin-bottom:16px;flex-wrap:wrap}
+.stk-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.stk-modes{flex-wrap:wrap}
+.stk-setup-btn{margin-left:auto;display:inline-flex;align-items:center;gap:7px}
+.stk-setup-btn svg{width:15px;height:15px}
+.stk-setup-btn.on{background:var(--olive-dark);border-color:var(--olive-dark);color:#fff}
+.stk-setup-btn.on:hover{color:#fff}
+.stk-foot{margin-top:22px;padding-top:14px;border-top:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:13px}
+.stk-matrix td{padding:5px 6px}
+.stk-matrix tbody th{position:sticky;left:0;background:var(--white);z-index:1;box-shadow:1px 0 0 var(--line-2)}
+.stk-matrix thead th:first-child{position:sticky;left:0;background:var(--bg);z-index:2}
+.stk-matrix .mx{width:34px;height:30px;border-radius:7px;border:1px solid var(--line);background:var(--white);font-size:14px;font-weight:800;color:var(--muted);cursor:pointer}
+.stk-matrix .mx.on{background:var(--olive-tint);border-color:var(--olive);color:var(--olive-deep)}
+.stk-matrix .mx:hover{border-color:var(--olive)}
+.set-card{padding:16px 18px;margin-bottom:12px}
+.set-card > h3{font-size:13px;font-weight:800;letter-spacing:.08em;margin-bottom:2px}
+.set-card > .hint{margin-top:2px}
 .stk-pick{display:flex;flex-direction:column;gap:10px;margin-bottom:10px}
 .stk-kinds{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:2px}
 .stk-kinds button{padding:10px 15px;border-radius:9px;border:1px solid var(--line);background:var(--white);font-size:13.5px;font-weight:700;color:var(--ink);cursor:pointer}
@@ -614,11 +629,6 @@ input{font:inherit;color:inherit}
 .stk-chip em{font-style:normal;color:var(--muted);font-weight:600}
 .stk-chip .icon-btn{padding:0 4px;min-width:20px;line-height:1}
 .stk-chip.off{opacity:.45}
-.stk-kindcolors{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:2px 0 12px}
-.stk-kindcolors > span{font-size:12.5px;color:var(--muted);font-weight:700}
-.stk-kindcolors button{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--white);border-radius:999px;padding:5px 11px;font-size:12.5px;font-weight:700;color:var(--ink);cursor:pointer}
-.stk-kindcolors button i{width:13px;height:13px;border-radius:50%;border:1px solid rgba(0,0,0,.15)}
-.stk-kindcolors button.off{opacity:.4;background:var(--bg);text-decoration:line-through}
 .stk-check{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:var(--ink);padding-bottom:9px;white-space:nowrap}
 .stk-check input{width:18px;height:18px}
 .stk-tag{display:inline-block;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:1px 8px;font-size:11.5px;font-weight:700}
@@ -638,6 +648,8 @@ input{font:inherit;color:inherit}
 @media (max-width:600px){
   .stk-modes{width:100%}
   .stk-modes button{flex:1;padding:10px 4px;font-size:12.5px}
+  .stk-setup-btn{margin-left:0;width:100%;justify-content:center}
+  .stk-matrix .mx{width:30px;height:28px}
   .stk-row{grid-template-columns:18px 1fr auto auto auto;gap:8px;padding:8px}
   .stk-sw{width:18px;height:18px;border-radius:5px}
   .stk-nm{font-size:14px}
@@ -1337,6 +1349,7 @@ async function initServiceWorker(){
     navigator.serviceWorker.addEventListener('message', e => {
       const d = e.data || {};
       if (d.type !== 'notif-action') return;
+      if (d.action === 'close') return;            /* μόνο έκλεισε η ειδοποίηση */
       if (d.action === 'give' && d.ids) giveGroup(d.ids, null);
       else if (d.action === 'snooze') snoozeRemind(d.payload);
       else go(homeView());
@@ -1368,9 +1381,18 @@ function remind(title, body, tag, opts = {}){
   const canGive = !!opts.canGive && !!ids;
   const payload = { title, body, tag, ids, canGive };
   if (notifState() === 'granted'){
-    const acts = [];
-    if (canGive) acts.push({ action:'give', title:'Δόθηκε' });
-    acts.push({ action:'snooze', title:`Σε ${SNOOZE_MIN}′` });
+    /* Ο Chrome και ο Edge δέχονται μόνο 2 κουμπιά στην ειδοποίηση
+       (Notification.maxActions). Το «Κλείσιμο» μένει πάντα· αν δεν χωράνε
+       όλα, κόβεται το «Σε 30′», που υπάρχει ούτως ή άλλως στο μήνυμα μέσα
+       στη σελίδα. */
+    const wish = [];
+    if (canGive) wish.push({ action:'give', title:'Δόθηκε' });
+    wish.push({ action:'snooze', title:`Σε ${SNOOZE_MIN}′` });
+    wish.push({ action:'close', title:'Κλείσιμο' });
+    const maxActs = Math.max(1, ('Notification' in window && Notification.maxActions) || 2);
+    const acts = wish.length <= maxActs ? wish
+               : maxActs < 2 ? [wish[0]]
+               : [...wish.slice(0, maxActs - 1), wish[wish.length - 1]];
     let shown = false;
     if (swReg && NOTIF_ACTIONS){
       try {
@@ -1388,6 +1410,7 @@ function remind(title, body, tag, opts = {}){
   const actions = [];
   if (canGive) actions.push({ label:'Δόθηκε', primary:true, fn:() => giveGroup(ids, null) });
   actions.push({ label:`Σε ${SNOOZE_MIN}′`, fn:() => snoozeRemind(payload) });
+  actions.push({ label:'Κλείσιμο', fn:() => {} });
   toast(`<b>${esc(title)}</b><br>${esc(body)}`, { sticky:true, kind:'alert', actions });
 }
 let actx = null;
@@ -4709,10 +4732,18 @@ function buildStock(){
     <div class="page-h"><h1>Ενδυμασία προσωπικού</h1><p id="stkSub"></p></div>
     <div id="stkBody"></div>`;
 }
+const STK_GEAR = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`;
+/* Τέσσερις δουλειές αριστερά, η ρύθμιση χωριστά δεξιά: τα είδη και τα
+   χρώματα ορίζονται μία φορά και δεν μπλέκονται στην καθημερινή μέτρηση. */
 function stkModeSeg(){
-  const modes = [['count','Μέτρηση'],['table','Πίνακας'],['staff','Παραλαβές'],['moves','Κινήσεις']];
-  return `<div class="seg stk-modes" role="radiogroup" aria-label="Τρόπος">${modes.map(([m,l]) =>
-    `<button type="button" role="radio" aria-checked="${STK.mode === m}" class="${STK.mode === m ? 'on' : ''}" data-stk-mode="${m}">${l}</button>`).join('')}</div>`;
+  const modes = [['count','Μέτρηση'],['table','Πίνακας'],['staff','Εργαζόμενοι'],['moves','Κινήσεις']];
+  const setup = STK.mode === 'setup';
+  return `<div class="stk-top">
+    <div class="seg stk-modes" role="radiogroup" aria-label="Τρόπος">${modes.map(([m,l]) =>
+      `<button type="button" role="radio" aria-checked="${STK.mode === m}" class="${STK.mode === m ? 'on' : ''}" data-stk-mode="${m}">${l}</button>`).join('')}</div>
+    <button type="button" class="btn ghost sm stk-setup-btn${setup ? ' on' : ''}" data-stk-mode="setup"
+      aria-pressed="${setup}" title="Είδη, χρώματα και νούμερα">${STK_GEAR} Είδη &amp; χρώματα</button>
+  </div>`;
 }
 /* Είδος + μέγεθος: κλειδώνονται από πάνω και μένουν ίδια σε όλη τη μέτρηση */
 function stkKindSeg(){
@@ -4733,17 +4764,9 @@ function stkDirSeg(){
     <button type="button" role="radio" aria-checked="${STK.dir < 0}" class="${STK.dir < 0 ? 'on' : ''}" data-stk-dir="-1">Βγαίνουν −</button>
   </div>`;
 }
-function stkKindColors(){
-  if (STK.colors.length < 2) return '';
-  return `<div class="stk-kindcolors"><span>Χρώματα σε ${esc(stkKindPl(STK.kind).toLowerCase())}:</span>${STK.colors.map(c => {
-    const on = stkColorOk(c, STK.kind);
-    return `<button type="button" class="${on ? '' : 'off'}" aria-pressed="${on}" data-stk="kind-color" data-color="${esc(c.name)}"
-      title="${on ? 'Πάτα για να μη μετράει σε αυτό το είδος' : 'Πάτα για να μετράει'}"><i style="background:${esc(c.hex)}"></i>${esc(c.name)}</button>`;
-  }).join('')}</div>`;
-}
 function stkKindCard(){
-  return `<details class="card add-card stk-colors"${STK.kinds.length ? '' : ' open'}>
-    <summary>Είδη (${STK.kinds.length})</summary>
+  return `<div class="card set-card">
+    <h3>ΕΙΔΗ (${STK.kinds.length})</h3>
     <div class="stk-add">
       <label class="f f-grow"><span>Νέο είδος</span><input class="inp" id="stkKindName" maxlength="30" autocomplete="off" placeholder="π.χ. Πόλο"></label>
       <label class="f"><span>Πληθυντικός</span><input class="inp" id="stkKindPl" maxlength="30" autocomplete="off" placeholder="π.χ. Πόλο"></label>
@@ -4760,11 +4783,12 @@ function stkKindCard(){
         <button class="icon-btn" data-stk="kind-sized" data-code="${esc(k.code)}" aria-label="Έχει νούμερα;" title="${k.sized ? 'Κάν' + "'" + ' το χωρίς νούμερα' : 'Δώσ' + "'" + ' του νούμερα'}">${k.sized ? '№' : '1'}</button>
         <button class="icon-btn" data-stk="del-kind" data-code="${esc(k.code)}" aria-label="Διαγραφή ${esc(k.name)}" title="Διαγραφή είδους">×</button></span>`;
     }).join('')}</div>` : ''}
-  </details>`;
+  </div>`;
 }
 function stkCountHTML(){
-  if (!STK.kinds.length) return stkKindCard() + `<p class="empty">Πρόσθεσε πρώτα ένα είδος.</p>`;
-  if (!STK.colors.length) return stkKindCard() + stkColorCard() + `<p class="empty">Πρόσθεσε πρώτα τα χρώματα που έχετε.</p>`;
+  const toSetup = `<button class="btn primary sm" data-stk-mode="setup">Είδη &amp; χρώματα</button>`;
+  if (!STK.kinds.length) return `<p class="empty">Δεν έχει οριστεί κανένα είδος ρούχου.<br><br>${toSetup}</p>`;
+  if (!STK.colors.length) return `<p class="empty">Δεν έχει οριστεί κανένα χρώμα.<br><br>${toSetup}</p>`;
   const size = stkSizeOf(STK.kind);
   const rows = stkColorsFor(STK.kind).map(c => {
     const q = stkQty(STK.kind, c.name, size);
@@ -4779,14 +4803,13 @@ function stkCountHTML(){
   const sub = STK.list.filter(v => v.kind === STK.kind && v.size === size);
   return `${stkPickers()}
     <p class="stk-now">${esc(stkKindPl(STK.kind))}${stkSized(STK.kind) ? ` · <b>${esc(STK.size)}</b>` : ' <span class="stk-tag">ένα νούμερο</span>'} — σύνολο <b>${stkTotal(sub)}</b> τεμάχια</p>
-    <div class="stk-rows">${rows || `<p class="empty">Τα ${esc(stkKindPl(STK.kind).toLowerCase())} δεν έχουν χρώμα ακόμα. Πάτα παρακάτω ποιο ισχύει — ή πρόσθεσε νέο από την κάρτα «Χρώματα».</p>`}</div>
-    ${stkKindColors()}
-    ${stkKindCard()}
-    ${stkColorCard()}`;
+    <div class="stk-rows">${rows || `<p class="empty">Τα ${esc(stkKindPl(STK.kind).toLowerCase())} δεν έχουν χρώμα ακόμα.<br><br>${toSetup}</p>`}</div>
+    <div class="stk-foot"><span>Λείπει σχέδιο, χρώμα ή νούμερο;</span>
+      <button class="btn ghost sm" data-stk-mode="setup">Είδη &amp; χρώματα</button></div>`;
 }
 function stkColorCard(){
-  return `<details class="card add-card stk-colors"${STK.colors.length ? '' : ' open'}>
-    <summary>Χρώματα (${STK.colors.length})</summary>
+  return `<div class="card set-card">
+    <h3>ΧΡΩΜΑΤΑ (${STK.colors.length})</h3>
     <div class="stk-add">
       <label class="f f-grow"><span>Νέο χρώμα</span><input class="inp" id="stkColor" maxlength="30" autocomplete="off" placeholder="π.χ. ΚΙΤΡΙΝΟ"></label>
       <button class="btn primary" data-stk="add-color">Προσθήκη</button>
@@ -4799,13 +4822,40 @@ function stkColorCard(){
         <button class="icon-btn" data-stk="ren-color" data-color="${esc(c.name)}" aria-label="Μετονομασία ${esc(c.name)}" title="Μετονομασία">✎</button>
         <button class="icon-btn" data-stk="del-color" data-color="${esc(c.name)}" aria-label="Διαγραφή ${esc(c.name)}" title="Διαγραφή χρώματος">×</button></span>`;
     }).join('')}</div>` : ''}
-  </details>`;
+  </div>`;
+}
+/* Ποιο χρώμα υπάρχει σε ποιο είδος, όλα μαζί σε έναν πίνακα αντί για μία
+   κρυμμένη σειρά κουμπιών μέσα στη μέτρηση. */
+function stkMatrixHTML(){
+  if (!STK.kinds.length || !STK.colors.length) return '';
+  return `<div class="card set-card">
+    <h3>ΠΟΙΟ ΧΡΩΜΑ ΣΕ ΠΟΙΟ ΕΙΔΟΣ</h3>
+    <p class="hint">Πάτα ένα κουτάκι για να μετράει ή να μη μετράει το χρώμα σε αυτό το είδος. Στη «Μέτρηση» εμφανίζονται μόνο τα τσεκαρισμένα.</p>
+    <div class="stk-grid-wrap" style="margin-top:12px"><table class="stk-grid stk-matrix">
+      <thead><tr><th>Χρώμα</th>${STK.kinds.map(k => `<th>${esc(k.name)}</th>`).join('')}</tr></thead>
+      <tbody>${STK.colors.map(c => `<tr>
+        <th scope="row"><span class="stk-sw sm" style="background:${esc(c.hex)}"></span>${esc(c.name)}</th>
+        ${STK.kinds.map(k => { const on = stkColorOk(c, k.code);
+          return `<td><button type="button" class="mx${on ? ' on' : ''}" aria-pressed="${on}"
+            data-stk="kind-color" data-color="${esc(c.name)}" data-kind="${esc(k.code)}"
+            aria-label="${esc(c.name)} σε ${esc(k.name)}">${on ? '✓' : '—'}</button></td>`; }).join('')}
+      </tr>`).join('')}</tbody>
+    </table></div>
+  </div>`;
+}
+function stkSetupHTML(){
+  return `<p class="stk-now">Ορίζεις μία φορά τι υπάρχει· μετά η «Μέτρηση» δείχνει μόνο αυτά.</p>
+    ${stkKindCard()}
+    ${stkColorCard()}
+    ${stkMatrixHTML()}
+    <div class="stk-foot"><span>Τελείωσες;</span>
+      <button class="btn primary sm" data-stk-mode="count">Πάμε στη μέτρηση</button></div>`;
 }
 function stkTableHTML(){
   let html = `<div class="stk-bar"><div class="btns">
     <button class="btn ghost sm" data-stk="print-blank">Φύλλο απογραφής</button>
     <button class="btn primary sm" data-stk="print">Εκτύπωση στοκ</button></div></div>`;
-  if (!STK.colors.length) return html + `<p class="empty">Πρόσθεσε πρώτα χρώματα από τη «Μέτρηση».</p>`;
+  if (!STK.colors.length) return html + `<p class="empty">Δεν έχει οριστεί κανένα χρώμα.<br><br><button class="btn primary sm" data-stk-mode="setup">Είδη &amp; χρώματα</button></p>`;
   STK.kinds.forEach(K => {
     const k = K.code;
     const sizes = stkSizeCols(k);
@@ -4821,12 +4871,14 @@ function stkTableHTML(){
       <tfoot><tr><th scope="row">Σύνολο</th>${sizes.map(sz => `<td>${stkTotal(STK.list.filter(v => v.kind === k && v.size === sz))}</td>`).join('')}
         ${sizes.length > 1 ? `<td class="stk-tot">${tot}</td>` : ''}</tr></tfoot></table></div>`);
   });
-  return html + `<p class="hint">Γράψε απευθείας μέσα στα κουτάκια για να διορθώσεις ποσότητες· η διαφορά καταγράφεται στις κινήσεις. Τα χρώματα (μετονομασία, διαγραφή) είναι στη «Μέτρηση», κάτω κάτω.</p>`;
+  return html + `<p class="hint">Γράψε απευθείας μέσα στα κουτάκια για να διορθώσεις ποσότητες· η διαφορά καταγράφεται στις κινήσεις.</p>
+    <div class="stk-foot"><span>Μετονομασία ή διαγραφή είδους / χρώματος;</span>
+      <button class="btn ghost sm" data-stk-mode="setup">Είδη &amp; χρώματα</button></div>`;
 }
 function stkStaffHTML(){
   if (!STK.bagsLoaded) loadHandouts();
   const add = `<details class="card add-card stk-colors"${STK.staff.length ? '' : ' open'}>
-    <summary>Προσωπικό (${STK.staff.length})</summary>
+    <summary>+ Νέος εργαζόμενος</summary>
     <div class="stk-add">
       <label class="f f-grow"><span>Όνομα</span><input class="inp" id="stkStaffName" maxlength="40" autocomplete="off" placeholder="π.χ. ΓΙΩΡΓΟΣ Π."></label>
       <label class="f"><span>Θέση</span><input class="inp" id="stkStaffRole" maxlength="40" autocomplete="off" placeholder="π.χ. φούρνος"></label>
@@ -4834,7 +4886,7 @@ function stkStaffHTML(){
     </div>
     <p class="hint" id="stkStaffHint">Τα νούμερα του καθενός τα μαθαίνει μόνο του, την πρώτη φορά που του ετοιμάζεις τσάντα.</p>
   </details>`;
-  if (!STK.staff.length) return add + `<p class="empty">Πρόσθεσε πρώτα τους εργαζόμενους.</p>`;
+  if (!STK.staff.length) return `<p class="empty">Δεν έχει καταχωρηθεί κανένας εργαζόμενος ακόμα.</p>` + add;
   const rows = STK.staff.map(st => {
     const bags = stkBagsOf(st.name);
     const total = bags.reduce((n,b) => n + stkBagTotal(b), 0);
@@ -4905,6 +4957,7 @@ function renderStock(){
     + (STK.mode === 'count' ? stkCountHTML()
      : STK.mode === 'table' ? stkTableHTML()
      : STK.mode === 'staff' ? stkStaffHTML()
+     : STK.mode === 'setup' ? stkSetupHTML()
      : stkMovesHTML());
 }
 /* ---------- Τσάντα εργαζομένου ---------- */
@@ -5120,13 +5173,14 @@ document.addEventListener('click', e => {
     case 'add-color': {
       const err = stkAddColor($('stkColor').value);
       $('stkColorHint').innerHTML = err ? `<span class="bad">${esc(err)}</span>` : 'Μπήκε. Όρισε από κάτω σε ποια είδη ισχύει.';
+      if (!err) renderStock();
       if (!err) $('stkColor').value = '';
       break;
     }
     case 'del-color': stkRemoveColor(a.dataset.color); break;
     case 'ren-color': stkRenameColor(a.dataset.color); break;
     case 'undo': stkUndo(a.dataset.vid, Number(a.dataset.delta)); break;
-    case 'kind-color': stkToggleColorKind(a.dataset.color, STK.kind); break;
+    case 'kind-color': stkToggleColorKind(a.dataset.color, a.dataset.kind || STK.kind); break;
     case 'add-kind': stkAddKind(); break;
     case 'ren-kind': stkRenameKind(a.dataset.code); break;
     case 'del-kind': stkRemoveKind(a.dataset.code); break;
