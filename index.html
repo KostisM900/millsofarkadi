@@ -337,6 +337,8 @@ input{font:inherit;color:inherit}
   #printArea table.p-stock{table-layout:fixed;margin-bottom:10pt}
   #printArea table.p-stock td{text-align:center;padding:4pt 2pt;font-size:11pt;font-variant-numeric:tabular-nums;vertical-align:middle}
   #printArea table.p-stock td.c-name{text-align:left;font-weight:700;padding-left:0}
+  #printArea table.p-stock td.c-what{text-align:left;font-weight:400;line-height:1.35}
+  #printArea table.p-stock td small{font-weight:400;color:#555;font-size:9pt}
   #printArea table.p-stock tr.p-head td{font-weight:700;font-size:9.5pt;letter-spacing:.04em;border-bottom:1pt solid #000;text-transform:uppercase;color:#000}
   #printArea table.p-stock tr.p-sum td{font-weight:700;border-top:1pt solid #000;border-bottom:0}
   #printArea table.p-stock td.c-blank{border-bottom:1pt solid #000;height:22pt}
@@ -4139,7 +4141,7 @@ const stkKindSizes = code => {
 };
 const STK_SIZES = ['XS','S','M','L','XL','2XL','3XL','4XL','5XL'];
 const STK = { loaded:false, loading:false, setupMissing:false, list:[], colors:[], kinds:[], staff:[],
-              moves:[], movesLoaded:false, bags:[], bagsLoaded:false,
+              ever:new Set(), moves:[], movesLoaded:false, bags:[], bagsLoaded:false,
               mode:'count', kind:'short', size:'M', dir:1 };
 
 const stkRow = r => ({ id:r.id, kind:r.kind || 'short', color:r.color,
@@ -4226,16 +4228,20 @@ async function loadStock(){
   if (STK.loading || !LOCAL.session || !canStock()) return;
   STK.loading = true;
   try {
-    const [vars, cols, kinds, staff] = await Promise.all([
+    const [vars, cols, kinds, staff, ever] = await Promise.all([
       api('stock_variants?select=id,kind,color,size,qty,min_qty&order=color.asc,size.asc'),
       api('stock_colors?select=name,hex,kinds&order=name.asc'),
       api('stock_kinds?select=code,name,name_pl,sized,sizes,sort&order=sort.asc'),
-      api('stock_staff?select=id,name,role,sizes,active&order=name.asc')
+      api('stock_staff?select=id,name,role,sizes,active&order=name.asc'),
+      /* Ποιες γραμμές είχαν ΠΟΤΕ απόθεμα. Χωρίς αυτό, ένα μηδενικό δεν
+         ξεχωρίζει από «δεν το είχαμε ποτέ σε αυτό το χρώμα». */
+      api('stock_moves?select=variant_id&delta=gt.0&limit=5000')
     ]);
     STK.kinds = (kinds || []).map(k => ({ code:k.code, name:k.name, pl:k.name_pl || k.name,
                                           sized:k.sized !== false, sizes:k.sizes || '', sort:Number(k.sort) || 0 }));
     if (!STK.kinds.some(k => k.code === STK.kind)) STK.kind = STK.kinds.length ? STK.kinds[0].code : '';
     STK.staff = (staff || []).map(x => ({ id:x.id, name:x.name, role:x.role || '', sizes:x.sizes || '', active:x.active !== false }));
+    STK.ever = new Set((ever || []).map(x => x.variant_id).filter(Boolean));
     STK.list = (vars || []).map(stkRow);
     STK.colors = (cols || []).map(c => ({ name:c.name, hex:stkHexFromName(c.name), kinds:c.kinds || '' }));
     STK.loaded = true; STK.setupMissing = false; setOnline(true);
@@ -4292,9 +4298,10 @@ async function loadHandouts(){
   finally { if (view === 'stk' && STK.mode === 'staff') renderStock(); }
 }
 const stkBagsOf = name => STK.bags.filter(b => norm(b.staff) === norm(name));
-/* Τελείωσαν: συνδυασμοί που κάποτε υπήρχαν και τώρα είναι στο μηδέν.
-   Δεν θέλει καμία ρύθμιση — η ύπαρξη της γραμμής σημαίνει ότι το είχαμε. */
-const stkOut = () => STK.list.filter(v => v.qty === 0);
+/* Τελείωσαν: ΜΟΝΟ όσα είχαν κάποτε απόθεμα και τώρα είναι στο μηδέν.
+   Μια γραμμή στο μηδέν που δεν μπήκε ποτέ τίποτα μέσα της σημαίνει απλώς
+   «δεν το έχουμε σε αυτό το χρώμα» — δεν τελείωσε τίποτα. */
+const stkOut = () => STK.list.filter(v => v.qty === 0 && STK.ever.has(v.id));
 const stkLow = () => STK.list.filter(v => v.min > 0 && v.qty > 0 && v.qty <= v.min);
 const stkNoBag = () => STK.staff.filter(st => st.active && !stkBagsOf(st.name).length);
 /* Έτοιμες αλλά αδοσμένες: αυτές θυμίζουμε στην αρχική */
@@ -4313,7 +4320,7 @@ function stkChange(v, delta, kind = 'in', note = ''){
   pendingOps++;
   Promise.resolve(v._create)
     .then(() => api('rpc/stock_bump', { method:'POST', body:{ p_variant:v.id, p_delta:delta, p_kind:kind, p_note:note } }))
-    .then(q => { if (Number.isFinite(Number(q))) v.qty = Number(q); setOnline(true); STK.movesLoaded = false; stkRepaint(); })
+    .then(q => { if (Number.isFinite(Number(q))) v.qty = Number(q); if (delta > 0) STK.ever.add(v.id); setOnline(true); STK.movesLoaded = false; stkRepaint(); })
     .catch(e => { v.qty = old; stkRepaint(); handleError(e, 'Η μέτρηση δεν αποθηκεύτηκε.'); })
     .finally(() => { pendingOps--; });
 }
@@ -4341,7 +4348,7 @@ function stkSet(id, qty){
   pendingOps++;
   Promise.resolve(v._create)
     .then(() => api('rpc/stock_set', { method:'POST', body:{ p_variant:id, p_qty:val, p_note:'απογραφή' } }))
-    .then(q => { if (Number.isFinite(Number(q))) v.qty = Number(q); setOnline(true); STK.movesLoaded = false; stkRepaint(); })
+    .then(q => { if (Number.isFinite(Number(q))) v.qty = Number(q); if (val > old) STK.ever.add(v.id); setOnline(true); STK.movesLoaded = false; stkRepaint(); })
     .catch(e => { v.qty = old; stkRepaint(); handleError(e, 'Η απογραφή δεν αποθηκεύτηκε.'); })
     .finally(() => { pendingOps--; });
 }
@@ -4740,7 +4747,7 @@ function stkStaffHTML(){
         <button class="icon-btn" data-stk="undo-bag" data-batch="${esc(b.batch)}" aria-label="Ακύρωση τσάντας" title="Ακύρωση και επιστροφή στο απόθεμα">×</button>
       </div>` : ''}</div>`).join('');
   return `<div class="stk-bar"><div class="btns">
-      <button class="btn ghost sm" data-stk="print-staff">Λίστα παραλαβής</button></div></div>
+      <button class="btn ghost sm" data-stk="print-staff">Εκτύπωση λίστας</button></div></div>
     <div class="st-list">${rows}</div>
     ${add}
     ${STK.bagsLoaded
@@ -4911,22 +4918,25 @@ function openBag(staffId, batch){
   $('modal').hidden = false;
 }
 /* ---------- Εκτυπώσεις ---------- */
-/* Λίστα για υπογραφή: ποιος, τι νούμερα, τι πήρε, κενό για υπογραφή */
+/* Φύλλο υπογραφών για τον γύρο που μόλις ετοίμασες: όνομα, τι μπήκε στην
+   τσάντα του, και κενό για υπογραφή. Τίποτα άλλο — δεν είναι αναφορά
+   κατάστασης, είναι χαρτί που υπογράφεται. */
 function printStaff(){
+  if (!STK.bagsLoaded){ toast('Φόρτωση τσαντών…'); loadHandouts().then(() => printStaff()); return; }
   const area = $('printArea'), now = new Date();
-  const sized = STK.kinds.filter(k => k.sized);
-  let html = `<h1>Λίστα παραλαβής · Μύλοι Αρκαδίου</h1>
-    <p class="p-sub">${longDate(todayIso())}, ${hhmm(now.toISOString())}</p>
+  const line = b => b.items.map(i => (i.n > 1 ? i.n + '× ' : '') + i.label).join(' · ');
+  const list = STK.staff.filter(st => st.active).map(st => ({ st, bag: stkBagsOf(st.name)[0] })).filter(x => x.bag);
+  const rows = list.map(({ st, bag }) => `<tr>
+      <td class="c-name">${esc(st.name)}${st.role ? `<br><small>${esc(st.role)}</small>` : ''}</td>
+      <td class="c-what">${esc(line(bag))}</td>
+      <td class="c-blank"></td></tr>`).join('');
+  area.innerHTML = `<h1>Ενδυμασία εργαζομένων · Μύλοι Αρκαδίου</h1>
+    <p class="p-sub">${longDate(todayIso())}</p>
     <table class="p-stock">
-      <colgroup><col style="width:26%">${sized.map(() => '<col style="width:9%">').join('')}<col style="width:${Math.max(20, 46 - sized.length * 9)}%"><col style="width:20%"></colgroup>
-      <tr class="p-head"><td class="c-name">Όνομα</td>${sized.map(k => `<td>${esc(k.name.slice(0,4))}.</td>`).join('')}<td>Τι πήρε</td><td>Υπογραφή</td></tr>
-      ${STK.staff.map(st => { const m = stkStaffSizes(st); return `<tr>
-        <td class="c-name">${esc(st.name)}${st.role ? `<br><small>${esc(st.role)}</small>` : ''}</td>
-        ${sized.map(k => `<td>${esc(m[k.code] || '–')}</td>`).join('')}
-        <td class="c-blank"></td><td class="c-blank"></td></tr>`; }).join('')}
-    </table>
-    <p class="p-sub">Συμπλήρωσε τι πήρε ο καθένας και πέρασέ το μετά στις «Παραλαβές».</p>`;
-  area.innerHTML = html;
+      <colgroup><col style="width:26%"><col style="width:46%"><col style="width:28%"></colgroup>
+      <tr class="p-head"><td class="c-name">Όνομα</td><td class="c-what">Τι παρέλαβε</td><td>Υπογραφή</td></tr>
+      ${rows || '<tr><td colspan="3">Δεν έχει ετοιμαστεί καμία τσάντα.</td></tr>'}
+    </table>`;
   document.body.classList.add('print-mode');
   const done = () => { document.body.classList.remove('print-mode'); area.innerHTML = ''; window.removeEventListener('afterprint', done); };
   window.addEventListener('afterprint', done);
