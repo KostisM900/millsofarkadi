@@ -774,6 +774,12 @@ input{font:inherit;color:inherit}
 .bag-opts{display:flex;flex-direction:column;gap:7px;margin-top:9px}
 .bag-qty{display:flex;align-items:center;gap:8px;font-weight:800}
 .bag-qty small{font-weight:600;color:var(--muted);font-size:12px}
+.bag-tag{display:inline-block;background:var(--wheat-tint);color:var(--wheat-dark);border-radius:999px;padding:1px 9px;font-size:11px;font-weight:800;margin-left:6px;vertical-align:1px}
+.bag-tag.ok{background:var(--olive-tint);color:var(--olive-deep)}
+.bag-line.wait{border-left:3px solid var(--wheat)}
+.bag-acts{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.w-wait{color:var(--wheat-dark);font-weight:700}
+@media (max-width:600px){.bag-acts{flex:1 0 100%;justify-content:flex-start;margin-top:6px}}
 @media (max-width:600px){.st-row{flex-wrap:wrap}.st-main{flex:1 0 100%}}
 .q-body{margin-top:14px}
 .modal .m-err{margin:4px 0 0}
@@ -1557,7 +1563,7 @@ function go(v, opts = {}){
   if (!LOCAL.session){ if (v !== 'login') pendingRoute = { v, sub: opts.sub || '' }; v = 'login'; }
   if (LOCAL.session && v === 'login') v = 'main';
   if (v === 'home' && homeView() !== 'home') v = homeView();
-  if (v === 'home'){ renderHome(); if (canCheques()) loadCheques(); if (canArchive()) loadArchive(); if (canVehicles()) loadVehicles(); if (canStock()) loadStock(); }
+  if (v === 'home'){ renderHome(); if (canCheques()) loadCheques(); if (canArchive()) loadArchive(); if (canVehicles()) loadVehicles(); if (canStock()){ loadStock(); loadHandouts(); } }
   if (v === 'veh' && !canVehicles()) v = 'main';
   if (v === 'veh'){ if (!$('vehBody')) buildVehicles(); renderVehicles(); loadVehicles(); }
   if (v === 'stk' && !canStock()) v = 'main';
@@ -3213,6 +3219,10 @@ function homeAlerts(){
     const l = lateCount();
     if (l) out.push({ v:'arc', lvl:'late', txt:`${l === 1 ? '1 παραστατικό καθυστερεί' : l + ' παραστατικά καθυστερούν'}` });
   }
+  if (canStock() && STK.loaded){
+    const o = stkOut().length;
+    if (o) out.push({ v:'stk', lvl:'late', txt:`${o === 1 ? '1 ρούχο τελείωσε' : o + ' ρούχα τελείωσαν'}` });
+  }
   if (canVehicles() && VEH.loaded){
     const dl = vehDeadlines();
     const late = dl.filter(x => vehState(x.due) === 'late').length;
@@ -3239,9 +3249,14 @@ function homeModules(){
   if (canCheques()) mods.push({ v:'chq', title:'Επιταγές',
     line: !CHQ.loaded ? '—' : chqOpen().length ? `${chqOpen().length === 1 ? '1 εκκρεμής' : chqOpen().length + ' εκκρεμείς'}` : 'Καμία εκκρεμής',
     n: CHQ.loaded ? chqDueToday() + chqOverdue() : 0 });
-  if (canStock()) mods.push({ v:'stk', title:'Ενδυμασία προσωπικού',
-    line: !STK.loaded ? '—' : STK.list.length ? `${stkTotal()} τεμάχια · ${STK.colors.length === 1 ? '1 χρώμα' : STK.colors.length + ' χρώματα'}` : 'Κανένα στοκ ακόμα',
-    n: 0 });
+  if (canStock()){
+    const out = STK.loaded ? stkOut().length : 0;
+    mods.push({ v:'stk', title:'Ενδυμασία προσωπικού',
+      line: !STK.loaded ? '—'
+        : out ? `${stkTotal()} τεμάχια · ${out === 1 ? '1 τελείωσε' : out + ' τελείωσαν'}`
+        : STK.list.length ? `${stkTotal()} τεμάχια · ${STK.colors.length === 1 ? '1 χρώμα' : STK.colors.length + ' χρώματα'}` : 'Κανένα στοκ ακόμα',
+      n: out });
+  }
   if (canArchive()) mods.push({ v:'arc', title:'Αρχειοθέτηση',
     line: !ARC.loaded ? '—' : ARC.missing.size ? `${ARC.missing.size === 1 ? '1 παραστατικό' : ARC.missing.size + ' παραστατικά'} σε αναμονή` : 'Όλα αρχειοθετημένα',
     n: ARC.loaded ? lateCount() : 0 });
@@ -3310,6 +3325,33 @@ function renderHome(){
     `<button class="btn ghost sm" data-veh="renew" data-id="${x.v.id}" data-kind="${x.kind}">Ανανεώθηκε</button>`,
     vehState(x.due) === 'late' ? 'late' : vehState(x.due) === 'today' ? 'today' : 'soon'));
 
+  /* Ενδυμασία: δεν μπαίνει μόνιμα στην αρχική, γιατί το απόθεμα δεν έχει
+     «σήμερα». Εμφανίζεται μόνο όταν υπάρχει κάτι να κάνεις — κάποιος που
+     δεν πήρε ακόμα τσάντα, ή κάτι που τελείωσε. */
+  let stkBlock = '';
+  if (canStock() && STK.loaded){
+    const noBag = stkNoBag(), out = stkOut(), low = stkLow(), waiting = stkWaiting();
+    const items = [
+      ...waiting.slice(0, 2).map(b => homeRow(
+        esc(b.staff), `τσάντα έτοιμη · ${stkBagTotal(b)} τεμ.`,
+        `<button class="btn primary sm" data-stk="mark-bag" data-batch="${esc(b.batch)}">Δόθηκε</button>`, 'today')),
+      ...noBag.slice(0, 2).map(st => homeRow(
+        esc(st.name) + (st.role ? `<span class="st-role">${esc(st.role)}</span>` : ''),
+        'δεν έχει τσάντα ακόμα',
+        `<button class="btn ghost sm" data-stk="bag" data-id="${esc(st.id)}">Τσάντα</button>`, 'soon')),
+      ...out.slice(0, 2).map(v => homeRow(
+        esc(stkName(v)), '<span class="w-late">τελείωσε</span>', '', 'late')),
+      ...low.slice(0, 1).map(v => homeRow(
+        esc(stkName(v)), `έμειναν ${v.qty}`, '', 'soon'))
+    ];
+    if (items.length){
+      const extra = Math.max(0, waiting.length - 2) + Math.max(0, noBag.length - 2) + Math.max(0, out.length - 2);
+      stkBlock = homeBlock('ΕΝΔΥΜΑΣΙΑ', 'stk',
+        extra ? [...items, `<div class="hb-row"><div class="hb-main"><small>και άλλα ${extra}…</small></div></div>`] : items,
+        '', !!out.length);
+    }
+  }
+
   $('view-home').innerHTML = `
     <div class="greet">
       <h1>${now.getHours() < 12 ? 'Καλημέρα' : 'Καλησπέρα'}${a && a.voc ? ', ' + a.voc : ''}</h1>
@@ -3321,6 +3363,7 @@ function renderHome(){
       ${arcBlock}
       ${canCheques() ? homeBlock('ΕΠΙΤΑΓΕΣ ΓΙΑ ΣΗΜΕΡΑ', 'chq', chqItems, 'Καμία επιταγή για σήμερα.', chqItems.length && chqOverdue() > 0) : ''}
       ${canVehicles() ? homeBlock('ΟΧΗΜΑΤΑ', 'veh', vehItems, 'Καμία λήξη δεν πλησιάζει.', vehItems.length && vehDeadlines().some(x => vehState(x.due) === 'late')) : ''}
+      ${stkBlock}
     </div>
     <div class="mod-grid">${mods.map(m => `
       <button class="mod" data-go="${m.v}">
@@ -4233,14 +4276,15 @@ const stkStaffLine = st => {
 async function loadHandouts(){
   if (!LOCAL.session || !canStock() || STK.setupMissing) return;
   try {
-    const rows = await api('stock_moves?select=id,batch,staff,delta,at,by_email,variant_id,stock_variants(kind,color,size)&kind=eq.handout&order=at.desc&limit=400');
+    const rows = await api('stock_moves?select=id,batch,staff,delta,at,given_at,by_email,variant_id,stock_variants(kind,color,size)&kind=eq.handout&order=at.desc&limit=400');
     const byBatch = new Map();
     (rows || []).forEach(r => {
       const key = r.batch || r.id;
-      if (!byBatch.has(key)) byBatch.set(key, { batch:r.batch, staff:r.staff || '', at:r.at, by:r.by_email || '', items:[] });
+      if (!byBatch.has(key)) byBatch.set(key, { batch:r.batch, staff:r.staff || '', at:r.at, given:r.given_at || '', by:r.by_email || '', items:[] });
       const b = byBatch.get(key);
       if (r.at < b.at) b.at = r.at;
-      b.items.push({ n:Math.abs(Number(r.delta) || 0), label: r.stock_variants ? stkName(r.stock_variants) : '—' });
+      if (r.given_at && !b.given) b.given = r.given_at;
+      b.items.push({ vid:r.variant_id, n:Math.abs(Number(r.delta) || 0), label: r.stock_variants ? stkName(r.stock_variants) : '—' });
     });
     STK.bags = [...byBatch.values()].sort((a,b) => String(b.at).localeCompare(String(a.at)));
     STK.bagsLoaded = true;
@@ -4248,6 +4292,14 @@ async function loadHandouts(){
   finally { if (view === 'stk' && STK.mode === 'staff') renderStock(); }
 }
 const stkBagsOf = name => STK.bags.filter(b => norm(b.staff) === norm(name));
+/* Τελείωσαν: συνδυασμοί που κάποτε υπήρχαν και τώρα είναι στο μηδέν.
+   Δεν θέλει καμία ρύθμιση — η ύπαρξη της γραμμής σημαίνει ότι το είχαμε. */
+const stkOut = () => STK.list.filter(v => v.qty === 0);
+const stkLow = () => STK.list.filter(v => v.min > 0 && v.qty > 0 && v.qty <= v.min);
+const stkNoBag = () => STK.staff.filter(st => st.active && !stkBagsOf(st.name).length);
+/* Έτοιμες αλλά αδοσμένες: αυτές θυμίζουμε στην αρχική */
+const stkWaiting = () => STK.bags.filter(b => !b.given);
+const stkBagTotal = b => b.items.reduce((n,i) => n + i.n, 0);
 
 /* ---------- Αλλαγές ---------- */
 function stkRepaint(){ if (view === 'stk') renderStock(); if (view === 'home') renderHome(); renderNav(); }
@@ -4408,10 +4460,23 @@ function stkRemoveStaff(id){
     .catch(e => { STK.staff.push(st); stkRepaint(); handleError(e, 'Η διαγραφή δεν αποθηκεύτηκε.'); })
     .finally(() => { pendingOps--; });
 }
+/* Η τσάντα ετοιμάστηκε νωρίτερα· εδώ σημειώνεται πότε δόθηκε στο άτομο */
+function stkMarkBag(batch, given){
+  const bag = STK.bags.find(b => b.batch === batch);
+  if (!bag) return;
+  const prev = bag.given;
+  bag.given = given ? new Date().toISOString() : '';
+  stkRepaint();
+  pendingOps++;
+  api('rpc/stock_handout_mark', { method:'POST', body:{ p_batch:batch, p_given:!!given } })
+    .then(() => { setOnline(true); toast(given ? `Δόθηκε στον/στην <b>${esc(bag.staff)}</b>.` : 'Σημειώθηκε ως μη δοσμένη.'); })
+    .catch(e => { bag.given = prev; stkRepaint(); handleError(e, 'Δεν αποθηκεύτηκε.'); })
+    .finally(() => { pendingOps--; });
+}
 function stkUndoBag(batch){
   const bag = STK.bags.find(b => b.batch === batch);
   if (!bag) return;
-  if (!window.confirm(`Να επιστρέψουν στο απόθεμα τα ${bag.items.reduce((n,i) => n + i.n, 0)} τεμάχια του/της ${bag.staff};`)) return;
+  if (!window.confirm(`Να επιστρέψουν στο απόθεμα τα ${stkBagTotal(bag)} τεμάχια της τσάντας για ${bag.staff};`)) return;
   STK.bags = STK.bags.filter(b => b !== bag);
   stkRepaint();
   pendingOps++;
@@ -4645,36 +4710,47 @@ function stkStaffHTML(){
   if (!STK.staff.length) return add + `<p class="empty">Πρόσθεσε πρώτα τους εργαζόμενους.</p>`;
   const rows = STK.staff.map(st => {
     const bags = stkBagsOf(st.name);
-    const total = bags.reduce((n,b) => n + b.items.reduce((m,i) => m + i.n, 0), 0);
+    const total = bags.reduce((n,b) => n + stkBagTotal(b), 0);
     const last = bags[0];
     const line = stkStaffLine(st);
+    const state = !last ? 'καμία τσάντα ακόμα'
+      : last.given ? `δόθηκε ${esc(shortDate(iso(new Date(last.given))))} · ${total} τεμ. συνολικά`
+      : `<span class="w-wait">τσάντα έτοιμη, δεν δόθηκε</span> · ${esc(shortDate(iso(new Date(last.at))))}`;
     return `<div class="st-row">
       <div class="st-main">
         <b>${esc(st.name)}</b>${st.role ? `<span class="st-role">${esc(st.role)}</span>` : ''}
-        <small>${line ? esc(line) + ' · ' : ''}${last ? `τελευταία ${esc(shortDate(iso(new Date(last.at))))} · ${total} τεμ. συνολικά` : 'καμία παραλαβή ακόμα'}</small>
+        <small>${line ? esc(line) + ' · ' : ''}${state}</small>
       </div>
-      <button class="btn primary sm" data-stk="bag" data-id="${esc(st.id)}">Τσάντα</button>
+      ${last && !last.given ? `<button class="btn primary sm" data-stk="mark-bag" data-batch="${esc(last.batch)}">Δόθηκε</button>` : ''}
+      <button class="btn ${last && !last.given ? 'ghost' : 'primary'} sm" data-stk="bag" data-id="${esc(st.id)}">${last ? 'Νέα τσάντα' : 'Τσάντα'}</button>
       <button class="icon-btn" data-stk="ren-staff" data-id="${esc(st.id)}" aria-label="Επεξεργασία" title="Όνομα και θέση">✎</button>
       <button class="icon-btn" data-stk="del-staff" data-id="${esc(st.id)}" aria-label="Διαγραφή" title="Διαγραφή">×</button>
     </div>`;
   }).join('');
-  const recent = STK.bags.slice(0, 12).map(b => `<div class="row"><div class="r-main">
-      <b>${esc(b.staff || '—')}</b> <span class="stk-d dn">${b.items.reduce((n,i) => n + i.n, 0)} τεμ.</span>
+  const recent = STK.bags.slice(0, 12).map(b => `<div class="row bag-line${b.given ? '' : ' wait'}"><div class="r-main">
+      <b>${esc(b.staff || '—')}</b> <span class="stk-d dn">${stkBagTotal(b)} τεμ.</span>
+      ${b.given ? `<span class="bag-tag ok">δόθηκε ${esc(shortDate(iso(new Date(b.given))))}</span>` : '<span class="bag-tag">έτοιμη</span>'}
       <small>${esc(b.items.map(i => (i.n > 1 ? i.n + '× ' : '') + i.label).join(' · '))}</small>
-      <small>${iso(new Date(b.at)) === todayIso() ? 'σήμερα' : esc(shortDate(iso(new Date(b.at))))} ${esc(hhmm(b.at))}</small></div>
-      ${b.batch ? `<button class="btn ghost sm" data-stk="undo-bag" data-batch="${esc(b.batch)}">Αναίρεση</button>` : ''}</div>`).join('');
+      <small>ετοιμάστηκε ${iso(new Date(b.at)) === todayIso() ? 'σήμερα' : esc(shortDate(iso(new Date(b.at))))} ${esc(hhmm(b.at))}</small></div>
+      ${b.batch ? `<div class="bag-acts">
+        ${b.given
+          ? `<button class="btn ghost sm" data-stk="unmark-bag" data-batch="${esc(b.batch)}">Δεν δόθηκε</button>`
+          : `<button class="btn primary sm" data-stk="mark-bag" data-batch="${esc(b.batch)}">Δόθηκε</button>`}
+        <button class="btn ghost sm" data-stk="edit-bag" data-batch="${esc(b.batch)}">Αλλαγή</button>
+        <button class="icon-btn" data-stk="undo-bag" data-batch="${esc(b.batch)}" aria-label="Ακύρωση τσάντας" title="Ακύρωση και επιστροφή στο απόθεμα">×</button>
+      </div>` : ''}</div>`).join('');
   return `<div class="stk-bar"><div class="btns">
       <button class="btn ghost sm" data-stk="print-staff">Λίστα παραλαβής</button></div></div>
     <div class="st-list">${rows}</div>
     ${add}
     ${STK.bagsLoaded
-      ? (recent ? section('ΤΕΛΕΥΤΑΙΕΣ ΤΣΑΝΤΕΣ', `<div class="rows">${recent}</div>`) : '')
+      ? (recent ? section('ΤΣΑΝΤΕΣ', `<div class="rows">${recent}</div>`) : '')
       : '<p class="hint">Φόρτωση ιστορικού…</p>'}`;
 }
 function stkMovesHTML(){
   if (!STK.movesLoaded){ loadStockMoves(); return `<p class="hint">Φόρτωση…</p>`; }
   if (!STK.moves.length) return `<p class="empty">Καμία κίνηση ακόμα.</p>`;
-  const K = { in:'μπήκαν', out:'βγήκαν', cam:'κάμερα', count:'απογραφή', undo:'αναίρεση' };
+  const K = { in:'μπήκαν', out:'βγήκαν', cam:'κάμερα', count:'απογραφή', undo:'αναίρεση', handout:'τσάντα' };
   return `<div class="rows">${STK.moves.map(m => {
     const d = new Date(m.at);
     return `<div class="row"><div class="r-main"><b>${esc(m.label)}</b>
@@ -4707,37 +4783,49 @@ function renderStock(){
 /* Τσεκάρεις τι μπαίνει, τα νούμερα έρχονται από την καρτέλα του ατόμου,
    και όλα φεύγουν από το απόθεμα με μία κίνηση — ώστε να μπορεί να
    αναιρεθεί ολόκληρη η τσάντα αν κάτι πάει στραβά. */
-function openBag(staffId){
-  const st = STK.staff.find(x => x.id === staffId);
+function openBag(staffId, batch){
+  const bag = batch ? STK.bags.find(b => b.batch === batch) : null;
+  const st = bag ? STK.staff.find(x => norm(x.name) === norm(bag.staff)) : STK.staff.find(x => x.id === staffId);
   if (!st) return;
   const box = $('modalBox');
   const mine = stkStaffSizes(st);
   const tpl = LOCAL.settings.bagTemplate;
+  /* Όταν αλλάζουμε υπάρχουσα τσάντα, τα δικά της τεμάχια είναι ήδη έξω από
+     το απόθεμα. Τα μετράμε σαν διαθέσιμα, γιατί θα γυρίσουν πίσω πριν
+     ξαναγραφτεί η τσάντα. */
+  const owned = {};
+  if (bag) bag.items.forEach(i => { owned[i.vid] = (owned[i.vid] || 0) + i.n; });
+  const avail = (k, c, sz) => { const v = stkFind(k, c, sz); return v ? v.qty + (owned[v.id] || 0) : 0; };
   const pick = {};
   STK.kinds.forEach(k => {
     const sizes = stkSized(k.code) ? stkSizeCols(k.code) : [STK_ONE];
     const hasStock = STK.list.some(v => v.kind === k.code && v.qty > 0);
     pick[k.code] = {
-      on: tpl ? (tpl[k.code] > 0) : hasStock,
+      on: bag ? false : (tpl ? (tpl[k.code] > 0) : hasStock),
       qty: Math.max(1, Number(tpl && tpl[k.code]) || 1),
       size: (mine[k.code] && sizes.includes(mine[k.code])) ? mine[k.code] : (sizes[0] || ''),
       color: ''
     };
   });
+  if (bag) bag.items.forEach(i => {
+    const v = STK.list.find(x => x.id === i.vid);
+    if (!v || !pick[v.kind]) return;
+    pick[v.kind] = { on:true, qty:i.n, size:v.size, color:v.color };
+  });
   const draw = () => {
     const keep = $('bagList') ? $('bagList').scrollTop : 0;
     const rows = STK.kinds.map(k => {
       const st2 = pick[k.code];
-      const colors = stkColorsFor(k.code).filter(c => STK.list.some(v => v.kind === k.code && v.color === c.name && v.qty > 0));
+      const colors = stkColorsFor(k.code).filter(c => stkSizeCols(k.code).some(sz => avail(k.code, c.name, sz) > 0) || c.name === st2.color);
       if (!colors.some(c => c.name === st2.color)) st2.color = colors.length ? colors[0].name : '';
-      const sizes = stkSized(k.code) ? stkSizeCols(k.code).filter(sz => stkQty(k.code, st2.color, sz) > 0) : [STK_ONE];
-      if (!sizes.includes(st2.size)) st2.size = sizes[0] || '';
-      const have = stkQty(k.code, st2.color, st2.size);
+      const sizes = stkSized(k.code) ? stkSizeCols(k.code).filter(sz => avail(k.code, st2.color, sz) > 0) : [STK_ONE];
+      if (!sizes.includes(st2.size) && sizes.length) st2.size = sizes[0];
+      const have = avail(k.code, st2.color, st2.size);
       return `<div class="bag-row${st2.on ? ' on' : ''}">
         <label class="bag-head"><input type="checkbox" data-bk="${esc(k.code)}" ${st2.on ? 'checked' : ''}><b>${esc(k.name)}</b></label>
         ${st2.on ? `<div class="bag-opts">
           <div class="g-chips">${colors.map(c => `<button type="button" class="g-chip${st2.color === c.name ? ' on' : ''}" data-bc="${esc(k.code)}|${esc(c.name)}"><i style="background:${esc(c.hex)}"></i>${esc(c.name)}</button>`).join('') || '<em class="g-none">χωρίς απόθεμα</em>'}</div>
-          ${stkSized(k.code) ? `<div class="g-chips">${sizes.map(sz => `<button type="button" class="g-chip sz${st2.size === sz ? ' on' : ''}" data-bs="${esc(k.code)}|${esc(sz)}">${esc(sz)}<em>${stkQty(k.code, st2.color, sz)}</em></button>`).join('') || '<em class="g-none">—</em>'}</div>` : ''}
+          ${stkSized(k.code) ? `<div class="g-chips">${sizes.map(sz => `<button type="button" class="g-chip sz${st2.size === sz ? ' on' : ''}" data-bs="${esc(k.code)}|${esc(sz)}">${esc(sz)}<em>${avail(k.code, st2.color, sz)}</em></button>`).join('') || '<em class="g-none">—</em>'}</div>` : ''}
           <div class="bag-qty">
             <button type="button" class="stk-b" data-bq="${esc(k.code)}|-1" ${st2.qty > 1 ? '' : 'disabled'}>−</button>
             <span>${st2.qty}</span>
@@ -4747,17 +4835,19 @@ function openBag(staffId){
         </div>` : ''}
       </div>`;
     }).join('');
-    const chosen = STK.kinds.filter(k => pick[k.code].on && stkQty(k.code, pick[k.code].color, pick[k.code].size) >= pick[k.code].qty);
+    const chosen = STK.kinds.filter(k => pick[k.code].on && avail(k.code, pick[k.code].color, pick[k.code].size) >= pick[k.code].qty);
     const total = chosen.reduce((n,k) => n + pick[k.code].qty, 0);
     box.innerHTML = `
       <button class="icon-btn m-x" data-m="cancel" aria-label="Κλείσιμο">×</button>
-      <p class="m-eyebrow">Τσάντα εργαζομένου</p>
+      <p class="m-eyebrow">Τσάντα ενδυμασίας${bag ? ' · αλλαγή' : ''}</p>
       <h2>${esc(st.name)}${st.role ? ` <span class="st-role">${esc(st.role)}</span>` : ''}</h2>
       <div class="bag-list" id="bagList">${rows}</div>
-      <p class="hint">${total ? `Θα φύγουν <b>${total}</b> τεμάχια από το απόθεμα.` : 'Διάλεξε τι μπαίνει στην τσάντα.'}</p>
+      <p class="hint">${total
+        ? `<b>${total}</b> τεμάχια στην τσάντα. Βγαίνουν από το απόθεμα τώρα που ετοιμάζεται — η παράδοση σημειώνεται χωριστά, όποτε γίνει.`
+        : 'Διάλεξε τι μπαίνει στην τσάντα.'}</p>
       <div class="m-f"><span class="m-sp"></span>
         <button class="btn ghost" data-m="cancel">Άκυρο</button>
-        <button class="btn primary" data-m="save" ${total ? '' : 'disabled'}>Δόθηκε η τσάντα</button></div>`;
+        <button class="btn primary" data-m="save" ${total ? '' : 'disabled'}>${bag ? 'Αποθήκευση αλλαγών' : 'Ετοιμάστηκε'}</button></div>`;
     if ($('bagList')) $('bagList').scrollTop = keep;
   };
   const close = () => { $('modal').hidden = true; box.innerHTML = ''; document.removeEventListener('keydown', onKey); };
@@ -4783,7 +4873,7 @@ function openBag(staffId){
       const st2 = pick[k.code];
       if (!st2.on) return;
       const v = stkFind(k.code, st2.color, st2.size);
-      if (!v || v.qty < st2.qty) return;
+      if (!v || avail(k.code, st2.color, st2.size) < st2.qty) return;
       items.push({ variant:v.id, qty:st2.qty });
       moved.push({ v, qty:st2.qty });
     });
@@ -4801,14 +4891,18 @@ function openBag(staffId){
       const text = stkSizesToText(map);
       stkPatchStaff(st, { sizes:text }, () => st.sizes = text, () => st.sizes = prev, 'Τα νούμερα δεν αποθηκεύτηκαν.');
     }
-    const before = moved.map(m => m.v.qty);
+    /* Στην αλλαγή, τα παλιά περιεχόμενα γυρίζουν πρώτα στο απόθεμα */
+    const snapshot = STK.list.map(v => [v, v.qty]);
+    if (bag) bag.items.forEach(i => { const v = STK.list.find(x => x.id === i.vid); if (v) v.qty += i.n; });
     moved.forEach(m => m.v.qty = Math.max(0, m.v.qty - m.qty));
     stkRepaint();
     pendingOps++;
-    api('rpc/stock_handout', { method:'POST', body:{ p_staff:st.name, p_items:items, p_note:'τσάντα' } })
-      .then(() => { setOnline(true); STK.movesLoaded = false; STK.bagsLoaded = false; stkRepaint();
-        toast(`Δόθηκε η τσάντα στον/στην <b>${esc(st.name)}</b> — ${moved.reduce((n,m) => n + m.qty, 0)} τεμάχια.`); })
-      .catch(e => { moved.forEach((m,i) => m.v.qty = before[i]); stkRepaint(); handleError(e, 'Η τσάντα δεν αποθηκεύτηκε.'); })
+    api('rpc/stock_handout_set', { method:'POST', body:{ p_batch:(bag ? bag.batch : null), p_staff:st.name, p_items:items, p_note:'τσάντα' } })
+      .then(() => { setOnline(true); STK.movesLoaded = false; STK.bagsLoaded = false; stkRepaint(); loadHandouts();
+        toast(bag
+          ? `Η τσάντα για <b>${esc(st.name)}</b> ενημερώθηκε — ${moved.reduce((n,m) => n + m.qty, 0)} τεμάχια.`
+          : `Ετοιμάστηκε τσάντα για <b>${esc(st.name)}</b> — ${moved.reduce((n,m) => n + m.qty, 0)} τεμάχια. Σημείωσε «Δόθηκε» όταν την παραδώσεις.`); })
+      .catch(e => { snapshot.forEach(([v,q]) => v.qty = q); stkRepaint(); handleError(e, 'Η τσάντα δεν αποθηκεύτηκε.'); })
       .finally(() => { pendingOps--; });
   };
   $('modal').onclick = e => { if (e.target === $('modal')) close(); };
@@ -4911,6 +5005,9 @@ document.addEventListener('click', e => {
     case 'ren-staff': stkRenameStaff(a.dataset.id); break;
     case 'del-staff': stkRemoveStaff(a.dataset.id); break;
     case 'bag': openBag(a.dataset.id); break;
+    case 'edit-bag': openBag('', a.dataset.batch); break;
+    case 'mark-bag': stkMarkBag(a.dataset.batch, true); break;
+    case 'unmark-bag': stkMarkBag(a.dataset.batch, false); break;
     case 'undo-bag': stkUndoBag(a.dataset.batch); break;
     case 'print-staff': printStaff(); break;
     case 'print': printStock(false); break;
