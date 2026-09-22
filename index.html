@@ -764,7 +764,15 @@ input{font:inherit;color:inherit}
 .g-none{color:var(--muted);font-style:normal;font-size:13px}
 .st-list{display:flex;flex-direction:column;gap:8px}
 .st-row{display:flex;align-items:center;gap:10px;background:var(--white);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
-.st-main{flex:1;min-width:0}
+.st-main{flex:1;min-width:0;text-align:left;background:none;border:0;padding:0;cursor:pointer}
+.st-main:hover b{color:var(--olive-deep)}
+.card-hist{margin-top:14px;border-top:1px solid var(--line-2);padding-top:10px}
+.card-hist > b{display:block;font-size:11.5px;letter-spacing:.08em;color:var(--muted);margin-bottom:6px}
+.ch-row{display:flex;gap:9px;align-items:baseline;padding:5px 0;border-top:1px solid var(--line-2);font-size:13px}
+.card-hist .ch-row:first-of-type{border-top:0}
+.ch-when{color:var(--muted);font-size:12px;white-space:nowrap;flex:none}
+.ch-what{flex:1;min-width:0}
+.ch-what em{font-style:normal;color:var(--muted)}
 .st-main b{font-size:15px;font-weight:800}
 .st-main small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
 .st-role{display:inline-block;margin-left:7px;background:var(--olive-tint);color:var(--olive-deep);border-radius:999px;padding:1px 9px;font-size:11px;font-weight:700;vertical-align:1px}
@@ -776,6 +784,7 @@ input{font:inherit;color:inherit}
 .bag-opts{display:flex;flex-direction:column;gap:7px;margin-top:9px}
 .bag-qty{display:flex;align-items:center;gap:8px;font-weight:800}
 .bag-qty small{font-weight:600;color:var(--muted);font-size:12px}
+.opt{font-style:normal;color:var(--muted);font-weight:600;font-size:11px;margin-left:5px;text-transform:none;letter-spacing:0}
 .bag-tag{display:inline-block;background:var(--wheat-tint);color:var(--wheat-dark);border-radius:999px;padding:1px 9px;font-size:11px;font-weight:800;margin-left:6px;vertical-align:1px}
 .bag-tag.ok{background:var(--olive-tint);color:var(--olive-deep)}
 .bag-line.wait{border-left:3px solid var(--wheat)}
@@ -3560,6 +3569,7 @@ function openGarmentOut(){
   if (!STK.list.some(v => v.qty > 0)){ toast('Δεν υπάρχει καταχωρημένο απόθεμα.'); go('stk'); return; }
   const box = $('modalBox');
   const has = (k, c, sz) => stkQty(k, c, sz) > 0;
+  let who = '', why = '';
   let kind = STK.kinds.some(k => k.code === STK.kind && STK.list.some(v => v.kind === k.code && v.qty > 0))
     ? STK.kind
     : (STK.kinds.find(k => STK.list.some(v => v.kind === k.code && v.qty > 0)) || STK.kinds[0] || {}).code;
@@ -3588,6 +3598,13 @@ function openGarmentOut(){
         <div class="g-chips">${sizes.map(sz =>
           `<button type="button" class="g-chip sz${size === sz ? ' on' : ''}" data-gs="${esc(sz)}">${esc(sz)}<em>${stkQty(kind, color, sz)}</em></button>`).join('') || '<em class="g-none">—</em>'}</div>
       </div>` : ''}
+      <div class="f m-field"><span>Σε ποιον <em class="opt">προαιρετικό</em></span>
+        <input class="inp" id="gWho" list="gWhoList" maxlength="40" autocomplete="off" placeholder="όνομα ή κενό" value="${esc(who)}">
+        <datalist id="gWhoList">${STK.staff.map(x => `<option value="${esc(x.name)}"></option>`).join('')}</datalist>
+      </div>
+      <label class="f m-field"><span>Αιτία <em class="opt">προαιρετικό</em></span>
+        <input class="inp" id="gWhy" maxlength="80" autocomplete="off" placeholder="π.χ. χάλασε η παλιά, επισκέπτης" value="${esc(why)}">
+      </label>
       <p class="hint">${q ? `Υπάρχουν <b>${q}</b> τεμάχια. Μετά την αφαίρεση θα μείνουν <b>${q - 1}</b>.` : 'Δεν υπάρχει απόθεμα σε αυτόν τον συνδυασμό.'}</p>
       <div class="m-f"><span class="m-sp"></span>
         <button class="btn ghost" data-m="cancel">Άκυρο</button>
@@ -3595,6 +3612,11 @@ function openGarmentOut(){
   };
   const close = () => { $('modal').hidden = true; box.innerHTML = ''; document.removeEventListener('keydown', onKey); };
   const onKey = e => { if (e.key === 'Escape') close(); };
+  /* Ό,τι γράφεις κρατιέται όταν αλλάζεις χρώμα ή νούμερο */
+  box.oninput = e => {
+    if (e.target.id === 'gWho') who = e.target.value;
+    if (e.target.id === 'gWhy') why = e.target.value;
+  };
   box.onclick = e => {
     const k = e.target.closest('[data-gk]'); if (k){ kind = k.dataset.gk; draw(); return; }
     const c = e.target.closest('[data-gc]'); if (c){ color = c.dataset.gc; draw(); return; }
@@ -3603,11 +3625,11 @@ function openGarmentOut(){
     if (b.dataset.m === 'cancel') close();
     if (b.dataset.m === 'save'){
       const v = stkFind(kind, color, size);
+      who = clean(($('gWho') || {}).value || '').slice(0, 40);
+      why = clean(($('gWhy') || {}).value || '').slice(0, 80);
       close();
       if (!v || !v.qty) return;
-      stkChange(v, -1, 'out');
-      toast(`Αφαιρέθηκε: <b>${esc(stkName(v))}</b>. Μένουν ${Math.max(0, v.qty)}.`,
-            { action:{ label:'Αναίρεση', fn:() => stkChange(v, 1, 'undo') } });
+      stkGiveOne(v, who, why);
     }
   };
   $('modal').onclick = e => { if (e.target === $('modal')) close(); };
@@ -4276,11 +4298,12 @@ const stkStaffLine = st => {
 async function loadHandouts(){
   if (!LOCAL.session || !canStock() || STK.setupMissing) return;
   try {
-    const rows = await api('stock_moves?select=id,batch,staff,delta,at,given_at,by_email,variant_id,stock_variants(kind,color,size)&kind=eq.handout&order=at.desc&limit=400');
+    const rows = await api('stock_moves?select=id,batch,staff,note,delta,at,given_at,by_email,variant_id,stock_variants(kind,color,size)&kind=in.(handout,out)&order=at.desc&limit=400');
     const byBatch = new Map();
-    (rows || []).forEach(r => {
+    (rows || []).filter(r => r.batch || r.staff || r.note).forEach(r => {
       const key = r.batch || r.id;
-      if (!byBatch.has(key)) byBatch.set(key, { batch:r.batch, staff:r.staff || '', at:r.at, given:r.given_at || '', by:r.by_email || '', items:[] });
+      if (!byBatch.has(key)) byBatch.set(key, { batch:r.batch, single:!r.batch, note:r.note || '',
+                                                staff:r.staff || '', at:r.at, given:r.given_at || '', by:r.by_email || '', items:[] });
       const b = byBatch.get(key);
       if (r.at < b.at) b.at = r.at;
       if (r.given_at && !b.given) b.given = r.given_at;
@@ -4297,9 +4320,9 @@ const stkBagsOf = name => STK.bags.filter(b => norm(b.staff) === norm(name));
    μια διόρθωση την ώρα της απογραφής αρκεί για να το μπερδέψει. Όποιο
    όριο θέλεις, το ορίζεις ρητά (min_qty) και μόνο τότε ειδοποιεί. */
 const stkLow = () => STK.list.filter(v => v.min > 0 && v.qty > 0 && v.qty <= v.min && stkColorOk({ name:v.color, kinds:(STK.colors.find(c => c.name === v.color) || {}).kinds }, v.kind));
-const stkNoBag = () => STK.staff.filter(st => st.active && !stkBagsOf(st.name).length);
+const stkNoBag = () => STK.staff.filter(st => st.active && !stkBagsOf(st.name).some(b => !b.single));
 /* Έτοιμες αλλά αδοσμένες: αυτές θυμίζουμε στην αρχική */
-const stkWaiting = () => STK.bags.filter(b => !b.given);
+const stkWaiting = () => STK.bags.filter(b => !b.single && !b.given);
 const stkBagTotal = b => b.items.reduce((n,i) => n + i.n, 0);
 
 /* ---------- Αλλαγές ---------- */
@@ -4330,6 +4353,31 @@ function stkTouch(kind, color, size, delta, how = 'in'){
   }
   stkChange(v, delta, how);
   return v;
+}
+/* Μεμονωμένη παράδοση: ένα ρούχο έξω, με προαιρετικά «σε ποιον» και «γιατί».
+   Αν το όνομα είναι γνωστός εργαζόμενος, μαθαίνεται και το νούμερό του. */
+function stkGiveOne(v, who, why){
+  const old = v.qty;
+  v.qty = Math.max(0, old - 1);
+  stkRepaint();
+  pendingOps++;
+  Promise.resolve(v._create)
+    .then(() => api('rpc/stock_give', { method:'POST', body:{ p_variant:v.id, p_qty:1, p_staff:who || '', p_note:why || '' } }))
+    .then(q => {
+      if (Number.isFinite(Number(q))) v.qty = Number(q);
+      setOnline(true); STK.movesLoaded = false; STK.bagsLoaded = false;
+      const st = who ? STK.staff.find(x => norm(x.name) === norm(who)) : null;
+      if (st && stkSized(v.kind) && stkStaffSize(st, v.kind) !== v.size){
+        const map = stkStaffSizes(st); map[v.kind] = v.size;
+        const text = stkSizesToText(map), prev = st.sizes;
+        stkPatchStaff(st, { sizes:text }, () => st.sizes = text, () => st.sizes = prev, 'Το νούμερο δεν αποθηκεύτηκε.');
+      }
+      stkRepaint(); if (view === 'stk' && STK.mode === 'staff') loadHandouts();
+      toast(`Αφαιρέθηκε: <b>${esc(stkName(v))}</b>${who ? ` → ${esc(who)}` : ''}. Μένουν ${v.qty}.`,
+            { action:{ label:'Αναίρεση', fn:() => stkChange(v, 1, 'undo') } });
+    })
+    .catch(e => { v.qty = old; stkRepaint(); handleError(e, 'Η αφαίρεση δεν αποθηκεύτηκε.'); })
+    .finally(() => { pendingOps--; });
 }
 function stkSet(id, qty){
   const v = STK.list.find(x => x.id === id);
@@ -4485,6 +4533,58 @@ function stkUndoBag(batch){
     .then(() => { setOnline(true); STK.movesLoaded = false; toast('Η τσάντα επιστράφηκε στο απόθεμα.'); return loadStock(); })
     .catch(e => { STK.bags.push(bag); stkRepaint(); handleError(e, 'Η αναίρεση δεν αποθηκεύτηκε.'); })
     .finally(() => { pendingOps--; });
+}
+/* ---------- Καρτέλα εργαζομένου ---------- */
+/* Τι νούμερο φοράει ο καθένας. Συμπληρώνεται μόνο του από ό,τι του δίνουμε,
+   και διορθώνεται με ένα πάτημα αν χρειαστεί. */
+function stkSetStaffSize(st, kind, size){
+  const map = stkStaffSizes(st);
+  if (map[kind] === size) delete map[kind]; else map[kind] = size;
+  const text = stkSizesToText(map), prev = st.sizes;
+  stkPatchStaff(st, { sizes:text }, () => st.sizes = text, () => st.sizes = prev, 'Το νούμερο δεν αποθηκεύτηκε.');
+}
+function openStaffCard(id){
+  const st = STK.staff.find(x => x.id === id);
+  if (!st) return;
+  const box = $('modalBox');
+  const draw = () => {
+    const mine = stkStaffSizes(st);
+    const hist = stkBagsOf(st.name);
+    const total = hist.reduce((n,b) => n + stkBagTotal(b), 0);
+    box.innerHTML = `
+      <button class="icon-btn m-x" data-m="cancel" aria-label="Κλείσιμο">×</button>
+      <p class="m-eyebrow">Καρτέλα εργαζομένου</p>
+      <h2>${esc(st.name)}${st.role ? ` <span class="st-role">${esc(st.role)}</span>` : ''}</h2>
+      <p class="hint">${total ? `Έχει πάρει <b>${total}</b> τεμάχια σε ${hist.length === 1 ? '1 παράδοση' : hist.length + ' παραδόσεις'}.` : 'Δεν του έχει δοθεί τίποτα ακόμα.'}</p>
+      <div class="bag-list" id="cardList">
+        ${STK.kinds.filter(k => k.sized).map(k => `<div class="bag-row on">
+          <div class="bag-head"><b>${esc(k.name)}</b>${mine[k.code] ? `<span class="bag-tag ok">${esc(mine[k.code])}</span>` : '<span class="bag-tag">—</span>'}</div>
+          <div class="bag-opts"><div class="g-chips">${stkKindSizes(k.code).map(sz =>
+            `<button type="button" class="g-chip sz${mine[k.code] === sz ? ' on' : ''}" data-cs="${esc(k.code)}|${esc(sz)}">${esc(sz)}</button>`).join('')}</div></div>
+        </div>`).join('')}
+      </div>
+      ${hist.length ? `<div class="card-hist"><b>Ιστορικό</b>${hist.slice(0, 8).map(b => `<div class="ch-row">
+        <span class="ch-when">${esc(shortDate(iso(new Date(b.at))))}</span>
+        <span class="ch-what">${esc(b.items.map(i => (i.n > 1 ? i.n + '× ' : '') + i.label).join(' · '))}${b.note ? ` <em>${esc(b.note)}</em>` : ''}</span>
+        ${b.single ? '<span class="bag-tag">μεμονωμένο</span>' : (b.given ? '<span class="bag-tag ok">δόθηκε</span>' : '<span class="bag-tag">έτοιμη</span>')}
+      </div>`).join('')}</div>` : ''}
+      <div class="m-f"><span class="m-sp"></span>
+        <button class="btn ghost" data-m="cancel">Κλείσιμο</button>
+        <button class="btn primary" data-m="bag">Νέα τσάντα</button></div>`;
+  };
+  const close = () => { $('modal').hidden = true; box.innerHTML = ''; document.removeEventListener('keydown', onKey); };
+  const onKey = e => { if (e.key === 'Escape') close(); };
+  box.onclick = e => {
+    const c = e.target.closest('[data-cs]');
+    if (c){ const [k, sz] = c.dataset.cs.split('|'); stkSetStaffSize(st, k, sz); draw(); return; }
+    const b = e.target.closest('[data-m]'); if (!b) return;
+    if (b.dataset.m === 'cancel') close();
+    if (b.dataset.m === 'bag'){ close(); openBag(st.id); }
+  };
+  $('modal').onclick = e => { if (e.target === $('modal')) close(); };
+  document.addEventListener('keydown', onKey);
+  draw();
+  $('modal').hidden = false;
 }
 /* ---------- Είδη (σχέδια) ---------- */
 const stkKindCode = () => 'k' + Date.now().toString(36) + Math.floor(Math.random() * 46656).toString(36);
@@ -4712,27 +4812,28 @@ function stkStaffHTML(){
   const rows = STK.staff.map(st => {
     const bags = stkBagsOf(st.name);
     const total = bags.reduce((n,b) => n + stkBagTotal(b), 0);
-    const last = bags[0];
+    const last = bags.find(b => !b.single);
     const line = stkStaffLine(st);
     const state = !last ? 'καμία τσάντα ακόμα'
       : last.given ? `δόθηκε ${esc(shortDate(iso(new Date(last.given))))} · ${total} τεμ. συνολικά`
       : `<span class="w-wait">τσάντα έτοιμη, δεν δόθηκε</span> · ${esc(shortDate(iso(new Date(last.at))))}`;
     return `<div class="st-row">
-      <div class="st-main">
+      <button class="st-main" data-stk="card" data-id="${esc(st.id)}" title="Καρτέλα: νούμερα και ιστορικό">
         <b>${esc(st.name)}</b>${st.role ? `<span class="st-role">${esc(st.role)}</span>` : ''}
         <small>${line ? esc(line) + ' · ' : ''}${state}</small>
-      </div>
+      </button>
       ${last && !last.given ? `<button class="btn primary sm" data-stk="mark-bag" data-batch="${esc(last.batch)}">Δόθηκε</button>` : ''}
       <button class="btn ${last && !last.given ? 'ghost' : 'primary'} sm" data-stk="bag" data-id="${esc(st.id)}">${last ? 'Νέα τσάντα' : 'Τσάντα'}</button>
       <button class="icon-btn" data-stk="ren-staff" data-id="${esc(st.id)}" aria-label="Επεξεργασία" title="Όνομα και θέση">✎</button>
       <button class="icon-btn" data-stk="del-staff" data-id="${esc(st.id)}" aria-label="Διαγραφή" title="Διαγραφή">×</button>
     </div>`;
   }).join('');
-  const recent = STK.bags.slice(0, 12).map(b => `<div class="row bag-line${b.given ? '' : ' wait'}"><div class="r-main">
+  const recent = STK.bags.slice(0, 12).map(b => `<div class="row bag-line${b.single || b.given ? '' : ' wait'}"><div class="r-main">
       <b>${esc(b.staff || '—')}</b> <span class="stk-d dn">${stkBagTotal(b)} τεμ.</span>
-      ${b.given ? `<span class="bag-tag ok">δόθηκε ${esc(shortDate(iso(new Date(b.given))))}</span>` : '<span class="bag-tag">έτοιμη</span>'}
-      <small>${esc(b.items.map(i => (i.n > 1 ? i.n + '× ' : '') + i.label).join(' · '))}</small>
-      <small>ετοιμάστηκε ${iso(new Date(b.at)) === todayIso() ? 'σήμερα' : esc(shortDate(iso(new Date(b.at))))} ${esc(hhmm(b.at))}</small></div>
+      ${b.single ? '<span class="bag-tag">μεμονωμένο</span>'
+        : b.given ? `<span class="bag-tag ok">δόθηκε ${esc(shortDate(iso(new Date(b.given))))}</span>` : '<span class="bag-tag">έτοιμη</span>'}
+      <small>${esc(b.items.map(i => (i.n > 1 ? i.n + '× ' : '') + i.label).join(' · '))}${b.note ? ` · <i>${esc(b.note)}</i>` : ''}</small>
+      <small>${b.single ? 'δόθηκε' : 'ετοιμάστηκε'} ${iso(new Date(b.at)) === todayIso() ? 'σήμερα' : esc(shortDate(iso(new Date(b.at))))} ${esc(hhmm(b.at))}</small></div>
       ${b.batch ? `<div class="bag-acts">
         ${b.given
           ? `<button class="btn ghost sm" data-stk="unmark-bag" data-batch="${esc(b.batch)}">Δεν δόθηκε</button>`
@@ -4919,7 +5020,7 @@ function printStaff(){
   if (!STK.bagsLoaded){ toast('Φόρτωση τσαντών…'); loadHandouts().then(() => printStaff()); return; }
   const area = $('printArea'), now = new Date();
   const line = b => b.items.map(i => (i.n > 1 ? i.n + '× ' : '') + i.label).join(' · ');
-  const list = STK.staff.filter(st => st.active).map(st => ({ st, bag: stkBagsOf(st.name)[0] })).filter(x => x.bag);
+  const list = STK.staff.filter(st => st.active).map(st => ({ st, bag: stkBagsOf(st.name).find(b => !b.single) })).filter(x => x.bag);
   const rows = list.map(({ st, bag }) => `<tr>
       <td class="c-name">${esc(st.name)}${st.role ? `<br><small>${esc(st.role)}</small>` : ''}</td>
       <td class="c-what">${esc(line(bag))}</td>
@@ -5009,6 +5110,7 @@ document.addEventListener('click', e => {
     case 'ren-staff': stkRenameStaff(a.dataset.id); break;
     case 'del-staff': stkRemoveStaff(a.dataset.id); break;
     case 'bag': openBag(a.dataset.id); break;
+    case 'card': openStaffCard(a.dataset.id); break;
     case 'edit-bag': openBag('', a.dataset.batch); break;
     case 'mark-bag': stkMarkBag(a.dataset.batch, true); break;
     case 'unmark-bag': stkMarkBag(a.dataset.batch, false); break;
