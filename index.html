@@ -114,6 +114,13 @@ input{font:inherit;color:inherit}
 .arc-pre .pre-form{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-top:10px}
 .arc-pre .pre-form .f-grow{flex:1;min-width:200px}
 .arc-pre .chk-list{margin-top:12px}
+.pre-series{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 2px}
+.pre-series button{display:inline-flex;align-items:baseline;gap:6px;padding:8px 13px;border-radius:9px;border:1px solid var(--line);background:var(--white);font-size:13.5px;font-weight:800;color:var(--ink);cursor:pointer}
+.pre-series button:hover{border-color:var(--olive)}
+.pre-series button.on{background:var(--olive-dark);border-color:var(--olive-dark);color:#fff}
+.pre-series button em{font-style:normal;font-weight:600;font-size:11.5px;opacity:.65}
+.pre-prev{font-variant-numeric:tabular-nums}
+.pre-prev b{color:var(--olive-deep)}
 .add-grid{display:grid;grid-template-columns:1.6fr auto auto;gap:10px;align-items:end}
 .when{display:flex;gap:6px;align-items:center}
 .when .inp{width:150px}
@@ -2694,21 +2701,48 @@ function sequenceGaps(codes){
 }
 /* Δέχεται πολλούς αριθμούς μαζί — με κόμμα, κενό ή νέα γραμμή — και σειρές:
    «ΤΔΑ0001215-1220» ή «ΤΔΑ0001215 - ΤΔΑ0001220». */
-function parseCodeList(raw){
+/* Οι σειρές παραστατικών (ΤΔΑ, ΠΕΔ…) μαθαίνονται μόνες τους από ό,τι έχει
+   ήδη περάσει: πόσα ψηφία έχει η καθεμιά και ποιος ήταν ο τελευταίος
+   αριθμός. Έτσι γράφεις σκέτο 1267, όπως είναι στο χαρτί. */
+function arcSeries(){
+  const by = new Map();
+  [...new Set([...ARC.docs.keys(), ...ARC.missing.keys(), ...ARC.checks.flatMap(c => c.codes)])].forEach(c => {
+    const p = codeParts(c); if (!p) return;
+    const e = by.get(p.prefix) || { prefix:p.prefix, n:0, lens:{}, last:0 };
+    e.n++; e.lens[p.len] = (e.lens[p.len] || 0) + 1; e.last = Math.max(e.last, p.n);
+    by.set(p.prefix, e);
+  });
+  return [...by.values()].map(e => ({
+    prefix:e.prefix, n:e.n, last:e.last,
+    len: Number(Object.entries(e.lens).sort((a,b) => b[1] - a[1] || Number(b[0]) - Number(a[0]))[0][0])
+  })).sort((a,b) => b.n - a.n || a.prefix.localeCompare(b.prefix, 'el'));
+}
+/* Ποια σειρά είναι επιλεγμένη τώρα */
+function arcSeriesPick(){
+  const list = arcSeries();
+  if (!list.length) return null;
+  return list.find(x => x.prefix === LOCAL.settings.arcSeries) || list[0];
+}
+const padCode = (prefix, n, len) => prefix + String(n).padStart(len, '0');
+function parseCodeList(raw, ser){
   const out = [], bad = [];
+  /* Σκέτο νούμερο → παίρνει τη σειρά που έχεις διαλέξει και τα μηδενικά της. */
+  const asCode = tok => /^\d+$/.test(tok)
+    ? (ser ? padCode(ser.prefix, Number(tok), Math.max(ser.len, String(Number(tok)).length)) : null)
+    : normManualCode(tok);
   String(raw || '').replace(/\s*[-–—]\s*/g, '-').split(/[,;\n\r\t ]+/).filter(Boolean).forEach(tok => {
     const r = tok.split('-');
     if (r.length === 2){
-      const a = normManualCode(r[0]), pa = a && codeParts(a);
+      const a = asCode(r[0]), pa = a && codeParts(a);
       let to = null;
       if (/^\d+$/.test(r[1])) to = Number(r[1]);
-      else { const b = normManualCode(r[1]), pb = b && codeParts(b); if (pa && pb && pb.prefix === pa.prefix) to = pb.n; }
+      else { const b = asCode(r[1]), pb = b && codeParts(b); if (pa && pb && pb.prefix === pa.prefix) to = pb.n; }
       if (pa && to != null && to >= pa.n && to - pa.n <= 200){
-        for (let n = pa.n; n <= to; n++) out.push(pa.prefix + String(n).padStart(pa.len, '0'));
+        for (let n = pa.n; n <= to; n++) out.push(padCode(pa.prefix, n, pa.len));
         return;
       }
     }
-    const c = normManualCode(tok);
+    const c = asCode(tok);
     if (c) out.push(c); else bad.push(tok);
   });
   return { codes:[...new Set(out)], bad };
@@ -3148,7 +3182,7 @@ function renderArchive(){
                 <button class="icon-btn" data-arc="rv-del" data-i="${i}" aria-label="Αφαίρεση">×</button>
               </div>`).join('')}</div>
             <div class="rv-add">
-              <input class="inp" id="rvNew" placeholder="Πρόσθεσε με το χέρι, π.χ. ΤΔΑ0001214 ή ΠΕΔ0000065" spellcheck="false" autocomplete="off">
+              <input class="inp" id="rvNew" placeholder="Πρόσθεσε με το χέρι — σκέτο το νούμερο, π.χ. 1214" spellcheck="false" autocomplete="off">
               <button class="btn ghost sm" data-arc="rv-add">Προσθήκη</button>
             </div>
           </div>
@@ -3224,7 +3258,11 @@ function renderArchive(){
     }).join('')}</div>`) : ''}`;
   $('arcLate').addEventListener('change', e => { LOCAL.settings.arcLateDays = Math.min(90, Math.max(1, Number(e.target.value) || 7)); saveLocal(); renderArchive(); renderNav(); });
   const pc = $('arcPreCode');
-  if (pc){ upperInput(pc); pc.addEventListener('keydown', ev => { if (ev.key === 'Enter'){ ev.preventDefault(); arcPreAdd(); } }); }
+  if (pc){
+    upperInput(pc);
+    pc.addEventListener('input', arcPrePreview);
+    pc.addEventListener('keydown', ev => { if (ev.key === 'Enter'){ ev.preventDefault(); arcPreAdd(); } });
+  }
   const qi = $('arcQ');
   upperInput(qi);
   qi.addEventListener('input', () => { ARC.q = qi.value; const pos = qi.selectionStart; renderArchive(); const n = $('arcQ'); n.focus(); try { n.setSelectionRange(pos, pos); } catch(_){} });
@@ -3238,27 +3276,45 @@ function arcPreCodes(){
 }
 function arcPreHTML(){
   const pre = arcPreCodes();
+  const list = arcSeries(), ser = arcSeriesPick();
   return `<details class="card arc-pre"${pre.length ? ' open' : ''}>
     <summary>Αρχειοθετήθηκε πριν μπει στο SoftOne${pre.length ? ` (${pre.length})` : ''}</summary>
     <p class="hint">Για τα χαρτιά που αρχειοθετείς σήμερα αλλά θα τα περάσεις στο SoftOne την επόμενη μέρα. Γράψε τον αριθμό τώρα και, μόλις ανεβάσεις τον επόμενο έλεγχο, θα βγουν κατευθείαν αρχειοθετημένα — δεν θα σε περιμένουν.</p>
+    ${list.length ? `<div class="f"><span>Κατηγορία</span>
+      <div class="pre-series" role="radiogroup" aria-label="Κατηγορία παραστατικού">${list.map(x =>
+        `<button type="button" role="radio" aria-checked="${ser && x.prefix === ser.prefix}" class="${ser && x.prefix === ser.prefix ? 'on' : ''}"
+          data-arc="series" data-p="${esc(x.prefix)}" title="${x.n} παραστατικά · τελευταίο ${x.last}">${esc(x.prefix)}<em>${x.last}</em></button>`).join('')}</div></div>` : ''}
     <div class="pre-form">
-      <label class="f f-grow"><span>Αριθμός παραστατικού</span>
-        <input class="inp" id="arcPreCode" spellcheck="false" autocomplete="off"
-          placeholder="π.χ. ΤΔΑ0001215 · πολλά μαζί με κόμμα · σειρά ΤΔΑ0001215-1220"></label>
+      <label class="f f-grow"><span>Αριθμός${ser ? ' (όπως στο χαρτί)' : ' παραστατικού'}</span>
+        <input class="inp" id="arcPreCode" spellcheck="false" autocomplete="off" inputmode="${ser ? 'numeric' : 'text'}"
+          placeholder="${ser ? `π.χ. ${ser.last || 1267} · πολλά με κόμμα · σειρά ${(ser.last || 1267) - 3}-${ser.last || 1267}` : 'π.χ. ΤΔΑ0001215 · πολλά μαζί με κόμμα'}"></label>
       <label class="f"><span>Ημερομηνία χαρτιού</span>
         <input class="inp" type="date" id="arcPreDate" value="${todayIso()}"></label>
       <button class="btn primary" data-arc="pre-add">Καταχώρηση</button>
     </div>
-    <p class="hint" id="arcPreHint"></p>
+    <p class="hint pre-prev" id="arcPreHint">${list.length ? 'Οι κατηγορίες μαθαίνονται από τα παραστατικά που έχεις ήδη περάσει. Για καινούρια σειρά, γράψε μία φορά ολόκληρο τον κωδικό.' : ''}</p>
     ${pre.length ? `<div class="chk-list">${dayListHTML(pre)}</div>` : ''}
   </details>`;
+}
+/* Ζωντανή προεπισκόπηση: τι θα γραφτεί στ' αλήθεια */
+function arcPrePreview(){
+  const inp = $('arcPreCode'), hint = $('arcPreHint');
+  if (!inp || !hint) return;
+  const raw = inp.value.trim();
+  if (!raw){ hint.innerHTML = arcSeries().length ? 'Οι κατηγορίες μαθαίνονται από τα παραστατικά που έχεις ήδη περάσει. Για καινούρια σειρά, γράψε μία φορά ολόκληρο τον κωδικό.' : ''; return; }
+  const { codes, bad } = parseCodeList(raw, arcSeriesPick());
+  const show = codes.slice(0, 4).map(c => `<b>${esc(c)}</b>`).join(' · ');
+  hint.innerHTML = codes.length
+    ? `${show}${codes.length > 4 ? ` … <b>${esc(codes[codes.length - 1])}</b> (${codes.length} συνολικά)` : ''}${bad.length ? ` · <span class="bad">δεν κατάλαβα: ${esc(bad.join(', '))}</span>` : ''}`
+    : `<span class="bad">Δεν κατάλαβα τι να γράψω. Διάλεξε κατηγορία και γράψε σκέτο τον αριθμό, π.χ. 1267.</span>`;
 }
 function arcPreAdd(){
   const inp = $('arcPreCode'), hint = $('arcPreHint');
   if (!inp) return;
-  const { codes, bad } = parseCodeList(inp.value);
+  const ser = arcSeriesPick();
+  const { codes, bad } = parseCodeList(inp.value, ser);
   if (!codes.length){
-    hint.innerHTML = `<span class="bad">Γράψε τον αριθμό όπως στο SoftOne, π.χ. ΤΔΑ0001215.</span>`;
+    hint.innerHTML = `<span class="bad">${ser ? 'Διάλεξε κατηγορία και γράψε σκέτο τον αριθμό, π.χ. 1267.' : 'Γράψε τον αριθμό όπως στο SoftOne, π.χ. ΤΔΑ0001215.'}</span>`;
     return;
   }
   const date = ($('arcPreDate') && $('arcPreDate').value) || todayIso();
@@ -3294,7 +3350,15 @@ function arcPreAdd(){
 }
 function reviewAdd(code){
   const raw = code || $('rvNew').value;
-  const v = normManualCode(raw);
+  let v = normManualCode(raw);
+  /* Σκέτο νούμερο: παίρνει τη σειρά που κυριαρχεί σε αυτόν τον έλεγχο. */
+  if (!v && /^\d+$/.test(clean(raw))){
+    const cnt = {};
+    ARC.review.forEach(r => { const p = codeParts(r.code); if (p) cnt[p.prefix + '|' + p.len] = (cnt[p.prefix + '|' + p.len] || 0) + 1; });
+    const top = Object.entries(cnt).sort((a,b) => b[1] - a[1])[0];
+    const ser = top ? { prefix: top[0].split('|')[0], len: Number(top[0].split('|')[1]) } : arcSeriesPick();
+    if (ser) v = padCode(ser.prefix, Number(clean(raw)), Math.max(ser.len, String(Number(clean(raw))).length));
+  }
   if (!v){ toast('Γράψε τον κωδικό όπως στη λίστα, π.χ. ΤΔΑ0001214.'); return; }
   if (ARC.review.some(r => r.code === v)){ toast(`Το ${esc(v)} υπάρχει ήδη στη λίστα.`); return; }
   const date = (ARC.review.find(r => r.date) || {}).date || '';
@@ -3313,6 +3377,15 @@ document.addEventListener('click', e => {
     case 'cancel-review': ARC.review = []; ARC.reviewIssues = []; ARC.images.forEach(u => URL.revokeObjectURL(u)); ARC.images = []; renderArchive(); break;
     case 'rv-del': ARC.review.splice(Number(a.dataset.i), 1); renderArchive(); break;
     case 'rv-swap': { const r = ARC.review[Number(a.dataset.i)]; if (r && r.alt){ if (ARC.review.some(x => x.code === r.alt)){ toast(`Το ${esc(r.alt)} υπάρχει ήδη στη λίστα.`); break; } [r.code, r.alt] = [r.alt, r.code]; ARC.review.sort((x,y) => byCode(x.code, y.code)); renderArchive(); } break; }
+    case 'series': {
+      LOCAL.settings.arcSeries = a.dataset.p; saveLocal();
+      const keep = $('arcPreCode') ? $('arcPreCode').value : '';
+      renderArchive();
+      const det = document.querySelector('.arc-pre'); if (det) det.open = true;
+      const n = $('arcPreCode');
+      if (n){ n.value = keep; n.focus(); arcPrePreview(); }
+      break;
+    }
     case 'pre-add': arcPreAdd(); break;
     case 'rv-add': reviewAdd(); break;
     case 'add-gap': reviewAdd(a.dataset.code); break;
