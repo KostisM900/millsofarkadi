@@ -109,6 +109,11 @@ input{font:inherit;color:inherit}
 
 /* ===== ΠΡΟΣΘΗΚΗ ===== */
 .add-card{padding:18px;margin-bottom:32px}
+.arc-pre{padding:14px 16px;margin-bottom:18px}
+.arc-pre summary{font-weight:800;cursor:pointer}
+.arc-pre .pre-form{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-top:10px}
+.arc-pre .pre-form .f-grow{flex:1;min-width:200px}
+.arc-pre .chk-list{margin-top:12px}
 .add-grid{display:grid;grid-template-columns:1.6fr auto auto;gap:10px;align-items:end}
 .when{display:flex;gap:6px;align-items:center}
 .when .inp{width:150px}
@@ -2687,6 +2692,27 @@ function sequenceGaps(codes){
   });
   return gaps;
 }
+/* Δέχεται πολλούς αριθμούς μαζί — με κόμμα, κενό ή νέα γραμμή — και σειρές:
+   «ΤΔΑ0001215-1220» ή «ΤΔΑ0001215 - ΤΔΑ0001220». */
+function parseCodeList(raw){
+  const out = [], bad = [];
+  String(raw || '').replace(/\s*[-–—]\s*/g, '-').split(/[,;\n\r\t ]+/).filter(Boolean).forEach(tok => {
+    const r = tok.split('-');
+    if (r.length === 2){
+      const a = normManualCode(r[0]), pa = a && codeParts(a);
+      let to = null;
+      if (/^\d+$/.test(r[1])) to = Number(r[1]);
+      else { const b = normManualCode(r[1]), pb = b && codeParts(b); if (pa && pb && pb.prefix === pa.prefix) to = pb.n; }
+      if (pa && to != null && to >= pa.n && to - pa.n <= 200){
+        for (let n = pa.n; n <= to; n++) out.push(pa.prefix + String(n).padStart(pa.len, '0'));
+        return;
+      }
+    }
+    const c = normManualCode(tok);
+    if (c) out.push(c); else bad.push(tok);
+  });
+  return { codes:[...new Set(out)], bad };
+}
 function normManualCode(raw){
   const t = upper(clean(raw)).replace(/[\s\-\/.]/g, '');
   const c = t && splitCode(t);
@@ -3180,6 +3206,7 @@ function renderArchive(){
       <input class="inp" id="arcQ" type="search" value="${esc(ARC.q)}" placeholder="Αναζήτηση παραστατικού, π.χ. 1207 ή ΤΔΑ0001207" autocomplete="off" spellcheck="false" aria-label="Αναζήτηση παραστατικού">
     </div>
     ${q ? section('ΑΠΟΤΕΛΕΣΜΑΤΑ', hits.length ? `<div class="chk-list">${hits.map(c => chkRow(c, true)).join('')}</div>` : `<p class="empty">Το ${esc(q)} δεν υπάρχει σε κανέναν έλεγχο.</p>`) : ''}
+    ${arcPreHTML()}
     ${lateN ? `<div class="notice late-notice">${ENV_SVG}<div><b>${lateN === 1 ? '1 παραστατικό καθυστερεί' : lateN + ' παραστατικά καθυστερούν'}:</b> τα περιμένεις πάνω από ${lateDays()} μέρες. Είναι με κόκκινο στη λίστα από κάτω.</div></div>` : ''}
     <div class="sec">
       <div class="sec-h"><h2>ΣΕ ΑΝΑΜΟΝΗ${waitAll.length ? ` (${waitAll.length})` : ''}</h2><span class="rule"></span>
@@ -3196,9 +3223,74 @@ function renderArchive(){
         <button class="icon-btn" data-arc="del" data-id="${c.id}" aria-label="Διαγραφή ελέγχου" title="Διαγραφή ελέγχου">×</button></div>`;
     }).join('')}</div>`) : ''}`;
   $('arcLate').addEventListener('change', e => { LOCAL.settings.arcLateDays = Math.min(90, Math.max(1, Number(e.target.value) || 7)); saveLocal(); renderArchive(); renderNav(); });
+  const pc = $('arcPreCode');
+  if (pc){ upperInput(pc); pc.addEventListener('keydown', ev => { if (ev.key === 'Enter'){ ev.preventDefault(); arcPreAdd(); } }); }
   const qi = $('arcQ');
   upperInput(qi);
   qi.addEventListener('input', () => { ARC.q = qi.value; const pos = qi.selectionStart; renderArchive(); const n = $('arcQ'); n.focus(); try { n.setSelectionRange(pos, pos); } catch(_){} });
+}
+/* Παραστατικά που αρχειοθετήθηκαν πριν περαστούν στο SoftOne: υπάρχουν στη
+   βάση σημειωμένα ως αρχειοθετημένα, αλλά δεν τα έχει δει ακόμα κανένας
+   έλεγχος. Μόλις ανέβει ο έλεγχος της επόμενης μέρας, βγαίνουν έτοιμα. */
+function arcPreCodes(){
+  const inChecks = new Set(ARC.checks.flatMap(c => c.codes));
+  return [...ARC.docs.keys()].filter(c => !inChecks.has(c) && !ARC.missing.has(c)).sort(byCode);
+}
+function arcPreHTML(){
+  const pre = arcPreCodes();
+  return `<details class="card arc-pre"${pre.length ? ' open' : ''}>
+    <summary>Αρχειοθετήθηκε πριν μπει στο SoftOne${pre.length ? ` (${pre.length})` : ''}</summary>
+    <p class="hint">Για τα χαρτιά που αρχειοθετείς σήμερα αλλά θα τα περάσεις στο SoftOne την επόμενη μέρα. Γράψε τον αριθμό τώρα και, μόλις ανεβάσεις τον επόμενο έλεγχο, θα βγουν κατευθείαν αρχειοθετημένα — δεν θα σε περιμένουν.</p>
+    <div class="pre-form">
+      <label class="f f-grow"><span>Αριθμός παραστατικού</span>
+        <input class="inp" id="arcPreCode" spellcheck="false" autocomplete="off"
+          placeholder="π.χ. ΤΔΑ0001215 · πολλά μαζί με κόμμα · σειρά ΤΔΑ0001215-1220"></label>
+      <label class="f"><span>Ημερομηνία χαρτιού</span>
+        <input class="inp" type="date" id="arcPreDate" value="${todayIso()}"></label>
+      <button class="btn primary" data-arc="pre-add">Καταχώρηση</button>
+    </div>
+    <p class="hint" id="arcPreHint"></p>
+    ${pre.length ? `<div class="chk-list">${dayListHTML(pre)}</div>` : ''}
+  </details>`;
+}
+function arcPreAdd(){
+  const inp = $('arcPreCode'), hint = $('arcPreHint');
+  if (!inp) return;
+  const { codes, bad } = parseCodeList(inp.value);
+  if (!codes.length){
+    hint.innerHTML = `<span class="bad">Γράψε τον αριθμό όπως στο SoftOne, π.χ. ΤΔΑ0001215.</span>`;
+    return;
+  }
+  const date = ($('arcPreDate') && $('arcPreDate').value) || todayIso();
+  const stamp = new Date().toISOString();
+  const had = codes.filter(c => ARC.docs.has(c) || ARC.missing.has(c));
+  const fresh = codes.filter(c => !had.includes(c));
+  const snap = had.map(c => [c, ARC.missing.get(c), (ARC.docs.get(c) || {}).archived_at || null]);
+  arcMutate(
+    () => {
+      fresh.forEach(c => { ARC.docs.set(c, { code:c, doc_date:date, archived_at:stamp }); ARC.stamps.set(c, stamp); ARC.missing.delete(c); });
+      had.forEach(c => { ARC.missing.delete(c); ARC.stamps.set(c, stamp); const d = ARC.docs.get(c); if (d) d.archived_at = stamp; });
+      renderNav();
+    },
+    async () => {
+      if (fresh.length)
+        await api('archive_docs?on_conflict=code', { method:'POST', body: fresh.map(c => ({ code:c, doc_date:date })), prefer:'resolution=ignore-duplicates,return=minimal' });
+      for (let i = 0; i < codes.length; i += 80)
+        await api(`archive_docs?code=in.${encodeURIComponent(inList(codes.slice(i, i + 80)))}`, { method:'PATCH', body:{ archived_at:stamp }, prefer:'return=minimal' });
+    },
+    () => {
+      fresh.forEach(c => { ARC.docs.delete(c); ARC.stamps.delete(c); });
+      snap.forEach(([c, miss, was]) => { if (miss) ARC.missing.set(c, miss); if (was) ARC.stamps.set(c, was); else ARC.stamps.delete(c); const d = ARC.docs.get(c); if (d) d.archived_at = was; });
+      renderNav();
+    },
+    'Η καταχώρηση δεν αποθηκεύτηκε.'
+  );
+  const n = codes.length;
+  toast(`${n === 1 ? `Το ${esc(codes[0])} μπήκε` : `${n} παραστατικά μπήκαν`} ως αρχειοθετημένα.${had.length && fresh.length ? ` (${had.length} τα περίμενες ήδη.)` : had.length && !fresh.length ? ' Τα περίμενες ήδη και τσεκαρίστηκαν.' : ' Θα βγουν έτοιμα στον επόμενο έλεγχο.'}`);
+  const box = $('arcPreCode');
+  if (box){ box.value = ''; box.focus(); }
+  const h = $('arcPreHint');
+  if (h) h.innerHTML = bad.length ? `<span class="bad">Δεν κατάλαβα: ${esc(bad.join(', '))}</span>` : '';
 }
 function reviewAdd(code){
   const raw = code || $('rvNew').value;
@@ -3221,6 +3313,7 @@ document.addEventListener('click', e => {
     case 'cancel-review': ARC.review = []; ARC.reviewIssues = []; ARC.images.forEach(u => URL.revokeObjectURL(u)); ARC.images = []; renderArchive(); break;
     case 'rv-del': ARC.review.splice(Number(a.dataset.i), 1); renderArchive(); break;
     case 'rv-swap': { const r = ARC.review[Number(a.dataset.i)]; if (r && r.alt){ if (ARC.review.some(x => x.code === r.alt)){ toast(`Το ${esc(r.alt)} υπάρχει ήδη στη λίστα.`); break; } [r.code, r.alt] = [r.alt, r.code]; ARC.review.sort((x,y) => byCode(x.code, y.code)); renderArchive(); } break; }
+    case 'pre-add': arcPreAdd(); break;
     case 'rv-add': reviewAdd(); break;
     case 'add-gap': reviewAdd(a.dataset.code); break;
     case 'open': openCheck(a.dataset.id); break;
