@@ -342,36 +342,65 @@ input{font:inherit;color:inherit}
 /* ===== ΕΚΤΥΠΩΣΗ ===== */
 #printArea{display:none}
 @media print{
+  @page{size:A4;margin:13mm 13mm 14mm}
   body.print-mode > *:not(#printArea){display:none!important}
   body.print-mode{background:#fff}
-  body.print-mode #printArea{display:block;color:#000;font-family:var(--font)}
-  #printArea h1{font-size:18pt;margin-bottom:2pt}
-  #printArea .p-sub{font-size:10pt;color:#555;margin-bottom:12pt}
-  #printArea h2{font-size:13pt;margin:12pt 0 4pt;border-bottom:1.5pt solid #000;padding-bottom:2pt;break-after:avoid}
-  #printArea table{width:100%;border-collapse:collapse;font-size:10.5pt}
-  #printArea td{padding:3pt 4pt;border-bottom:.5pt solid #bbb;vertical-align:top}
-  #printArea .p-n{width:18pt;color:#555}
-  #printArea .p-name{font-weight:700;width:40%}
-  #printArea .p-d{white-space:nowrap}
-  #printArea .p-chk{width:14pt;text-align:center;font-size:12pt}
-  /* Πίνακες στοκ: σταθερές στήλες, ώστε τα νούμερα να πέφτουν σε ευθεία */
+  body.print-mode #printArea{display:block;color:#111;font-family:var(--font);font-size:10.5pt;line-height:1.42}
+
+  /* --- Επιστολόχαρτο: λογότυπο αριστερά, ημερομηνία δεξιά --- */
+  #printArea .p-band{display:flex;align-items:center;justify-content:space-between;gap:14pt;
+    border-bottom:1.5pt solid #3C4A2A;padding-bottom:6pt;margin-bottom:15pt}
+  #printArea .p-brand{display:flex;align-items:center;gap:9pt;min-width:0}
+  #printArea .p-logo{height:38pt;width:auto;display:block}
+  #printArea .p-mono{display:inline-grid;place-items:center;width:30pt;height:30pt;border:1.4pt solid #3C4A2A;
+    border-radius:50%;font-weight:800;font-size:11.5pt;letter-spacing:.5pt;color:#3C4A2A}
+  #printArea .p-org b{display:block;font-size:14pt;font-weight:800;letter-spacing:-.01em;line-height:1.05}
+  #printArea .p-when{text-align:right;font-size:9.5pt;color:#333;white-space:nowrap;line-height:1.3}
+  #printArea .p-when em{display:block;font-style:normal;font-size:8.5pt;color:#777}
+
+  #printArea h1{font-size:16pt;font-weight:800;letter-spacing:-.01em;margin-bottom:2pt}
+  #printArea .p-sub{font-size:9.5pt;color:#555;margin-bottom:13pt}
+  #printArea h2{font-size:11.5pt;font-weight:800;letter-spacing:.02em;margin:15pt 0 5pt;
+    border-bottom:1pt solid #3C4A2A;padding-bottom:2.5pt;break-after:avoid}
+  #printArea h2 .p-cnt{float:right;font-weight:600;font-size:9.5pt;color:#666}
+  #printArea .p-foot{margin-top:16pt;padding-top:5pt;border-top:.5pt solid #BBB;
+    font-size:8pt;letter-spacing:.06em;color:#888;text-transform:uppercase}
+
+  /* --- Πίνακες --- */
+  #printArea table{width:100%;border-collapse:collapse;font-size:10pt}
+  #printArea thead{display:table-header-group}
+  #printArea tfoot{display:table-footer-group}
+  #printArea td{padding:4pt 5pt;border-bottom:.5pt solid #D5D5CC;vertical-align:top}
+  #printArea tbody tr:nth-child(even) td{background:#F6F6F1;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #printArea .p-n{width:20pt;color:#777;font-variant-numeric:tabular-nums}
+  #printArea .p-name{font-weight:700;width:38%}
+  #printArea .p-d{white-space:nowrap;font-variant-numeric:tabular-nums;text-align:right;width:64pt;color:#444}
+  #printArea .p-chk{width:20pt;text-align:center}
+  #printArea .p-chk::after{content:"";display:inline-block;width:10pt;height:10pt;border:.9pt solid #555;border-radius:1.5pt;vertical-align:-1pt}
+  #printArea tr{break-inside:avoid}
+  #printArea .p-empty{color:#777;font-style:italic}
+
+  /* --- Πίνακες στοκ: σταθερές στήλες, ώστε τα νούμερα να πέφτουν σε ευθεία --- */
   #printArea table.p-stock{table-layout:fixed;margin-bottom:10pt}
-  #printArea table.p-stock td{text-align:center;padding:4pt 2pt;font-size:11pt;font-variant-numeric:tabular-nums;vertical-align:middle}
+  #printArea table.p-stock td{text-align:center;padding:4.5pt 2pt;font-size:10.5pt;font-variant-numeric:tabular-nums;vertical-align:middle}
   #printArea table.p-stock td.c-name{text-align:left;font-weight:700;padding-left:0}
   #printArea table.p-stock td.c-what{text-align:left;font-weight:400;line-height:1.35}
-  #printArea table.p-stock td small{font-weight:400;color:#555;font-size:9pt}
-  #printArea table.p-stock tr.p-head td{font-weight:700;font-size:9.5pt;letter-spacing:.04em;border-bottom:1pt solid #000;text-transform:uppercase;color:#000}
-  #printArea table.p-stock tr.p-sum td{font-weight:700;border-top:1pt solid #000;border-bottom:0}
-  #printArea table.p-stock td.c-blank{border-bottom:1pt solid #000;height:22pt}
-  #printArea table.p-stock .z{color:#aaa}
-  #printArea tr{break-inside:avoid}
+  #printArea table.p-stock td small{font-weight:400;color:#666;font-size:8.5pt}
+  #printArea table.p-stock tr.p-head td{font-weight:800;font-size:8.5pt;letter-spacing:.08em;border-bottom:1pt solid #3C4A2A;
+    text-transform:uppercase;color:#3C4A2A;background:none;padding-bottom:3pt}
+  #printArea table.p-stock tr.p-sum td{font-weight:800;border-top:1pt solid #3C4A2A;border-bottom:0;background:none}
+  #printArea table.p-stock td.c-blank{border-bottom:.9pt solid #5A5A50;border-left:.5pt solid #C2C2B8;height:27pt}
+  #printArea table.p-stock .z{color:#B5B5AC}
+  #printArea table.p-stock tbody tr:nth-child(even) td{background:none}
+
+  /* --- Ράχη φακέλου --- */
   .p-spine{width:52mm;height:275mm;border:1pt dashed #999;display:flex;align-items:center;justify-content:center;break-inside:avoid;margin:0 auto}
   .p-spine div{transform:rotate(-90deg);white-space:nowrap;text-align:center}
+  .p-spine img{height:40pt;width:auto;display:block;margin:0 auto 8pt}
   .p-spine b{display:block;font-size:24pt;letter-spacing:2pt}
   .p-spine em{display:block;font-size:14pt;font-style:normal;color:#333;margin-top:4pt}
   .p-spine small{display:block;font-size:10.5pt;color:#666;margin-top:3pt;letter-spacing:1pt}
 }
-
 .slot-card header{justify-content:flex-start}
 .slot-card header .slot-n{margin-left:auto}
 .move-card{padding:14px 18px;margin-bottom:18px;max-width:760px;font-size:13.5px}
@@ -894,10 +923,14 @@ input{font:inherit;color:inherit}
 .veh-na{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap}
 .vl.na{opacity:.7}
 @media print{
-  #printArea th{text-align:left;font-size:10.5pt;border-bottom:1pt solid #000;padding:4pt 4pt 4pt 0}
+  #printArea th{text-align:left;font-size:8.5pt;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+    color:#3C4A2A;border-bottom:1pt solid #3C4A2A;padding:0 5pt 3pt 0}
   #printArea .p-miss{color:#A63E3A;font-weight:700}
-  #printArea .p-late{color:#A63E3A}
-  #printArea .p-na{color:#666}
+  #printArea .p-late{color:#A63E3A;font-weight:700;white-space:nowrap}
+  #printArea .p-na{color:#888;font-style:italic}
+  #printArea table.p-veh td{white-space:nowrap;font-variant-numeric:tabular-nums}
+  #printArea table.p-veh td.p-name{font-size:10.5pt;letter-spacing:.02em}
+  #printArea table.p-veh td.c-desc{white-space:normal;font-variant-numeric:normal}
 }
 </style>
 </head>
@@ -2443,21 +2476,48 @@ function renderBinder(){
     }).join('')}</div>` : '<div class="empty">Μόλις μπει ο πρώτος φάκελος, θα δεις εδώ σε ποιο γράμμα πάει.</div>'}
     ${emptyLetters.length ? `<p class="binder-empty">Άδεια χωρίσματα: ${emptyLetters.map(L => `<b>${esc(L)}</b>`).join(' ')}</p>` : ''}`;
 }
-function printBinder(kind){
-  const { tabs, byTab } = binderData();
+/* ---------- Κοινό επιστολόχαρτο για κάθε εκτύπωση ----------
+   Το λογότυπο έρχεται από αυτό που έχει ήδη φορτώσει η σελίδα· αν δεν
+   φόρτωσε, μπαίνει το μονόγραμμα, ώστε να μη μείνει ποτέ κενό. */
+function printLogo(){
+  const img = $('logo');
+  const src = img && !img.hidden && img.getAttribute('src');
+  return src ? `<img class="p-logo" src="${esc(src)}" alt="">` : '<span class="p-mono">ΜΑ</span>';
+}
+function printHead(title, sub, right){
+  const now = new Date();
+  return `<div class="p-band">
+      <div class="p-brand">${printLogo()}
+        <span class="p-org"><b>Μύλοι Αρκαδίου</b></span>
+      </div>
+      <div class="p-when">${esc(right || longDate(todayIso()))}<em>${esc(hhmm(now.toISOString()))}</em></div>
+    </div>
+    <h1>${title}</h1>${sub ? `<p class="p-sub">${sub}</p>` : ''}`;
+}
+const printFoot = note => `<p class="p-foot">Μύλοι Αρκαδίου${note ? ' · ' + esc(note) : ''} · ${esc(fmtDate(todayIso()))}</p>`;
+/* Ανοίγει τον διάλογο εκτύπωσης και καθαρίζει μετά */
+function printNow(html){
   const area = $('printArea');
-  if (kind === 'spine'){
-    area.innerHTML = `<div class="p-spine"><div><b>ΦΑΚΕΛΟΙ ΠΕΛΑΤΩΝ</b><em>Μύλοι Αρκαδίου</em><small>ΕΥΡΕΤΗΡΙΟ Α–Ω</small></div></div>`;
-  } else {
-    const now = new Date();
-    area.innerHTML = `<h1>Φάκελος Α–Ω · Μύλοι Αρκαδίου</h1><p class="p-sub">${longDate(todayIso())}, ${hhmm(now.toISOString())}</p>
-      ${tabs.filter(L => byTab.get(L).length).map(L => `<h2>${esc(L === LATIN_TAB ? 'Τέλος · λατινικά και αριθμοί' : L)}</h2><table>${byTab.get(L).map((g,i) =>
-        `<tr><td class="p-n">${i+1}.</td><td class="p-name">${esc(g.name)}</td><td>${esc(docSummary(g.items))}</td><td class="p-d">${g.date ? esc(dayLabel(g.date)) : 'χωρίς ημέρα'}</td><td class="p-chk">☐</td></tr>`).join('')}</table>`).join('')}`;
-  }
+  area.innerHTML = html;
   document.body.classList.add('print-mode');
   const done = () => { document.body.classList.remove('print-mode'); area.innerHTML = ''; window.removeEventListener('afterprint', done); };
   window.addEventListener('afterprint', done);
   try { window.print(); } catch(e){ toast('Η εκτύπωση δεν επιτρέπεται εδώ. Άνοιξε την εφαρμογή από το δικό σας link.'); done(); }
+}
+function printBinder(kind){
+  const { tabs, byTab } = binderData();
+  if (kind === 'spine'){
+    printNow(`<div class="p-spine"><div>${printLogo()}<b>ΦΑΚΕΛΟΙ ΠΕΛΑΤΩΝ</b><em>Μύλοι Αρκαδίου</em><small>ΕΥΡΕΤΗΡΙΟ Α–Ω</small></div></div>`);
+    return;
+  }
+  const used = tabs.filter(L => byTab.get(L).length);
+  const total = used.reduce((n, L) => n + byTab.get(L).length, 0);
+  printNow(printHead('Φάκελος Α–Ω',
+      `${total === 1 ? '1 φάκελος πελάτη' : total + ' φάκελοι πελατών'} σε ${used.length === 1 ? '1 γράμμα' : used.length + ' γράμματα'} του ευρετηρίου. Τσέκαρε καθώς τα τοποθετείς.`)
+    + used.map(L => `<h2>${esc(L === LATIN_TAB ? 'Τέλος · λατινικά και αριθμοί' : L)}<span class="p-cnt">${byTab.get(L).length}</span></h2>
+      <table><tbody>${byTab.get(L).map((g,i) =>
+        `<tr><td class="p-n">${i+1}.</td><td class="p-name">${esc(g.name)}</td><td>${esc(docSummary(g.items))}</td><td class="p-d">${g.date ? esc(dayLabel(g.date)) : 'χωρίς ημέρα'}</td><td class="p-chk"></td></tr>`).join('')}</tbody></table>`).join('')
+    + printFoot('Φάκελος Α–Ω'));
 }
 
 /* ===================== ΕΛΕΓΧΟΣ ΑΡΧΕΙΟΘΕΤΗΣΗΣ ΠΑΡΑΣΤΑΤΙΚΩΝ ===================== */
@@ -4244,29 +4304,26 @@ function renderVehicles(){
 }
 /* Εκτυπώσιμη λίστα: όλα τα οχήματα με τις δύο ημερομηνίες, και τι λείπει */
 function printVehicles(){
-  const area = $('printArea');
   const rows = [...VEH.list].sort((a,b) => a.plate.localeCompare(b.plate,'el'));
   const cell = (v, kind) => {
     if (kind === 'emis' && v.noEmis) return '<td class="p-na">δεν έχει</td>';
     const d = v[kind];
     if (!d) return '<td class="p-miss">—</td>';
     const st = vehState(d);
-    return `<td${st === 'late' ? ' class="p-late"' : ''}>${fmtDate(d)}${st === 'late' ? ' (έληξε)' : ''}</td>`;
+    return `<td${st === 'late' ? ' class="p-late"' : ''}>${fmtDate(d)}${st === 'late' ? ' · έληξε' : ''}</td>`;
   };
   const miss = rows.filter(v => vehMissing(v));
-  area.innerHTML = `
-    <h1>Οχήματα — ΚΤΕΟ και κάρτα καυσαερίων</h1>
-    <p class="p-sub">${longDate(todayIso())}, ${hhmm(new Date().toISOString())}</p>
-    <table>
-      <tr><th>Πινακίδα</th><th>Περιγραφή</th><th>ΚΤΕΟ</th><th>Καυσαέρια</th></tr>
-      ${rows.map(v => `<tr><td class="p-name">${esc(v.plate)}</td><td>${esc(v.name || '')}</td>${cell(v,'kteo')}${cell(v,'emis')}</tr>`).join('')}
-    </table>
-    ${miss.length ? `<h2>Λείπουν ημερομηνίες (${miss.length})</h2><table>${miss.map(v =>
-      `<tr><td class="p-name">${esc(v.plate)}</td><td>${esc(v.name || '')}</td><td>${!v.kteo ? 'ΚΤΕΟ' : ''}${!v.kteo && !v.noEmis && !v.emis ? ' και ' : ''}${!v.noEmis && !v.emis ? 'κάρτα καυσαερίων' : ''}</td><td class="p-chk">☐</td></tr>`).join('')}</table>` : ''}`;
-  document.body.classList.add('print-mode');
-  const done = () => { document.body.classList.remove('print-mode'); area.innerHTML = ''; window.removeEventListener('afterprint', done); };
-  window.addEventListener('afterprint', done);
-  try { window.print(); } catch(e){ toast('Η εκτύπωση δεν επιτρέπεται εδώ.'); done(); }
+  const late = rows.filter(v => (v.kteo && vehState(v.kteo) === 'late') || (!v.noEmis && v.emis && vehState(v.emis) === 'late')).length;
+  printNow(printHead('Οχήματα', `ΚΤΕΟ και κάρτα καυσαερίων · ${rows.length === 1 ? '1 όχημα' : rows.length + ' οχήματα'}${late ? ` · <b>${late} με ληγμένη ημερομηνία</b>` : ''}`)
+    + `<table class="p-veh">
+      <colgroup><col style="width:22%"><col style="width:34%"><col style="width:22%"><col style="width:22%"></colgroup>
+      <thead><tr><th>Πινακίδα</th><th>Περιγραφή</th><th>ΚΤΕΟ</th><th>Καυσαέρια</th></tr></thead>
+      <tbody>${rows.map(v => `<tr><td class="p-name">${esc(v.plate)}</td><td class="c-desc">${esc(v.name || '')}</td>${cell(v,'kteo')}${cell(v,'emis')}</tr>`).join('')
+        || '<tr><td colspan="4" class="p-empty">Δεν έχει καταχωρηθεί όχημα.</td></tr>'}</tbody>
+    </table>`
+    + (miss.length ? `<h2>Λείπουν ημερομηνίες<span class="p-cnt">${miss.length}</span></h2><table><tbody>${miss.map(v =>
+      `<tr><td class="p-name">${esc(v.plate)}</td><td>${esc(v.name || '')}</td><td>${!v.kteo ? 'ΚΤΕΟ' : ''}${!v.kteo && !v.noEmis && !v.emis ? ' και ' : ''}${!v.noEmis && !v.emis ? 'κάρτα καυσαερίων' : ''}</td><td class="p-chk"></td></tr>`).join('')}</tbody></table>` : '')
+    + printFoot('Οχήματα'));
 }
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-veh]');
@@ -5409,29 +5466,25 @@ function openBag(staffId, batch){
    κατάστασης, είναι χαρτί που υπογράφεται. */
 function printStaff(){
   if (!STK.bagsLoaded){ toast('Φόρτωση τσαντών…'); loadHandouts().then(() => printStaff()); return; }
-  const area = $('printArea'), now = new Date();
   const line = b => b.items.map(i => (i.n > 1 ? i.n + '× ' : '') + i.label).join(' · ');
   const list = STK.staff.filter(st => st.active).map(st => ({ st, bag: stkBagsOf(st.name).find(b => !b.single) })).filter(x => x.bag);
   const rows = list.map(({ st, bag }) => `<tr>
       <td class="c-name">${esc(st.name)}${st.role ? `<br><small>${esc(st.role)}</small>` : ''}</td>
       <td class="c-what">${esc(line(bag))}</td>
       <td class="c-blank"></td></tr>`).join('');
-  area.innerHTML = `<h1>Ενδυμασία εργαζομένων · Μύλοι Αρκαδίου</h1>
-    <p class="p-sub">${longDate(todayIso())}</p>
-    <table class="p-stock">
+  printNow(printHead('Ενδυμασία εργαζομένων',
+      `Βεβαίωση παραλαβής · ${list.length === 1 ? '1 εργαζόμενος' : list.length + ' εργαζόμενοι'}`)
+    + `<table class="p-stock">
       <colgroup><col style="width:26%"><col style="width:46%"><col style="width:28%"></colgroup>
-      <tr class="p-head"><td class="c-name">Όνομα</td><td class="c-what">Τι παρέλαβε</td><td>Υπογραφή</td></tr>
-      ${rows || '<tr><td colspan="3">Δεν έχει ετοιμαστεί καμία τσάντα.</td></tr>'}
-    </table>`;
-  document.body.classList.add('print-mode');
-  const done = () => { document.body.classList.remove('print-mode'); area.innerHTML = ''; window.removeEventListener('afterprint', done); };
-  window.addEventListener('afterprint', done);
-  try { window.print(); } catch(e){ toast('Η εκτύπωση δεν επιτρέπεται εδώ. Άνοιξε την εφαρμογή από το δικό σας link.'); done(); }
+      <thead><tr class="p-head"><td class="c-name">Όνομα</td><td class="c-what">Τι παρέλαβε</td><td>Υπογραφή</td></tr></thead>
+      <tbody>${rows || '<tr><td colspan="3" class="p-empty">Δεν έχει ετοιμαστεί καμία τσάντα.</td></tr>'}</tbody>
+    </table>`
+    + printFoot('Ενδυμασία προσωπικού'));
 }
 function printStock(blank){
-  const area = $('printArea'), now = new Date();
-  let html = `<h1>${blank ? 'Φύλλο απογραφής' : 'Ενδυμασία προσωπικού'} · Μύλοι Αρκαδίου</h1>
-    <p class="p-sub">${longDate(todayIso())}, ${hhmm(now.toISOString())}${blank ? '' : ` · σύνολο ${stkTotal()} τεμάχια`}</p>`;
+  let html = printHead(blank ? 'Φύλλο απογραφής' : 'Ενδυμασία προσωπικού',
+    blank ? 'Μέτρησε και γράψε τα νούμερα στα κενά κουτάκια.'
+          : `Απόθεμα · σύνολο <b>${stkTotal()}</b> τεμάχια σε ${STK.colors.length === 1 ? '1 χρώμα' : STK.colors.length + ' χρώματα'}`);
   STK.kinds.forEach(K => {
     const k = K.code;
     const sizes = blank ? stkSizeCols(k) : stkSizesUsed(k);
@@ -5441,25 +5494,21 @@ function printStock(blank){
     const tot = stkTotal(STK.list.filter(v => v.kind === k));
     const cols = sizes.length + (many && !blank ? 1 : 0);
     const w = Math.floor(62 / Math.max(1, cols));
-    html += `<h2>${esc(K.pl)}${blank ? '' : ` — ${tot} τεμάχια`}</h2>
+    html += `<h2>${esc(K.pl)}${blank ? '' : `<span class="p-cnt">${tot} τεμάχια</span>`}</h2>
       <table class="p-stock">
         <colgroup><col style="width:${100 - w * cols}%">${Array.from({ length:cols }, () => `<col style="width:${w}%">`).join('')}</colgroup>
-        <tr class="p-head"><td class="c-name">Χρώμα</td>${sizes.map(sz => `<td>${sz === STK_ONE ? 'Τεμάχια' : esc(sz)}</td>`).join('')}${many && !blank ? '<td>Σύνολο</td>' : ''}</tr>
-        ${colors.map(c => `<tr><td class="c-name">${esc(c.name)}</td>
+        <thead><tr class="p-head"><td class="c-name">Χρώμα</td>${sizes.map(sz => `<td>${sz === STK_ONE ? 'Τεμάχια' : esc(sz)}</td>`).join('')}${many && !blank ? '<td>Σύνολο</td>' : ''}</tr></thead>
+        <tbody>${colors.map(c => `<tr><td class="c-name">${esc(c.name)}</td>
           ${sizes.map(sz => { if (blank) return '<td class="c-blank"></td>';
             const q = stkQty(k, c.name, sz);
             return `<td${q ? '' : ' class="z"'}>${q || '–'}</td>`; }).join('')}
           ${many && !blank ? `<td><b>${STK.list.filter(v => v.kind === k && v.color === c.name).reduce((n,v) => n + v.qty, 0)}</b></td>` : ''}</tr>`).join('')}
-        ${blank ? '' : `<tr class="p-sum"><td class="c-name">Σύνολο</td>${sizes.map(sz =>
-          `<td>${stkTotal(STK.list.filter(v => v.kind === k && v.size === sz))}</td>`).join('')}${many ? `<td>${tot}</td>` : ''}</tr>`}
+        </tbody>
+        ${blank ? '' : `<tfoot><tr class="p-sum"><td class="c-name">Σύνολο</td>${sizes.map(sz =>
+          `<td>${stkTotal(STK.list.filter(v => v.kind === k && v.size === sz))}</td>`).join('')}${many ? `<td>${tot}</td>` : ''}</tr></tfoot>`}
       </table>`;
   });
-  if (blank) html += `<p class="p-sub">Γράψε τι μέτρησες και πέρασέ το μετά στον «Πίνακα».</p>`;
-  area.innerHTML = html;
-  document.body.classList.add('print-mode');
-  const done = () => { document.body.classList.remove('print-mode'); area.innerHTML = ''; window.removeEventListener('afterprint', done); };
-  window.addEventListener('afterprint', done);
-  try { window.print(); } catch(e){ toast('Η εκτύπωση δεν επιτρέπεται εδώ. Άνοιξε την εφαρμογή από το δικό σας link.'); done(); }
+  printNow(html + printFoot(blank ? 'Πέρασε τα νούμερα στον «Πίνακα»' : 'Ενδυμασία προσωπικού'));
 }
 /* ---------- Χειρισμοί ---------- */
 document.addEventListener('click', e => {
