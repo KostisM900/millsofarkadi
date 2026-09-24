@@ -3306,6 +3306,53 @@ function arcSort(codes){
   };
 }
 const PV_TAG = { wait:'το περίμενα', fresh:'δεν είναι ακόμα στο SoftOne', done:'ήδη αρχειοθετημένο' };
+const pvKind = c => ARC.missing.has(c) ? 'wait' : ARC.stamps.has(c) ? 'done' : 'fresh';
+const pvChip = c => `<span class="pv ${pvKind(c)}">${esc(c)}<em>${PV_TAG[pvKind(c)]}</em></span>`;
+/* Τι θα γραφτεί και τι είναι το καθένα — ίδιο σε σελίδα και παράθυρο */
+function arcPreviewHTML(raw){
+  const { codes, bad } = parseCodeList(raw, arcSeriesPick());
+  if (!codes.length && !bad.length) return '';
+  const chips = codes.slice(0, 8).map(pvChip);
+  if (codes.length > 8) chips.push(`<span class="pv">+${codes.length - 8} ακόμα</span>`);
+  bad.forEach(t => chips.push(`<span class="pv bad">${esc(t)}<em>δεν το κατάλαβα</em></span>`));
+  return chips.join('');
+}
+/* Η ίδια η αρχειοθέτηση, μία φορά γραμμένη */
+function arcArchive(codes, date){
+  const stamp = new Date().toISOString();
+  const was = arcSort(codes);
+  const had = codes.filter(c => ARC.docs.has(c) || ARC.missing.has(c));
+  const fresh = codes.filter(c => !had.includes(c));
+  const snap = had.map(c => [c, ARC.missing.get(c), (ARC.docs.get(c) || {}).archived_at || null]);
+  arcMutate(
+    () => {
+      fresh.forEach(c => { ARC.docs.set(c, { code:c, doc_date:date, archived_at:stamp }); ARC.stamps.set(c, stamp); ARC.missing.delete(c); });
+      had.forEach(c => { ARC.missing.delete(c); ARC.stamps.set(c, stamp); const d = ARC.docs.get(c); if (d) d.archived_at = stamp; });
+      renderNav();
+    },
+    async () => {
+      if (fresh.length)
+        await api('archive_docs?on_conflict=code', { method:'POST', body: fresh.map(c => ({ code:c, doc_date:date })), prefer:'resolution=ignore-duplicates,return=minimal' });
+      for (let i = 0; i < codes.length; i += 80)
+        await api(`archive_docs?code=in.${encodeURIComponent(inList(codes.slice(i, i + 80)))}`, { method:'PATCH', body:{ archived_at:stamp }, prefer:'return=minimal' });
+    },
+    () => {
+      fresh.forEach(c => { ARC.docs.delete(c); ARC.stamps.delete(c); });
+      snap.forEach(([c, miss, wasAt]) => { if (miss) ARC.missing.set(c, miss); if (wasAt) ARC.stamps.set(c, wasAt); else ARC.stamps.delete(c); const d = ARC.docs.get(c); if (d) d.archived_at = wasAt; });
+      renderNav();
+    },
+    'Η καταχώρηση δεν αποθηκεύτηκε.'
+  );
+  return was;
+}
+/* Τι λέει το μήνυμα μετά */
+function arcAddedMsg(codes, was){
+  const parts = [];
+  if (was.wait.length)  parts.push(was.wait.length === 1 ? '1 το περίμενες' : `${was.wait.length} τα περίμενες`);
+  if (was.fresh.length) parts.push(`${was.fresh.length} δεν ${was.fresh.length === 1 ? 'είναι' : 'είναι'} ακόμα στο SoftOne`);
+  if (was.done.length)  parts.push(was.done.length === 1 ? '1 ήταν ήδη αρχειοθετημένο' : `${was.done.length} ήταν ήδη αρχειοθετημένα`);
+  return `${codes.length === 1 ? `${codes[0]} · αρχειοθετήθηκε` : `${codes.length} αρχειοθετήθηκαν`}${parts.length ? ' — ' + parts.join(', ') : ''}.`;
+}
 function arcPreHTML(){
   const pre = arcPreCodes();
   const list = arcSeries(), ser = arcSeriesPick();
@@ -3345,14 +3392,7 @@ function arcPrePreview(){
   const { codes, bad } = parseCodeList(raw, arcSeriesPick());
   if (!codes.length && !bad.length){ hint.className = 'hint pre-prev plain'; hint.innerHTML = arcPreIdle(arcSeries().length); return; }
   hint.className = 'hint pre-prev';
-  const kind = c => ARC.missing.has(c) ? 'wait' : ARC.stamps.has(c) ? 'done' : 'fresh';
-  const chips = codes.slice(0, 8).map(c => {
-    const k = kind(c);
-    return `<span class="pv ${k}">${esc(c)}<em>${PV_TAG[k]}</em></span>`;
-  });
-  if (codes.length > 8) chips.push(`<span class="pv">+${codes.length - 8} ακόμα</span>`);
-  bad.forEach(t => chips.push(`<span class="pv bad">${esc(t)}<em>δεν το κατάλαβα</em></span>`));
-  hint.innerHTML = chips.join('');
+  hint.innerHTML = arcPreviewHTML(raw);
 }
 function arcPreAdd(){
   const inp = $('arcPreCode'), hint = $('arcPreHint');
@@ -3360,41 +3400,14 @@ function arcPreAdd(){
   const ser = arcSeriesPick();
   const { codes, bad } = parseCodeList(inp.value, ser);
   if (!codes.length){
+    hint.className = 'hint pre-prev plain';
     hint.innerHTML = `<span class="bad">${ser ? 'Διάλεξε κατηγορία και γράψε σκέτο τον αριθμό, π.χ. 1267.' : 'Γράψε τον αριθμό όπως στο SoftOne, π.χ. ΤΔΑ0001215.'}</span>`;
     return;
   }
   const date = ($('arcPreDate') && $('arcPreDate').value) || todayIso();
   ARC.entryDate = date;
-  const stamp = new Date().toISOString();
-  const was = arcSort(codes);
-  const had = codes.filter(c => ARC.docs.has(c) || ARC.missing.has(c));
-  const fresh = codes.filter(c => !had.includes(c));
-  const snap = had.map(c => [c, ARC.missing.get(c), (ARC.docs.get(c) || {}).archived_at || null]);
-  arcMutate(
-    () => {
-      fresh.forEach(c => { ARC.docs.set(c, { code:c, doc_date:date, archived_at:stamp }); ARC.stamps.set(c, stamp); ARC.missing.delete(c); });
-      had.forEach(c => { ARC.missing.delete(c); ARC.stamps.set(c, stamp); const d = ARC.docs.get(c); if (d) d.archived_at = stamp; });
-      renderNav();
-    },
-    async () => {
-      if (fresh.length)
-        await api('archive_docs?on_conflict=code', { method:'POST', body: fresh.map(c => ({ code:c, doc_date:date })), prefer:'resolution=ignore-duplicates,return=minimal' });
-      for (let i = 0; i < codes.length; i += 80)
-        await api(`archive_docs?code=in.${encodeURIComponent(inList(codes.slice(i, i + 80)))}`, { method:'PATCH', body:{ archived_at:stamp }, prefer:'return=minimal' });
-    },
-    () => {
-      fresh.forEach(c => { ARC.docs.delete(c); ARC.stamps.delete(c); });
-      snap.forEach(([c, miss, was]) => { if (miss) ARC.missing.set(c, miss); if (was) ARC.stamps.set(c, was); else ARC.stamps.delete(c); const d = ARC.docs.get(c); if (d) d.archived_at = was; });
-      renderNav();
-    },
-    'Η καταχώρηση δεν αποθηκεύτηκε.'
-  );
-  const parts = [];
-  if (was.wait.length)  parts.push(`${was.wait.length === 1 ? '1 το περίμενες' : `${was.wait.length} τα περίμενες`}`);
-  if (was.fresh.length) parts.push(`${was.fresh.length === 1 ? '1 δεν είναι ακόμα στο SoftOne' : `${was.fresh.length} δεν είναι ακόμα στο SoftOne`}`);
-  if (was.done.length)  parts.push(`${was.done.length === 1 ? '1 ήταν ήδη αρχειοθετημένο' : `${was.done.length} ήταν ήδη αρχειοθετημένα`}`);
-  const n = codes.length;
-  toast(`${n === 1 ? `${esc(codes[0])} · αρχειοθετήθηκε` : `${n} αρχειοθετήθηκαν`}${parts.length ? ' — ' + parts.join(', ') : ''}.`);
+  const was = arcArchive(codes, date);
+  toast(esc(arcAddedMsg(codes, was)));
   ARC.entry = '';
   ARC.refocus = true;
   const box = $('arcPreCode');
@@ -3404,6 +3417,79 @@ function arcPreAdd(){
     h.className = 'hint pre-prev' + (bad.length ? '' : ' plain');
     h.innerHTML = bad.length ? bad.map(t => `<span class="pv bad">${esc(t)}<em>δεν το κατάλαβα</em></span>`).join('') : arcPreIdle(arcSeries().length);
   }
+}
+/* ---------- Το ίδιο, σε παράθυρο, από την αρχική ---------- */
+function openArcEntry(){
+  if (!canArchive()) return;
+  if (!ARC.loaded){
+    if (ARC.setupMissing){ go('arc'); return; }
+    toast('Φόρτωση παραστατικών…');
+    loadArchive().then(() => { if (ARC.loaded) openArcEntry(); });
+    return;
+  }
+  const box = $('modalBox');
+  let date = ARC.entryDate || todayIso();
+  const done = [];
+  const draw = (keep = '') => {
+    const list = arcSeries(), ser = arcSeriesPick();
+    box.innerHTML = `
+      <button class="icon-btn m-x" data-m="cancel" aria-label="Κλείσιμο">×</button>
+      <p class="m-eyebrow">Αρχειοθέτηση παραστατικών</p>
+      <h2>Ό,τι αρχειοθετώ τώρα</h2>
+      <p class="m-meta"><span>Γράψε τον αριθμό και πάτα Enter. Αν το περίμενες, τσεκάρεται· αν δεν έχει μπει ακόμα στο SoftOne, θα βγει έτοιμο στον επόμενο έλεγχο.</span></p>
+      ${list.length ? `<div class="f m-field"><span>Κατηγορία</span>
+        <div class="pre-series" role="radiogroup" aria-label="Κατηγορία παραστατικού">${list.map(x =>
+          `<button type="button" role="radio" aria-checked="${ser && x.prefix === ser.prefix}" class="${ser && x.prefix === ser.prefix ? 'on' : ''}"
+            data-aep="${esc(x.prefix)}" title="${x.n} παραστατικά · τελευταίο ${x.last}">${esc(x.prefix)}<em>${x.last}</em></button>`).join('')}</div></div>` : ''}
+      <div class="f m-field"><span>Αριθμός${ser ? ' (όπως στο χαρτί)' : ' παραστατικού'}</span>
+        <input class="inp" id="aeCode" spellcheck="false" autocomplete="off" inputmode="${ser ? 'numeric' : 'text'}"
+          placeholder="${ser ? `π.χ. ${ser.last || 1267} · πολλά με κόμμα · σειρά ${(ser.last || 1267) - 3}-${ser.last || 1267}` : 'π.χ. ΤΔΑ0001215 · πολλά μαζί με κόμμα'}">
+      </div>
+      <label class="f m-field"><span>Ημερομηνία χαρτιού</span>
+        <input class="inp" type="date" id="aeDate" value="${esc(date)}"></label>
+      <p class="hint pre-prev" id="aePrev"></p>
+      ${done.length ? `<div class="f m-field"><span>Μπήκαν τώρα (${done.length})</span>
+        <div class="pre-prev">${done.slice(0, 12).map(d => `<span class="pv ${d.kind}">${esc(d.code)}<em>${PV_TAG[d.kind]}</em></span>`).join('')}${done.length > 12 ? `<span class="pv">+${done.length - 12}</span>` : ''}</div></div>` : ''}
+      <div class="m-f"><span class="m-sp"></span>
+        <button class="btn ghost" data-m="cancel">Κλείσιμο</button>
+        <button class="btn primary" data-m="save">Καταχώρηση</button></div>`;
+    const inp = $('aeCode');
+    upperInput(inp);
+    inp.value = keep;
+    inp.focus();
+    prev();
+  };
+  const prev = () => { const p = $('aePrev'), i = $('aeCode'); if (p && i) p.innerHTML = arcPreviewHTML(i.value.trim()); };
+  const add = () => {
+    const i = $('aeCode'); if (!i) return;
+    const ser = arcSeriesPick();
+    const { codes } = parseCodeList(i.value, ser);
+    if (!codes.length){
+      $('aePrev').innerHTML = `<span class="pv bad">${ser ? 'γράψε σκέτο τον αριθμό, π.χ. 1267' : 'γράψε ολόκληρο τον κωδικό'}<em>δεν το κατάλαβα</em></span>`;
+      i.focus(); return;
+    }
+    date = ($('aeDate') && $('aeDate').value) || todayIso();
+    ARC.entryDate = date;
+    const was = arcArchive(codes, date);
+    codes.forEach(c => done.unshift({ code:c, kind: was.wait.includes(c) ? 'wait' : was.done.includes(c) ? 'done' : 'fresh' }));
+    toast(esc(arcAddedMsg(codes, was)));
+    draw('');
+  };
+  const close = () => { $('modal').hidden = true; box.innerHTML = ''; document.removeEventListener('keydown', onKey); };
+  const onKey = e => { if (e.key === 'Escape') close(); };
+  box.oninput = e => { if (e.target.id === 'aeCode') prev(); if (e.target.id === 'aeDate') date = e.target.value || todayIso(); };
+  box.onkeydown = e => { if (e.key === 'Enter' && e.target.id === 'aeCode'){ e.preventDefault(); add(); } };
+  box.onclick = e => {
+    const p = e.target.closest('[data-aep]');
+    if (p){ LOCAL.settings.arcSeries = p.dataset.aep; saveLocal(); draw($('aeCode') ? $('aeCode').value : ''); return; }
+    const b = e.target.closest('[data-m]'); if (!b) return;
+    if (b.dataset.m === 'cancel') return close();
+    if (b.dataset.m === 'save') add();
+  };
+  $('modal').onclick = e => { if (e.target === $('modal')) close(); };
+  document.addEventListener('keydown', onKey);
+  $('modal').hidden = false;
+  draw('');
 }
 function reviewAdd(code){
   const raw = code || $('rvNew').value;
@@ -3561,6 +3647,7 @@ function renderHome(){
     { act:'new-envelope', label:'Νέος φάκελος' },
     canVehicles() ? { act:'new-vehicle', label:'Νέο όχημα' } : null,
     canCheques()  ? { act:'new-cheque', label:'Νέα επιταγή' } : null,
+    canArchive()  ? { act:'arc-add', label:'Αρχειοθέτησα', sign:'✓' } : null,
     canArchive()  ? { act:'new-check', label:'Έλεγχος παραστατικών' } : null,
     canStock()    ? { act:'give-garment', label:'Δόθηκε ρούχο', sign:'−' } : null
   ].filter(Boolean);
@@ -3826,6 +3913,7 @@ document.addEventListener('click', e => {
   if (!b) return;
   const quick = { 'new-envelope':'env', 'new-cheque':'chq', 'new-vehicle':'veh' };
   if (quick[b.dataset.home]) return openQuickForm(quick[b.dataset.home]);
+  if (b.dataset.home === 'arc-add') return openArcEntry();
   if (b.dataset.home === 'new-check'){ go('arc'); setTimeout(() => $('arcFile') && $('arcFile').click(), 150); }
   if (b.dataset.home === 'give-garment') openGarmentOut();
 });
