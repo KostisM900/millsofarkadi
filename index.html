@@ -114,6 +114,9 @@ input{font:inherit;color:inherit}
 .arc-pre .pre-form{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-top:10px}
 .arc-pre .pre-form .f-grow{flex:1;min-width:200px}
 .arc-pre .chk-list{margin-top:12px}
+.arc-pre .dinp,.modal .arc-d .dinp{width:118px}
+.dprev.bad{color:var(--red)}
+.f > span .opt{font-style:normal;font-weight:600;color:var(--muted);opacity:.85}
 .pre-series{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 2px}
 .pre-series button{display:inline-flex;align-items:baseline;gap:6px;padding:8px 13px;border-radius:9px;border:1px solid var(--line);background:var(--white);font-size:13.5px;font-weight:800;color:var(--ink);cursor:pointer}
 .pre-series button:hover{border-color:var(--olive)}
@@ -1066,6 +1069,43 @@ function parseDateInput(raw){
   return v < todayIso() ? { ok:false, past:true, value:v } : { ok:true, past:false, value:v };
 }
 const fmtDate = v => v ? `${v.slice(8,10)}/${v.slice(5,7)}/${v.slice(0,4)}` : '';
+/* Σύντομη γραφή για τα χαρτιά: 24/9/26 */
+const shortYear = v => { if (!v) return ''; const d = fromIso(v); return `${d.getDate()}/${d.getMonth()+1}/${String(d.getFullYear()).slice(2)}`; };
+/* Τα παραστατικά έχουν ημερομηνία που ΕΧΕΙ περάσει, όχι που έρχεται.
+   24 · 24/9 · 24/9/26 · 2409 · 240926 · -1 (χθες). Κενό = σήμερα. */
+function parseArcDate(raw){
+  const t = String(raw || '').trim();
+  if (!t) return { ok:true, value: todayIso() };
+  const today = fromIso(todayIso());
+  const back = t.match(/^-\s*(\d{1,3})$/);
+  if (back) return { ok:true, value: iso(addDays(today, -Number(back[1]))) };
+  let d, mo, y;
+  if (/^\d+$/.test(t)){
+    if (t.length <= 2) d = +t;
+    else if (t.length === 3){ d = +t.slice(0,1); mo = +t.slice(1); }
+    else if (t.length === 4){ d = +t.slice(0,2); mo = +t.slice(2); }
+    else if (t.length === 6 || t.length === 8){ d = +t.slice(0,2); mo = +t.slice(2,4); y = +t.slice(4); }
+    else return { ok:false };
+  } else {
+    const p = t.split(/[\/.\-\s]+/).filter(Boolean);
+    if (!p.length || p.length > 3 || !p.every(x => /^\d{1,4}$/.test(x))) return { ok:false };
+    [d, mo, y] = p.map(Number);
+  }
+  const mGiven = mo !== undefined, yGiven = y !== undefined;
+  if (yGiven && y < 100) y += 2000;
+  if (!mGiven) mo = today.getMonth() + 1;
+  if (!yGiven) y = today.getFullYear();
+  const mk = (yy, mm, dd) => { const x = new Date(yy, mm - 1, dd, 12); return (x.getFullYear() === yy && x.getMonth() === mm - 1 && x.getDate() === dd) ? x : null; };
+  let dt = mk(y, mo, d);
+  /* Ό,τι βγαίνει στο μέλλον γυρίζει πίσω: το χαρτί δεν είναι αυριανό. */
+  if (dt && dt > today){
+    if (!mGiven){ const b = new Date(y, mo - 2, 1, 12); dt = mk(b.getFullYear(), b.getMonth() + 1, d) || dt; }
+    else if (!yGiven) dt = mk(y - 1, mo, d) || dt;
+  }
+  if (!dt) return { ok:false };
+  return { ok:true, value: iso(dt) };
+}
+const ARC_DATE_HELP = 'Γράψε 24 για τις 24 αυτού του μήνα, 24/9 ή 24/9/26. Κενό = σήμερα.';
 const DATE_HELP = 'Γράψε 25 για τις 25 του μήνα, 2509 για 25/09, ή +3 για σε 3 μέρες.';
 const dateError = r => r.past ? 'Η ημέρα έχει περάσει. Διάλεξε σήμερα ή επόμενη μέρα.' : `Δεν κατάλαβα την ημερομηνία. ${DATE_HELP}`;
 const toMin = t => { const [h,m] = String(t || '00:00').split(':').map(Number); return (h||0)*60 + (m||0); };
@@ -1412,6 +1452,8 @@ async function initServiceWorker(){
   } catch(e){ swReg = null; }
 }
 const SNOOZE_MIN = 30;
+/* Ποιο κουμπί μπαίνει δίπλα στο «Δόθηκε», όταν χωράει μόνο ένα ακόμα */
+const notifSecond = () => LOCAL.settings.notifSecond === 'snooze' ? 'snooze' : 'close';
 function snoozeRemind(payload){
   if (!payload || !payload.title) return;
   LOCAL.snoozed = (LOCAL.snoozed || []).filter(x => x.tag !== payload.tag);
@@ -1436,18 +1478,18 @@ function remind(title, body, tag, opts = {}){
   const canGive = !!opts.canGive && !!ids;
   const payload = { title, body, tag, ids, canGive };
   if (notifState() === 'granted'){
-    /* Ο Chrome και ο Edge δέχονται μόνο 2 κουμπιά στην ειδοποίηση
-       (Notification.maxActions). Το «Κλείσιμο» μένει πάντα· αν δεν χωράνε
-       όλα, κόβεται το «Σε 30′», που υπάρχει ούτως ή άλλως στο μήνυμα μέσα
-       στη σελίδα. */
+    /* Ο Chrome και ο Edge δέχονται το πολύ 2 κουμπιά στην ειδοποίηση
+       (Notification.maxActions = 2 παντού). Το τρίτο απλώς δεν εμφανίζεται.
+       Γι' αυτό η σειρά είναι: «Δόθηκε» πρώτο και μετά ό,τι έχει επιλεγεί
+       στις Ρυθμίσεις. Ό,τι δεν χωρέσει υπάρχει στο μήνυμα μέσα στη σελίδα,
+       και το × της ειδοποίησης κλείνει ούτως ή άλλως. */
     const wish = [];
     if (canGive) wish.push({ action:'give', title:'Δόθηκε' });
-    wish.push({ action:'snooze', title:`Σε ${SNOOZE_MIN}′` });
-    wish.push({ action:'close', title:'Κλείσιμο' });
+    const bSnooze = { action:'snooze', title:`Σε ${SNOOZE_MIN}′` };
+    const bClose  = { action:'close',  title:'Κλείσιμο' };
+    wish.push(...(notifSecond() === 'close' ? [bClose, bSnooze] : [bSnooze, bClose]));
     const maxActs = Math.max(1, ('Notification' in window && Notification.maxActions) || 2);
-    const acts = wish.length <= maxActs ? wish
-               : maxActs < 2 ? [wish[0]]
-               : [...wish.slice(0, maxActs - 1), wish[wish.length - 1]];
+    const acts = wish.slice(0, maxActs);
     let shown = false;
     if (swReg && NOTIF_ACTIONS){
       try {
@@ -3344,7 +3386,12 @@ function renderArchive(){
       try { pc.setSelectionRange(at, at); } catch(_){}
     }
   }
-  if ($('arcPreDate')) $('arcPreDate').addEventListener('change', ev => { ARC.entryDate = ev.target.value || todayIso(); });
+  const pd = $('arcPreDate');
+  if (pd){
+    arcDatePreview(pd, $('arcPreDatePrev'));
+    pd.addEventListener('input', () => { arcDatePreview(pd, $('arcPreDatePrev')); arcPrePreview(); });
+    pd.addEventListener('keydown', ev => { if (ev.key === 'Enter'){ ev.preventDefault(); const c = $('arcPreCode'); if (c) c.focus(); } });
+  }
   const qi = $('arcQ');
   upperInput(qi);
   qi.addEventListener('input', () => { ARC.q = qi.value; const pos = qi.selectionStart; renderArchive(); const n = $('arcQ'); n.focus(); try { n.setSelectionRange(pos, pos); } catch(_){} });
@@ -3367,12 +3414,13 @@ function arcSort(codes){
 }
 const PV_TAG = { wait:'το περίμενα', fresh:'δεν είναι ακόμα στο SoftOne', done:'ήδη αρχειοθετημένο' };
 const pvKind = c => ARC.missing.has(c) ? 'wait' : ARC.stamps.has(c) ? 'done' : 'fresh';
-const pvChip = c => `<span class="pv ${pvKind(c)}">${esc(c)}<em>${PV_TAG[pvKind(c)]}</em></span>`;
+const pvChip = (c, d) => { const k = pvKind(c);
+  return `<span class="pv ${k}">${esc(c)}<em>${PV_TAG[k]}${k === 'fresh' && d ? ' · ' + esc(shortYear(d)) : ''}</em></span>`; };
 /* Τι θα γραφτεί και τι είναι το καθένα — ίδιο σε σελίδα και παράθυρο */
-function arcPreviewHTML(raw){
+function arcPreviewHTML(raw, date){
   const { codes, bad } = parseCodeList(raw, arcSeriesPick());
   if (!codes.length && !bad.length) return '';
-  const chips = codes.slice(0, 8).map(pvChip);
+  const chips = codes.slice(0, 8).map(c => pvChip(c, date));
   if (codes.length > 8) chips.push(`<span class="pv">+${codes.length - 8} ακόμα</span>`);
   bad.forEach(t => chips.push(`<span class="pv bad">${esc(t)}<em>δεν το κατάλαβα</em></span>`));
   return chips.join('');
@@ -3428,8 +3476,10 @@ function arcPreHTML(){
         <input class="inp" id="arcPreCode" spellcheck="false" autocomplete="off" inputmode="${ser ? 'numeric' : 'text'}"
           value="${esc(ARC.entry || '')}"
           placeholder="${ser ? `π.χ. ${ser.last || 1267} · πολλά με κόμμα · σειρά ${(ser.last || 1267) - 3}-${ser.last || 1267}` : 'π.χ. ΤΔΑ0001215 · πολλά μαζί με κόμμα'}"></label>
-      <label class="f"><span>Ημερομηνία χαρτιού</span>
-        <input class="inp" type="date" id="arcPreDate" value="${esc(ARC.entryDate || todayIso())}"></label>
+      <label class="f"><span>Ημερομηνία χαρτιού <em class="opt">μόνο για τα νέα</em></span>
+        <input class="inp dinp" id="arcPreDate" type="text" inputmode="numeric" autocomplete="off"
+          placeholder="24/9/26" title="${esc(ARC_DATE_HELP)}" value="${esc(shortYear(arcPaperDate()))}">
+        <small class="dprev" id="arcPreDatePrev"></small></label>
       <button class="btn primary" data-arc="pre-add">Καταχώρηση</button>
     </div>
     <p class="hint pre-prev plain" id="arcPreHint">${arcPreIdle(list.length)}</p>
@@ -3439,6 +3489,10 @@ function arcPreHTML(){
     </details>` : ''}
   </div>`;
 }
+/* Η τελευταία ημερομηνία χαρτιού που έβαλε ο χρήστης — μένει και μετά από
+   ανανέωση της σελίδας, ώστε να μην την ξαναγράφει κάθε φορά. */
+const arcPaperDate = () => ARC.entryDate || LOCAL.settings.arcDate || todayIso();
+function arcSetDate(v){ ARC.entryDate = v; LOCAL.settings.arcDate = v; saveLocal(); }
 const arcPreIdle = has => has
   ? 'Οι κατηγορίες μαθαίνονται από τα παραστατικά που έχεις ήδη περάσει. Για καινούρια σειρά, γράψε μία φορά ολόκληρο τον κωδικό.'
   : 'Γράψε ολόκληρο τον κωδικό την πρώτη φορά — μετά μαθαίνει τη σειρά και γράφεις σκέτο τον αριθμό.';
@@ -3452,7 +3506,15 @@ function arcPrePreview(){
   const { codes, bad } = parseCodeList(raw, arcSeriesPick());
   if (!codes.length && !bad.length){ hint.className = 'hint pre-prev plain'; hint.innerHTML = arcPreIdle(arcSeries().length); return; }
   hint.className = 'hint pre-prev';
-  hint.innerHTML = arcPreviewHTML(raw);
+  hint.innerHTML = arcPreviewHTML(raw, arcPaperDate());
+}
+/* Ό,τι γράφεις στην ημερομηνία το δείχνουμε ολόκληρο από κάτω */
+function arcDatePreview(inp, echo){
+  if (!inp || !echo) return;
+  const r = parseArcDate(inp.value);
+  if (r.ok){ arcSetDate(r.value); echo.textContent = longDate(r.value) + ' ' + String(fromIso(r.value).getFullYear()); echo.classList.remove('bad'); }
+  else { echo.textContent = ARC_DATE_HELP; echo.classList.add('bad'); }
+  return r;
 }
 function arcPreAdd(){
   const inp = $('arcPreCode'), hint = $('arcPreHint');
@@ -3464,9 +3526,14 @@ function arcPreAdd(){
     hint.innerHTML = `<span class="bad">${ser ? 'Διάλεξε κατηγορία και γράψε σκέτο τον αριθμό, π.χ. 1267.' : 'Γράψε τον αριθμό όπως στο SoftOne, π.χ. ΤΔΑ0001215.'}</span>`;
     return;
   }
-  const date = ($('arcPreDate') && $('arcPreDate').value) || todayIso();
-  ARC.entryDate = date;
-  const was = arcArchive(codes, date);
+  const r = $('arcPreDate') ? parseArcDate($('arcPreDate').value) : { ok:true, value: arcPaperDate() };
+  if (!r.ok){
+    hint.className = 'hint pre-prev plain';
+    hint.innerHTML = `<span class="bad">${esc(ARC_DATE_HELP)}</span>`;
+    $('arcPreDate').focus(); return;
+  }
+  arcSetDate(r.value);
+  const was = arcArchive(codes, r.value);
   toast(esc(arcAddedMsg(codes, was)));
   ARC.entry = '';
   ARC.refocus = true;
@@ -3488,7 +3555,6 @@ function openArcEntry(){
     return;
   }
   const box = $('modalBox');
-  let date = ARC.entryDate || todayIso();
   const done = [];
   const draw = (keep = '') => {
     const list = arcSeries(), ser = arcSeriesPick();
@@ -3505,11 +3571,13 @@ function openArcEntry(){
         <input class="inp" id="aeCode" spellcheck="false" autocomplete="off" inputmode="${ser ? 'numeric' : 'text'}"
           placeholder="${ser ? `π.χ. ${ser.last || 1267} · πολλά με κόμμα · σειρά ${(ser.last || 1267) - 3}-${ser.last || 1267}` : 'π.χ. ΤΔΑ0001215 · πολλά μαζί με κόμμα'}">
       </div>
-      <label class="f m-field"><span>Ημερομηνία χαρτιού</span>
-        <input class="inp" type="date" id="aeDate" value="${esc(date)}"></label>
+      <label class="f m-field"><span>Ημερομηνία χαρτιού <em class="opt">μόνο για όσα δεν είναι στο SoftOne</em></span>
+        <input class="inp dinp" id="aeDate" type="text" inputmode="numeric" autocomplete="off"
+          placeholder="24/9/26" title="${esc(ARC_DATE_HELP)}" value="${esc(shortYear(arcPaperDate()))}">
+        <small class="dprev" id="aeDatePrev"></small></label>
       <p class="hint pre-prev" id="aePrev"></p>
       ${done.length ? `<div class="f m-field"><span>Μπήκαν τώρα (${done.length})</span>
-        <div class="pre-prev">${done.slice(0, 12).map(d => `<span class="pv ${d.kind}">${esc(d.code)}<em>${PV_TAG[d.kind]}</em></span>`).join('')}${done.length > 12 ? `<span class="pv">+${done.length - 12}</span>` : ''}</div></div>` : ''}
+        <div class="pre-prev">${done.slice(0, 12).map(d => `<span class="pv ${d.kind}">${esc(d.code)}<em>${PV_TAG[d.kind]}${d.kind === 'fresh' && d.date ? ' · ' + esc(shortYear(d.date)) : ''}</em></span>`).join('')}${done.length > 12 ? `<span class="pv">+${done.length - 12}</span>` : ''}</div></div>` : ''}
       <div class="m-f"><span class="m-sp"></span>
         <button class="btn ghost" data-m="cancel">Κλείσιμο</button>
         <button class="btn primary" data-m="save">Καταχώρηση</button></div>`;
@@ -3517,9 +3585,10 @@ function openArcEntry(){
     upperInput(inp);
     inp.value = keep;
     inp.focus();
+    arcDatePreview($('aeDate'), $('aeDatePrev'));
     prev();
   };
-  const prev = () => { const p = $('aePrev'), i = $('aeCode'); if (p && i) p.innerHTML = arcPreviewHTML(i.value.trim()); };
+  const prev = () => { const p = $('aePrev'), i = $('aeCode'); if (p && i) p.innerHTML = arcPreviewHTML(i.value.trim(), arcPaperDate()); };
   const add = () => {
     const i = $('aeCode'); if (!i) return;
     const ser = arcSeriesPick();
@@ -3528,17 +3597,25 @@ function openArcEntry(){
       $('aePrev').innerHTML = `<span class="pv bad">${ser ? 'γράψε σκέτο τον αριθμό, π.χ. 1267' : 'γράψε ολόκληρο τον κωδικό'}<em>δεν το κατάλαβα</em></span>`;
       i.focus(); return;
     }
-    date = ($('aeDate') && $('aeDate').value) || todayIso();
-    ARC.entryDate = date;
-    const was = arcArchive(codes, date);
-    codes.forEach(c => done.unshift({ code:c, kind: was.wait.includes(c) ? 'wait' : was.done.includes(c) ? 'done' : 'fresh' }));
+    const r = $('aeDate') ? parseArcDate($('aeDate').value) : { ok:true, value: arcPaperDate() };
+    if (!r.ok){ arcDatePreview($('aeDate'), $('aeDatePrev')); $('aeDate').focus(); return; }
+    arcSetDate(r.value);
+    const was = arcArchive(codes, r.value);
+    codes.forEach(c => done.unshift({ code:c, date:r.value, kind: was.wait.includes(c) ? 'wait' : was.done.includes(c) ? 'done' : 'fresh' }));
     toast(esc(arcAddedMsg(codes, was)));
     draw('');
   };
   const close = () => { $('modal').hidden = true; box.innerHTML = ''; document.removeEventListener('keydown', onKey); };
   const onKey = e => { if (e.key === 'Escape') close(); };
-  box.oninput = e => { if (e.target.id === 'aeCode') prev(); if (e.target.id === 'aeDate') date = e.target.value || todayIso(); };
-  box.onkeydown = e => { if (e.key === 'Enter' && e.target.id === 'aeCode'){ e.preventDefault(); add(); } };
+  box.oninput = e => {
+    if (e.target.id === 'aeCode') prev();
+    if (e.target.id === 'aeDate'){ arcDatePreview($('aeDate'), $('aeDatePrev')); prev(); }
+  };
+  box.onkeydown = e => {
+    if (e.key !== 'Enter') return;
+    if (e.target.id === 'aeCode'){ e.preventDefault(); add(); }
+    else if (e.target.id === 'aeDate'){ e.preventDefault(); $('aeCode').focus(); }
+  };
   box.onclick = e => {
     const p = e.target.closest('[data-aep]');
     if (p){ LOCAL.settings.arcSeries = p.dataset.aep; saveLocal(); draw($('aeCode') ? $('aeCode').value : ''); return; }
@@ -5616,6 +5693,11 @@ function buildSettings(){
     <div class="card set">
       <h3>Ειδοποιήσεις υπολογιστή</h3>
       <div id="sNotif"></div>
+      <div class="set-row">
+        <div class="sr-t"><b>Δεύτερο κουμπί</b><small>Ο browser δείχνει το πολύ <b>δύο</b> κουμπιά. Το «Δόθηκε» κρατάει πάντα το πρώτο· διάλεξε τι θα είναι το δεύτερο. Και τα δύο υπάρχουν πάντα στο μήνυμα μέσα στη σελίδα, και το × της ειδοποίησης την κλείνει ούτως ή άλλως.</small></div>
+        <div class="seg" id="sNotifBtn2">${[['close','Κλείσιμο'],['snooze','Σε ' + SNOOZE_MIN + '′']].map(([v,l]) =>
+          `<button type="button" aria-pressed="${notifSecond() === v}" class="${notifSecond() === v ? 'on' : ''}" data-n2="${v}">${l}</button>`).join('')}</div>
+      </div>
       <div class="btns">
         <button class="btn primary sm" data-act="notif-on" id="sNotifBtn">Ενεργοποίηση</button>
         <button class="btn ghost sm" data-act="notif-test">Δοκιμαστική υπενθύμιση</button>
@@ -5719,6 +5801,15 @@ document.addEventListener('click', e => {
     LOCAL.settings.workDays = next.sort(); saveLocal();
     wd.classList.toggle('on', next.includes(d)); wd.setAttribute('aria-pressed', next.includes(d));
     checkReminders(); return;
+  }
+  const n2 = e.target.closest('[data-n2]');
+  if (n2){
+    LOCAL.settings.notifSecond = n2.dataset.n2; saveLocal();
+    $('sNotifBtn2').querySelectorAll('[data-n2]').forEach(b => {
+      const on = b.dataset.n2 === n2.dataset.n2;
+      b.classList.toggle('on', on); b.setAttribute('aria-pressed', on);
+    });
+    return;
   }
   const kf = e.target.closest('[data-kfilter]');
   if (kf){ kindFilter = kf.dataset.kfilter; $('kFilter').innerHTML = kindSeg(kindFilter, 'kfilter', true); renderMain(); return; }
