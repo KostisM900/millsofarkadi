@@ -115,6 +115,12 @@ input{font:inherit;color:inherit}
 .arc-pre .pre-form .f-grow{flex:1;min-width:200px}
 .arc-pre .chk-list{margin-top:12px}
 .arc-pre .dinp,.modal .arc-d .dinp{width:118px}
+.chk-add{display:flex;gap:8px;align-items:center;margin:0 0 14px}
+.chk-add .inp{flex:1;min-width:0;font-size:13px;padding:8px 11px}
+.rv-into{margin:0 0 14px}
+.rv-into .pre-series{margin:6px 0 0}
+.rv-into .pre-series button{font-size:12.5px;padding:7px 12px}
+.rv-into small.hint{margin-top:5px}
 .dprev.bad{color:var(--red)}
 .f > span .opt{font-style:normal;font-weight:600;color:var(--muted);opacity:.85}
 .pre-series{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 2px}
@@ -1239,7 +1245,7 @@ function logout(msg){
   Object.assign(VEH, { loaded:false, list:[], month:null });
   Object.assign(CHQ, { loaded:false, list:[], q:'' });
   Object.assign(ARC, { loaded:false, checks:[], missing:new Map(), docs:new Map(), stamps:new Map(), openId:null, openDocs:new Map(), review:[], reviewIssues:[], images:[], q:'',
-    entry:'', entryDate:'', refocus:false, preOpen:false });
+    entry:'', entryDate:'', refocus:false, preOpen:false, into:null });
   if ($('view-arc')) $('view-arc').innerHTML = '';
   pendingRoute = null;
   go('login');
@@ -2574,7 +2580,7 @@ const canArchive = () => !!(LOCAL.session && ARCHIVE_EMAILS.includes(String(LOCA
 const TESSERACT_URL = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
 const ARC = { loaded:false, loading:false, setupMissing:false, checks:[], missing:new Map(), docs:new Map(), stamps:new Map(), openId:null, openDocs:new Map(),
               review:[], reviewIssues:[], images:[], busy:false, filter:'missing', q:'',
-              entry:'', entryDate:'', refocus:false, preOpen:false };
+              entry:'', entryDate:'', refocus:false, preOpen:false, into:null };
 
 /* ---------- Ανάγνωση κωδικών από το κείμενο της εικόνας ---------- */
 const LAT2GR = { A:'Α',B:'Β',E:'Ε',Z:'Ζ',H:'Η',I:'Ι',K:'Κ',M:'Μ',N:'Ν',O:'Ο',P:'Ρ',T:'Τ',Y:'Υ',X:'Χ' };
@@ -3054,22 +3060,100 @@ function setArchived(codes, archived){
     'Η αλλαγή δεν αποθηκεύτηκε.'
   );
 }
+/* Το όνομα ενός ελέγχου: το εύρος ημερομηνιών και πόσα παραστατικά έχει */
+function checkLabel(codes, dates){
+  const ds = codes.map(c => (dates && dates[c]) || docDate(c)).filter(Boolean).sort();
+  const when = ds.length ? (ds[0] === ds[ds.length - 1] ? fmtDate(ds[0]) : `${fmtDate(ds[0])} – ${fmtDate(ds[ds.length - 1])}`) : 'Χωρίς ημερομηνία';
+  return `${when} · ${codes.length === 1 ? '1 παραστατικό' : codes.length + ' παραστατικά'}`;
+}
+/* Έλεγχοι που «πιάνουν» μια ημέρα: έχουν μέσα παραστατικό αυτής της μέρας */
+const checksOnDate = day => day ? checksSorted().filter(c => c.codes.some(x => docDate(x) === day)) : [];
+/* Πού θα πάει ό,τι μόλις διαβάστηκε: στον ανοιχτό έλεγχο, αλλιώς σε αυτόν
+   της ίδιας μέρας, αλλιώς σε καινούριο. */
+function arcIntoDefault(){
+  if (ARC.openId && ARC.checks.some(c => c.id === ARC.openId)) return ARC.openId;
+  const ds = ARC.review.map(r => r.date).filter(Boolean).sort();
+  const hit = ds.length ? checksOnDate(ds[0])[0] : null;
+  return hit ? hit.id : '';
+}
+const arcInto = () => (ARC.into === null || ARC.into === undefined) ? arcIntoDefault() : ARC.into;
+/* Οι επιλογές που δείχνουμε: νέος έλεγχος + όσοι ταιριάζουν */
+function arcIntoChoices(){
+  const ids = new Set();
+  const out = [];
+  const add = c => { if (c && !ids.has(c.id)){ ids.add(c.id); out.push(c); } };
+  if (ARC.openId) add(ARC.checks.find(c => c.id === ARC.openId));
+  const ds = [...new Set(ARC.review.map(r => r.date).filter(Boolean))].sort();
+  ds.forEach(d => checksOnDate(d).slice(0, 2).forEach(add));
+  if (!out.length) checksSorted().slice(0, 1).forEach(add);
+  return out.slice(0, 3);
+}
+/* Παραστατικό που δεν διαβάστηκε: μπαίνει στον ΙΔΙΟ έλεγχο, με την
+   ημερομηνία που έχουν τα υπόλοιπα του ελέγχου. */
+function checkAddCode(){
+  const chk = ARC.checks.find(c => c.id === ARC.openId);
+  const inp = $('chkAdd');
+  if (!chk || !inp) return;
+  const { codes } = parseCodeList(inp.value, arcSeriesPick());
+  if (!codes.length){ toast('Γράψε τον αριθμό όπως στο SoftOne, π.χ. ΤΔΑ0001215 — ή σκέτο το νούμερο.'); inp.focus(); return; }
+  const fresh = codes.filter(c => !chk.codes.includes(c));
+  if (!fresh.length){ toast(codes.length === 1 ? `Το ${esc(codes[0])} είναι ήδη μέσα.` : 'Είναι ήδη όλα μέσα.'); inp.value = ''; inp.focus(); return; }
+  /* Η ημερομηνία που κυριαρχεί στον έλεγχο */
+  const cnt = {};
+  chk.codes.forEach(c => { const d = docDate(c); if (d) cnt[d] = (cnt[d] || 0) + 1; });
+  const day = Object.entries(cnt).sort((a,b) => b[1] - a[1])[0];
+  const date = day ? day[0] : todayIso();
+  const before = { codes:[...chk.codes], label:chk.label };
+  const merged = [...new Set([...chk.codes, ...fresh])].sort(byCode);
+  const dates = {}; fresh.forEach(c => { dates[c] = date; });
+  const label = checkLabel(merged, dates);
+  arcMutate(
+    () => {
+      fresh.forEach(c => { ARC.missing.set(c, { code:c, doc_date:date }); ARC.openDocs.set(c, { code:c, doc_date:date, archived_at:null }); });
+      chk.codes = merged; chk.label = label; renderNav();
+    },
+    async () => {
+      await api('archive_docs?on_conflict=code', { method:'POST', body: fresh.map(c => ({ code:c, doc_date:date })), prefer:'resolution=ignore-duplicates,return=minimal' });
+      await api(`archive_checks?id=eq.${chk.id}`, { method:'PATCH', body:{ codes:merged, label }, prefer:'return=minimal' });
+    },
+    () => { fresh.forEach(c => { ARC.missing.delete(c); ARC.openDocs.delete(c); }); chk.codes = before.codes; chk.label = before.label; renderNav(); },
+    'Το παραστατικό δεν προστέθηκε.'
+  );
+  toast(fresh.length === 1 ? `Μπήκε το ${esc(fresh[0])} στον έλεγχο.` : `Μπήκαν ${fresh.length} παραστατικά στον έλεγχο.`);
+  const n = $('chkAdd'); if (n){ n.value = ''; n.focus(); }
+}
 async function saveReview(){
   const bad = ARC.review.filter(r => !codeParts(r.code));
   if (bad.length){ toast(`Διόρθωσε ${bad.length === 1 ? 'τον κωδικό' : 'τους κωδικούς'} με κόκκινο πριν την αποθήκευση.`); return; }
   const rows = [...new Map(ARC.review.map(r => [r.code, r])).values()];
   if (!rows.length) return;
   const codes = rows.map(r => r.code).sort(byCode);
-  const ds = rows.map(r => r.date).filter(Boolean).sort();
-  const when = ds.length ? (ds[0] === ds[ds.length - 1] ? fmtDate(ds[0]) : `${fmtDate(ds[0])} – ${fmtDate(ds[ds.length - 1])}`) : 'Χωρίς ημερομηνία';
-  const label = `${when} · ${codes.length === 1 ? '1 παραστατικό' : codes.length + ' παραστατικά'}`;
-  const id = uuid();
+  const dates = {}; rows.forEach(r => { if (r.date) dates[r.code] = r.date; });
+  const into = arcInto();
+  const target = into ? ARC.checks.find(c => c.id === into) : null;
   ARC.busy = true; renderArchive();
   try {
     await api('archive_docs?on_conflict=code', { method:'POST', body: rows.map(r => ({ code:r.code, doc_date:r.date || null })), prefer:'resolution=ignore-duplicates,return=minimal' });
+    if (target){
+      /* Μπαίνουν στον ίδιο έλεγχο — δεν φτιάχνεται δεύτερος για την ίδια μέρα. */
+      const fresh = codes.filter(c => !target.codes.includes(c));
+      const merged = [...new Set([...target.codes, ...codes])].sort(byCode);
+      const label = checkLabel(merged, dates);
+      await api(`archive_checks?id=eq.${target.id}`, { method:'PATCH', body:{ codes:merged, label }, prefer:'return=minimal' });
+      target.codes = merged; target.label = label;
+      ARC.review = []; ARC.reviewIssues = []; ARC.images = []; ARC.into = null;
+      ARC.busy = false;
+      toast(fresh.length
+        ? `${fresh.length === 1 ? 'Μπήκε 1 παραστατικό' : `Μπήκαν ${fresh.length} παραστατικά`} στον έλεγχο ${esc(label)}.`
+        : `Τα παραστατικά υπήρχαν ήδη στον έλεγχο ${esc(label)}.`);
+      await openCheck(target.id);
+      return;
+    }
+    const id = uuid();
+    const label = checkLabel(codes, dates);
     await api('archive_checks', { method:'POST', body:{ id, label, codes }, prefer:'return=minimal' });
     ARC.checks.unshift({ id, label, codes, created_at:new Date().toISOString() });
-    ARC.review = []; ARC.reviewIssues = []; ARC.images = [];
+    ARC.review = []; ARC.reviewIssues = []; ARC.images = []; ARC.into = null;
     ARC.busy = false;
     toast(`Αποθηκεύτηκε ο έλεγχος: ${esc(label)}. Τσέκαρε όσα έχεις αρχειοθετήσει.`);
     await openCheck(id);
@@ -3276,8 +3360,16 @@ function renderArchive(){
             const ser = {}; ARC.review.forEach(r => { const p = codeParts(r.code); if (p) ser[p.prefix] = (ser[p.prefix] || 0) + 1; });
             const list = Object.entries(ser).sort((a,b) => b[1] - a[1]);
             return `<p class="rv-sum">${list.length > 1 ? `${list.length} σειρές: ${list.map(([k,n]) => `${esc(k)} ×${n}`).join(', ')}. ` : ''}${ds.size > 1 ? `Από ${ds.size} μέρες. ` : ''}${ex.length ? `${ARC.review.length - ex.length} νέα, ${ex.length} υπάρχουν ήδη${arch ? ` (${arch} αρχειοθετημένα)` : ''}.` : 'Όλα νέα.'}</p>`; })()}</div>
-          <div class="btns"><button class="btn ghost sm" data-arc="cancel-review">Ακύρωση</button><button class="btn primary sm" data-arc="save-review" ${ARC.busy || !ARC.review.length ? 'disabled' : ''}>Αποθήκευση ελέγχου</button></div>
+          <div class="btns"><button class="btn ghost sm" data-arc="cancel-review">Ακύρωση</button><button class="btn primary sm" data-arc="save-review" ${ARC.busy || !ARC.review.length ? 'disabled' : ''}>${arcInto() ? 'Προσθήκη στον έλεγχο' : 'Αποθήκευση ελέγχου'}</button></div>
         </div>
+        ${(() => { const ch = arcIntoChoices(); if (!ch.length) return '';
+          const now = arcInto();
+          return `<div class="f rv-into"><span>Πού μπαίνουν</span>
+            <div class="pre-series" role="radiogroup" aria-label="Πού μπαίνουν τα παραστατικά">
+              ${ch.map(c => `<button type="button" role="radio" aria-checked="${now === c.id}" class="${now === c.id ? 'on' : ''}" data-arc="into" data-id="${esc(c.id)}">${esc(c.label)}</button>`).join('')}
+              <button type="button" role="radio" aria-checked="${!now}" class="${!now ? 'on' : ''}" data-arc="into" data-id="">Νέος έλεγχος</button>
+            </div>
+            <small class="hint">${now ? 'Θα προστεθούν σε υπάρχοντα έλεγχο, δεν θα φτιαχτεί δεύτερος για την ίδια μέρα.' : 'Θα φτιαχτεί καινούριος έλεγχος.'}</small></div>`; })()}
         ${gaps.length ? `<div class="notice">${ENV_SVG}<div><b>Λείπουν αριθμοί από τη σειρά.</b> Ίσως δεν διαβάστηκε κάποια γραμμή. Αν υπάρχει στη λίστα σου, πρόσθεσέ τη: ${gaps.map(g => `<button class="btn ghost sm" data-arc="add-gap" data-code="${esc(g)}">+ ${esc(g)}</button>`).join(' ')}</div></div>` : ''}
         ${ARC.reviewIssues.length ? `<div class="notice">${ENV_SVG}<div><b>${ARC.reviewIssues.length === 1 ? 'Μία γραμμή' : ARC.reviewIssues.length + ' γραμμές'} με ημερομηνία δεν διαβάστηκαν σωστά.</b> Κοίτα την εικόνα και πρόσθεσέ ${ARC.reviewIssues.length === 1 ? 'την' : 'τες'} με το χέρι από κάτω.</div></div>` : ''}
         <div class="review-grid">
@@ -3335,8 +3427,15 @@ function renderArchive(){
             ${waiting.length ? `<button class="btn ghost sm" data-arc="copy-missing">Αντιγραφή όσων περιμένω</button><button class="btn primary sm" data-arc="all-done">Όλα αρχειοθετημένα</button>` : ''}
           </div>
         </div>
+        <div class="chk-add">
+          <input class="inp" id="chkAdd" spellcheck="false" autocomplete="off"
+            placeholder="Δεν διαβάστηκε κάποιο; Γράψε τον αριθμό και πάτα Enter — μπαίνει σε αυτόν τον έλεγχο">
+          <button class="btn ghost sm" data-arc="chk-add">Προσθήκη</button>
+        </div>
         <div class="chk-list">${shown.length ? dayListHTML(shown) : `<p class="empty">${ARC.filter === 'missing' ? 'Δεν περιμένεις τίποτα από αυτόν τον έλεγχο.' : 'Κανένα ακόμα.'}</p>`}</div>
       </section>`;
+    const ca = $('chkAdd');
+    if (ca){ upperInput(ca); ca.addEventListener('keydown', ev => { if (ev.key === 'Enter'){ ev.preventDefault(); checkAddCode(); } }); }
     return;
   }
   /* 3. Αρχική: ό,τι περιμένεις ακόμα (από όλες τις μέρες) + προηγούμενοι έλεγχοι */
@@ -3654,6 +3753,8 @@ document.addEventListener('click', e => {
   if (!a) return;
   switch (a.dataset.arc){
     case 'save-review': saveReview(); break;
+    case 'into': ARC.into = a.dataset.id || ''; renderArchive(); break;
+    case 'chk-add': checkAddCode(); break;
     case 'cancel-review': ARC.review = []; ARC.reviewIssues = []; ARC.images.forEach(u => URL.revokeObjectURL(u)); ARC.images = []; renderArchive(); break;
     case 'rv-del': ARC.review.splice(Number(a.dataset.i), 1); renderArchive(); break;
     case 'rv-swap': { const r = ARC.review[Number(a.dataset.i)]; if (r && r.alt){ if (ARC.review.some(x => x.code === r.alt)){ toast(`Το ${esc(r.alt)} υπάρχει ήδη στη λίστα.`); break; } [r.code, r.alt] = [r.alt, r.code]; ARC.review.sort((x,y) => byCode(x.code, y.code)); renderArchive(); } break; }
